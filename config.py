@@ -59,14 +59,15 @@ class Config:
     else:
         # Individual parameters (DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME)
         # Supports cloud providers like TiDB Cloud with optional TLS/SSL
-        _db_ssl = os.environ.get("DB_SSL", "false").lower() in ("true", "1", "yes")
-        _db_base = (
-            f"mysql+pymysql://{quote_plus(os.environ.get('DB_USER', 'ebt_app'))}:"
-            f"{quote_plus(os.environ.get('DB_PASSWORD', ''))}"
-            f"@{os.environ.get('DB_HOST', 'localhost')}:{os.environ.get('DB_PORT', '3306')}"
-            f"/{os.environ.get('DB_NAME', 'ebt_system')}?charset=utf8mb4"
+        _db_user = quote_plus(os.environ.get("DB_USER", "ebt_app"))
+        _db_pass = quote_plus(os.environ.get("DB_PASSWORD", ""))
+        _db_host = os.environ.get("DB_HOST", "localhost")
+        _db_port = os.environ.get("DB_PORT", "3306")
+        _db_name = os.environ.get("DB_NAME", "ebt_system")
+
+        SQLALCHEMY_DATABASE_URI: str = (
+            f"mysql+pymysql://{_db_user}:{_db_pass}@{_db_host}:{_db_port}/{_db_name}?charset=utf8mb4"
         )
-        SQLALCHEMY_DATABASE_URI: str = _db_base
 
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
 
