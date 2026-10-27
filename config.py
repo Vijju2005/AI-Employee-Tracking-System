@@ -57,19 +57,44 @@ class Config:
         _sqlite_path = os.path.join(os.path.dirname(__file__), "ebt_system.db")
         SQLALCHEMY_DATABASE_URI: str = f"sqlite:///{_sqlite_path}"
     else:
-        SQLALCHEMY_DATABASE_URI: str = (
+        # Individual parameters (DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME)
+        # Supports cloud providers like TiDB Cloud with optional TLS/SSL
+        _db_ssl = os.environ.get("DB_SSL", "false").lower() in ("true", "1", "yes")
+        _db_base = (
             f"mysql+pymysql://{quote_plus(os.environ.get('DB_USER', 'ebt_app'))}:"
             f"{quote_plus(os.environ.get('DB_PASSWORD', ''))}"
             f"@{os.environ.get('DB_HOST', 'localhost')}:{os.environ.get('DB_PORT', '3306')}"
             f"/{os.environ.get('DB_NAME', 'ebt_system')}?charset=utf8mb4"
         )
+        SQLALCHEMY_DATABASE_URI: str = _db_base
+
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
-    SQLALCHEMY_ENGINE_OPTIONS: dict = {
+
+    # Configure engine connect_args for TLS verification when using TiDB Cloud or secure MySQL
+    _engine_options: dict = {
         "pool_pre_ping": True,
         "pool_recycle": 300,
         "pool_timeout": 20,
         "max_overflow": 10,
     }
+
+    # Automatically enable SSL/TLS CA verification if DB_SSL=true or if DATABASE_URL contains tidbcloud.com / ssl
+    _is_tidb = ("tidbcloud.com" in (_cloud_db_url or "") or os.environ.get("DB_HOST", "").endswith("tidbcloud.com") or os.environ.get("DB_SSL", "").lower() in ("true", "1", "yes"))
+    if _is_tidb:
+        try:
+            import certifi
+            _ca_path = certifi.where()
+        except ImportError:
+            _ca_path = "/etc/ssl/certs/ca-certificates.crt"
+
+        _engine_options["connect_args"] = {
+            "ssl": {
+                "ca": _ca_path,
+                "check_hostname": True,
+            }
+        }
+
+    SQLALCHEMY_ENGINE_OPTIONS: dict = _engine_options
 
     # ── Application ────────────────────────────────────────────────────
     APP_NAME: str = os.environ.get("APP_NAME", "EBT System")
