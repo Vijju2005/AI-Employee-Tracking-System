@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Leave Management{% endblock %}
+{% block topbar_title %}Leave Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#128197; Leave Management</h1>
+    <p>{% if current_user.is_admin %}Review and manage employee leave requests.{% else %}Apply for leave and track your requests.{% endif %}</p>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    {% if not current_user.is_admin %}
+    <a href="{{ url_for('leave.apply') }}" class="btn btn-primary">&#43; Apply Leave</a>
+    {% endif %}
+    <a href="{{ url_for('reports.index') }}" class="btn btn-export">&#128229; Export</a>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="filters-bar">
+  <div class="filter-group">
+    <span class="filter-label">All Status</span>
+    <select name="status" class="form-control">
+      <option value="">All Status</option>
+      {% for s in ['Pending','Approved','Rejected'] %}
+      <option value="{{ s }}" {% if request.args.get('status')==s %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Date Range</span>
+    <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date','') }}" placeholder="From"/>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">&nbsp;</span>
+    <input type="date" name="to_date" class="form-control" value="{{ request.args.get('to_date','') }}" placeholder="To"/>
+  </div>
+  <button type="submit" class="btn btn-outline">&#128269; Filter</button>
+  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          {% if current_user.is_admin %}<th>Employee</th>{% endif %}
+          <th>Leave Type</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>Reason</th>
+          <th>Status</th>
+          {% if current_user.is_admin %}<th>Action</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for lr in leave_requests %}
+        <tr>
+          {% if current_user.is_admin %}
+          <td><strong>{{ lr.employee.full_name }}</strong></td>
+          {% endif %}
+          <td>{{ lr.leave_type.value }}</td>
+          <td>{{ lr.start_date.strftime('%Y-%m-%d') }}</td>
+          <td>{{ lr.end_date.strftime('%Y-%m-%d') }}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ lr.reason }}">
+            {{ lr.reason[:50] }}{{ '...' if lr.reason|length > 50 else '' }}
+          </td>
+          <td>
+            {% if lr.status.value == 'Approved' %}
+              <span class="badge badge-success">&#9989; Approved</span>
+            {% elif lr.status.value == 'Rejected' %}
+              <span class="badge badge-danger">&#10060; Rejected</span>
+            {% else %}
+              <span class="badge badge-warning">&#9203; Pending</span>
+            {% endif %}
+          </td>
+          {% if current_user.is_admin %}
+          <td>
+            {% if lr.status.value == 'Pending' %}
+            <a href="{{ url_for('leave.review', leave_id=lr.id) }}" class="btn btn-sm btn-primary">Review</a>
+            {% else %}&mdash;{% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{{ 7 if current_user.is_admin else 5 }}">
+            <div class="empty-state">
+              <div class="empty-icon">&#128197;</div>
+              <h3>No leave requests</h3>
+              {% if not current_user.is_admin %}
+              <p>Apply for leave using the button above.</p>
+              <a href="{{ url_for('leave.apply') }}" class="btn btn-primary mt-2">Apply Leave</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

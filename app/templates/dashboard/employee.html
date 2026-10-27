@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#127968; Welcome, {{ employee.full_name if employee else current_user.username }}</h1>
+    <p>Here's your work summary for today &mdash; {{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+</div>
+
+<!-- Check-in hero card (full width) -->
+<div class="check-status-card" style="margin-bottom:1rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <div style="font-size:.72rem;opacity:.65;margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.06em;">Today's Status</div>
+      {% if attendance %}
+        {% if attendance.check_out %}
+          <div class="status-time">&#128683; Checked Out</div>
+          <div class="status-label">{{ attendance.check_in.strftime('%I:%M %p') }} &mdash; {{ attendance.check_out.strftime('%I:%M %p') }}</div>
+        {% else %}
+          <div class="status-time">&#128994; Checked In</div>
+          <div class="status-label">Since {{ attendance.check_in.strftime('%I:%M %p') }}</div>
+        {% endif %}
+      {% else %}
+        <div class="status-time" style="font-size:1.3rem;">Not Checked In</div>
+        <div class="status-label">You haven't checked in today</div>
+      {% endif %}
+    </div>
+    <div class="action-buttons">
+      {% if not attendance %}
+        <form method="POST" action="{{ url_for('attendance.checkin') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button class="btn btn-success btn-lg">&#9989; Check In</button>
+        </form>
+      {% elif not attendance.check_out %}
+        <form method="POST" action="{{ url_for('attendance.checkout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button class="btn btn-primary">&#128683; Check Out</button>
+        </form>
+        {% if not active_break %}
+          <form method="POST" action="{{ url_for('breaks.start') }}" style="display:flex;gap:.4rem;align-items:center;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <select name="category" class="form-control" style="min-width:110px;padding:.42rem .6rem;">
+              <option value="Lunch">Lunch</option>
+              <option value="Tea">Tea</option>
+              <option value="Coffee">Coffee</option>
+              <option value="Personal">Personal</option>
+              <option value="Other">Other</option>
+            </select>
+            <button class="btn btn-warning">&#9749; Start Break</button>
+          </form>
+        {% else %}
+          <form method="POST" action="{{ url_for('breaks.end', break_id=active_break.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button class="btn btn-outline" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff;">
+              &#9632; End Break
+            </button>
+          </form>
+        {% endif %}
+        <a href="{{ url_for('leave.apply') }}" class="btn" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.35);color:#fff;">
+          &#128197; Apply Leave
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Two-column content -->
+<div class="emp-dashboard-grid">
+
+  <!-- Left: Today's Attendance + Quick Links -->
+  <div>
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header">
+        <h3>&#128203; Today's Attendance</h3>
+      </div>
+      <div class="card-body">
+        <div class="today-att-grid">
+          <div class="today-att-item">
+            <div class="att-label">Check In</div>
+            <div class="att-time">{{ attendance.check_in.strftime('%I:%M %p') if attendance else '—' }}</div>
+          </div>
+          <div class="today-att-item">
+            <div class="att-label">Check Out</div>
+            <div class="att-time">{{ attendance.check_out.strftime('%I:%M %p') if attendance and attendance.check_out else '—' }}</div>
+          </div>
+          <div class="today-att-item">
+            <div class="att-label">Total Hours</div>
+            <div class="att-time">
+              {% if attendance %}
+                {{ "%.0f"|format(attendance.net_working_minutes // 60) }}h {{ "%.0f"|format(attendance.net_working_minutes % 60) }}m
+              {% else %}0h 0m{% endif %}
+            </div>
+          </div>
+          <div class="today-att-item">
+            <div class="att-label">Break Time</div>
+            <div class="att-time">
+              {% if attendance %}{{ "%.0f"|format(attendance.break_duration_minutes) }}m{% else %}0m{% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>&#9889; Quick Links</h3></div>
+      <div class="card-body">
+        <div class="quick-actions">
+          <a href="{{ url_for('attendance.history') }}" class="quick-action-btn">
+            <div class="qa-icon" style="background:#DBEAFE;color:#2563EB;">&#128203;</div>
+            <span>View Attendance History</span>
+            <span class="qa-arrow">&#8250;</span>
+          </a>
+          <a href="{{ url_for('leave.index') }}" class="quick-action-btn">
+            <div class="qa-icon" style="background:#FEF3C7;color:#F59E0B;">&#128197;</div>
+            <span>Leave Requests</span>
+            <span class="qa-arrow">&#8250;</span>
+          </a>
+          <a href="{{ url_for('breaks.index') }}" class="quick-action-btn">
+            <div class="qa-icon" style="background:#DCFCE7;color:#16A34A;">&#9749;</div>
+            <span>Break History</span>
+            <span class="qa-arrow">&#8250;</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Mini Stats + AI Prediction -->
+  <div>
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-header"><h3>&#128202; Working Hours</h3></div>
+      <div class="card-body">
+        <div class="mini-stats">
+          <div class="mini-stat">
+            <div class="ms-icon">&#8987;</div>
+            <div class="ms-value">
+              {% if attendance %}
+                {{ "%.0f"|format(attendance.net_working_minutes // 60) }}h {{ "%.0f"|format(attendance.net_working_minutes % 60) }}m
+              {% else %}0h 0m{% endif %}
+            </div>
+            <div class="ms-label">Working Hours</div>
+          </div>
+          <div class="mini-stat">
+            <div class="ms-icon">&#9749;</div>
+            <div class="ms-value">
+              {% if attendance %}{{ "%.0f"|format(attendance.break_duration_minutes) }}m{% else %}0m{% endif %}
+            </div>
+            <div class="ms-label">Break Time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Prediction mini -->
+    <div class="card">
+      <div class="card-header">
+        <h3>&#129302; AI Prediction</h3>
+        <a href="{{ url_for('ml.index') }}" class="btn btn-sm btn-outline">View Details</a>
+      </div>
+      <div class="card-body">
+        <div class="ai-card">
+          <div class="ai-header">&#129302; Smart Break Prediction</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+            <div>
+              <div class="ai-value">{{ prediction.break_min if prediction else '--' }}<span style="font-size:1rem;">m</span></div>
+              <div class="ai-label">Predicted Break Duration</div>
+            </div>
+            <div>
+              <div class="ai-value">{{ prediction.avail_h if prediction else '--' }}<span style="font-size:1rem;">h</span></div>
+              <div class="ai-label">Estimated Available Working</div>
+            </div>
+          </div>
+          <div class="ai-notice">Based on historical data. Accuracy improves with more records.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

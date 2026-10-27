@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% set is_edit = employee is defined and employee %}
+{% block title %}{{ 'Edit' if is_edit else 'Add' }} Employee{% endblock %}
+{% block topbar_title %}{{ 'Edit' if is_edit else 'Add' }} Employee{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>{{ '&#9998; Edit' if is_edit else '&#43; Add' }} Employee</h1>
+    <p>{{ 'Update employee information.' if is_edit else 'Register a new employee in the system.' }}</p>
+  </div>
+  <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">&larr; Back</a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">&#9888; {{ error }}</div>
+{% endif %}
+
+<div class="card" style="max-width:700px;">
+  <div class="card-body">
+    <form method="POST"
+          action="{{ url_for('employees.edit_employee', emp_id=employee.id) if is_edit else url_for('employees.add_employee') }}"
+          data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Employee ID <span class="req">*</span></label>
+          <input type="text" name="employee_id" class="form-control"
+                 value="{{ employee.employee_id if is_edit else '' }}"
+                 placeholder="EMP001" required {{ 'readonly' if is_edit else '' }}/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Full Name <span class="req">*</span></label>
+          <input type="text" name="full_name" class="form-control"
+                 value="{{ employee.full_name if is_edit else '' }}"
+                 placeholder="Full Name" required/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email <span class="req">*</span></label>
+          <input type="email" name="email" class="form-control"
+                 value="{{ employee.email if is_edit else '' }}"
+                 placeholder="email@company.com" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input type="text" name="phone" class="form-control"
+                 value="{{ employee.phone or '' if is_edit else '' }}"
+                 placeholder="+91 XXXXX XXXXX"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <select name="department_id" class="form-control">
+            <option value="">-- Select Department --</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}"
+              {% if is_edit and employee.department_id == d.id %}selected{% endif %}>
+              {{ d.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Designation</label>
+          <input type="text" name="designation" class="form-control"
+                 value="{{ employee.designation or '' if is_edit else '' }}"
+                 placeholder="Software Engineer"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Work Schedule</label>
+          <select name="work_schedule_id" class="form-control">
+            <option value="">-- Select Schedule --</option>
+            {% for s in schedules %}
+            <option value="{{ s.id }}"
+              {% if is_edit and employee.work_schedule_id == s.id %}selected{% endif %}>
+              {{ s.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-control">
+            <option value="active" {% if not is_edit or employee.status.value == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if is_edit and employee.status.value == 'inactive' %}selected{% endif %}>Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      {% if not is_edit %}
+      <hr style="margin:1rem 0;border-color:#E2E8F0;"/>
+      <p style="font-size:.85rem;color:#64748B;margin-bottom:.75rem;">
+        <strong>Login Credentials</strong> — Creates a portal account for the employee.
+      </p>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Username <span class="req">*</span></label>
+          <input type="text" name="username" class="form-control"
+                 placeholder="john.doe" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Initial Password <span class="req">*</span></label>
+          <input type="password" name="password" class="form-control"
+                 placeholder="Min. 8 characters" required/>
+        </div>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:.75rem;margin-top:.5rem;">
+        <button type="submit" class="btn btn-primary">
+          {{ '&#128190; Save Changes' if is_edit else '&#128100; Add Employee' }}
+        </button>
+        <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

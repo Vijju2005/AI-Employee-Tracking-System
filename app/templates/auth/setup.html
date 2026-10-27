@@ -1,0 +1,47 @@
+{% extends "base_auth.html" %}
+{% block title %}First Admin Setup{% endblock %}
+
+{% block auth_content %}
+<div class="login-brand">
+  <span class="brand-logo">&#127970; EBT System</span>
+  <span class="brand-tagline">First-Time Setup</span>
+</div>
+
+<div style="text-align:center;margin-bottom:1.25rem;">
+  <h2 style="font-size:1.1rem;font-weight:700;color:#163A5F;margin:0;">Create Admin Account</h2>
+  <p style="font-size:.8rem;color:#64748B;margin:.25rem 0 0;">This is a one-time setup. Only available before any admin exists.</p>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">&#9888; {{ error }}</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('auth.setup') }}" data-loading>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+  <div class="form-group">
+    <label class="form-label" for="username">Username <span class="req">*</span></label>
+    <input type="text" id="username" name="username" class="form-control"
+           placeholder="admin" required autocomplete="username"/>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="email">Email <span class="req">*</span></label>
+    <input type="email" id="email" name="email" class="form-control"
+           placeholder="admin@company.com" required/>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="password">Password <span class="req">*</span></label>
+    <input type="password" id="password" name="password" class="form-control"
+           placeholder="Min. 8 characters" required/>
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="confirm_password">Confirm Password <span class="req">*</span></label>
+    <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+           placeholder="Repeat password" required/>
+  </div>
+
+  <button type="submit" class="btn btn-primary w-100 btn-lg">
+    &#128737; Create Admin &amp; Login
+  </button>
+</form>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Employees{% endblock %}
+{% block topbar_title %}Employee Management (Admin){% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#128101; Employee Management</h1>
+    <p>Add, view, edit and manage employee records.</p>
+  </div>
+  <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">&#43; Add Employee</a>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="filters-bar">
+  <div class="filter-group">
+    <span class="filter-label">Search</span>
+    <input type="text" name="q" class="form-control" placeholder="Search by name, ID or email..."
+           value="{{ request.args.get('q','') }}" style="min-width:200px;"/>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Department</span>
+    <select name="dept" class="form-control">
+      <option value="">All</option>
+      {% for d in departments %}
+      <option value="{{ d.id }}" {% if request.args.get('dept')|string == d.id|string %}selected{% endif %}>
+        {{ d.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Status</span>
+    <select name="status" class="form-control">
+      <option value="">All</option>
+      <option value="active" {% if request.args.get('status')=='active' %}selected{% endif %}>Active</option>
+      <option value="inactive" {% if request.args.get('status')=='inactive' %}selected{% endif %}>Inactive</option>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-outline">&#128269; Filter</button>
+  <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">Reset</a>
+</form>
+
+<div class="card">
+  <div class="card-header">
+    <h3>Employees ({{ employees.total if employees.total is defined else employees|length }})</h3>
+    <span style="font-size:.78rem;color:var(--text-sec);">
+      Showing {{ employees.items|length }} of {{ employees.total }} records
+    </span>
+  </div>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Email</th><th>Department</th>
+          <th>Designation</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees.items %}
+        <tr>
+          <td><code style="background:var(--bg);padding:.15rem .4rem;border-radius:4px;font-size:.78rem;">{{ emp.employee_id }}</code></td>
+          <td><strong>{{ emp.full_name }}</strong></td>
+          <td style="color:var(--text-sec);">{{ emp.email }}</td>
+          <td>{{ emp.department.name if emp.department else '—' }}</td>
+          <td>{{ emp.designation or '—' }}</td>
+          <td>
+            {% if emp.status.value == 'active' %}
+              <span class="badge badge-success">Active</span>
+            {% else %}
+              <span class="badge badge-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('employees.edit_employee', emp_id=emp.id) }}"
+               class="btn btn-sm btn-outline" title="Edit">&#9998; Edit</a>
+            <form method="POST" action="{{ url_for('employees.toggle_status', emp_id=emp.id) }}"
+                  style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button type="submit" class="btn btn-sm btn-warning"
+                      data-confirm="Toggle status for {{ emp.full_name }}?">
+                {% if emp.status.value == 'active' %}&#9940;{% else %}&#9989;{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              <div class="empty-icon">&#128101;</div>
+              <h3>No employees found</h3>
+              <p>Add your first employee to get started.</p>
+              <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary mt-2">Add Employee</a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if employees.pages is defined and employees.pages > 1 %}
+  <div style="padding:1rem;">
+    <div class="pagination">
+      {% if employees.has_prev %}
+      <a href="{{ url_for('employees.list_employees', page=employees.prev_num, **request.args) }}"
+         class="page-link">&laquo; Prev</a>
+      {% endif %}
+      {% for p in employees.iter_pages() %}
+        {% if p %}
+          <a href="{{ url_for('employees.list_employees', page=p, **request.args) }}"
+             class="page-link {{ 'active' if p == employees.page }}">{{ p }}</a>
+        {% else %}
+          <span class="page-link disabled">&hellip;</span>
+        {% endif %}
+      {% endfor %}
+      {% if employees.has_next %}
+      <a href="{{ url_for('employees.list_employees', page=employees.next_num, **request.args) }}"
+         class="page-link">Next &raquo;</a>
+      {% endif %}
+    </div>
+    <div style="text-align:center;font-size:.76rem;color:var(--text-sec);margin-top:.5rem;">
+      Showing {{ ((employees.page-1)*employees.per_page)+1 }}–{{ [employees.page*employees.per_page, employees.total]|min }} of {{ employees.total }} employees
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

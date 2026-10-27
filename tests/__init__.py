@@ -1,0 +1,1 @@
+"""EBT System — tests package"""

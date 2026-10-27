@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}EBT System{% endblock %} | Employee Break Tracking</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div class="app-wrapper">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-inner">
+        <div class="sidebar-brand-icon">&#128202;</div>
+        <div>
+          <span class="brand-name">EBT System</span>
+          <span class="brand-sub">Break Tracking &amp; Prediction</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% if current_user.is_authenticated and current_user.is_admin %}
+        <a href="{{ url_for('dashboard.admin_dashboard') }}" class="nav-item">
+          <span class="nav-icon">&#128202;</span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('employees.list_employees') }}" class="nav-item">
+          <span class="nav-icon">&#128101;</span><span class="nav-label">Employees</span>
+        </a>
+        <a href="{{ url_for('attendance.index') }}" class="nav-item">
+          <span class="nav-icon">&#128203;</span><span class="nav-label">Attendance</span>
+        </a>
+        <a href="{{ url_for('breaks.index') }}" class="nav-item">
+          <span class="nav-icon">&#9749;</span><span class="nav-label">Breaks</span>
+        </a>
+        <a href="{{ url_for('leave.index') }}" class="nav-item">
+          <span class="nav-icon">&#128197;</span><span class="nav-label">Leave Management</span>
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="nav-item">
+          <span class="nav-icon">&#128196;</span><span class="nav-label">Reports</span>
+        </a>
+        <a href="{{ url_for('ml.index') }}" class="nav-item">
+          <span class="nav-icon">&#129302;</span><span class="nav-label">Analytics</span>
+        </a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-item nav-logout">
+          <span class="nav-icon">&#128682;</span><span class="nav-label">Logout</span>
+        </a>
+      {% elif current_user.is_authenticated %}
+        <a href="{{ url_for('dashboard.employee_dashboard') }}" class="nav-item">
+          <span class="nav-icon">&#127968;</span><span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('attendance.history') }}" class="nav-item">
+          <span class="nav-icon">&#128203;</span><span class="nav-label">Attendance</span>
+        </a>
+        <a href="{{ url_for('breaks.index') }}" class="nav-item">
+          <span class="nav-icon">&#9749;</span><span class="nav-label">Breaks</span>
+        </a>
+        <a href="{{ url_for('leave.index') }}" class="nav-item">
+          <span class="nav-icon">&#128197;</span><span class="nav-label">Leave Requests</span>
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="nav-item">
+          <span class="nav-icon">&#128196;</span><span class="nav-label">Reports</span>
+        </a>
+        <a href="{{ url_for('ml.index') }}" class="nav-item">
+          <span class="nav-icon">&#129302;</span><span class="nav-label">Analytics</span>
+        </a>
+        <a href="{{ url_for('auth.logout') }}" class="nav-item nav-logout">
+          <span class="nav-icon">&#128682;</span><span class="nav-label">Logout</span>
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      {% if current_user.is_authenticated %}
+      <div class="sidebar-user">
+        <div class="avatar">{{ current_user.username[0].upper() }}</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name">{{ current_user.username }}</div>
+          <div class="sidebar-user-role">{{ current_user.role.value|title }}</div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Sidebar overlay (mobile) -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu">&#9776;</button>
+        <span class="topbar-title">{% block topbar_title %}EBT System{% endblock %}</span>
+      </div>
+      <div class="topbar-center">
+        <div class="topbar-search">
+          <span class="topbar-search-icon">&#128269;</span>
+          <input type="text" placeholder="Search employees, reports..." class="topbar-search-input" aria-label="Search"/>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span id="liveClock" class="topbar-clock"></span>
+        <button class="topbar-bell" aria-label="Notifications" title="Notifications">&#128276;</button>
+        {% if current_user.is_authenticated %}
+        <div class="topbar-user-pill">
+          <div class="topbar-avatar">{{ current_user.username[0].upper() }}</div>
+          <div class="topbar-user-info">
+            <span class="topbar-user-name">{{ current_user.username }}</span>
+            <span class="topbar-user-role">{{ current_user.role.value|title }}</span>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Flash messages -->
+    <div class="flash-container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="flash-msg alert-{{ 'danger' if category == 'error' else category }}">
+            <span>{{ message }}</span>
+            <button class="close-flash" aria-label="Close">&#10005;</button>
+          </div>
+        {% endfor %}
+      {% endwith %}
+    </div>
+
+    <!-- Page content -->
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Review Leave Request{% endblock %}
+{% block topbar_title %}Review Leave Request{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#128203; Review Leave Request</h1>
+    <p>Approve or reject this leave request.</p>
+  </div>
+  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">&larr; Back</a>
+</div>
+
+<div class="card" style="max-width:600px;">
+  <div class="card-body">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:1.5rem;">
+      <tr><td style="padding:.5rem 0;color:#64748B;width:40%;">Employee</td>
+          <td><strong>{{ leave.employee.full_name }}</strong></td></tr>
+      <tr><td style="padding:.5rem 0;color:#64748B;">Leave Type</td>
+          <td>{{ leave.leave_type.value }}</td></tr>
+      <tr><td style="padding:.5rem 0;color:#64748B;">Date Range</td>
+          <td>{{ leave.start_date }} — {{ leave.end_date }}</td></tr>
+      <tr><td style="padding:.5rem 0;color:#64748B;">Day Type</td>
+          <td>{{ leave.day_type.value }}</td></tr>
+      <tr><td style="padding:.5rem 0;color:#64748B;">Reason</td>
+          <td>{{ leave.reason }}</td></tr>
+      <tr><td style="padding:.5rem 0;color:#64748B;">Current Status</td>
+          <td><span class="badge badge-warning">{{ leave.status.value }}</span></td></tr>
+    </table>
+
+    {% if leave.status.value == 'Pending' %}
+    <form method="POST" action="{{ url_for('leave.review', leave_id=leave.id) }}" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="form-group">
+        <label class="form-label">Admin Notes (optional)</label>
+        <textarea name="admin_notes" class="form-control" rows="3"
+                  placeholder="Add any notes for the employee..."></textarea>
+      </div>
+      <div style="display:flex;gap:.75rem;">
+        <button type="submit" name="action" value="approve" class="btn btn-success">
+          &#9989; Approve
+        </button>
+        <button type="submit" name="action" value="reject" class="btn btn-danger"
+                data-confirm="Reject this leave request?">
+          &#10060; Reject
+        </button>
+      </div>
+    </form>
+    {% else %}
+    <div class="alert alert-info">This request has already been {{ leave.status.value|lower }}.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

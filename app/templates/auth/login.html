@@ -1,0 +1,77 @@
+{% extends "base_auth.html" %}
+{% block title %}Login{% endblock %}
+
+{% block auth_content %}
+<div class="login-tabs" id="loginTabs">
+  <div class="login-tab active" data-role="admin" onclick="switchTab('admin')">&#128737; Admin</div>
+  <div class="login-tab" data-role="employee" onclick="switchTab('employee')">&#128100; Employee</div>
+</div>
+
+<div style="text-align:center;margin-bottom:1.25rem;">
+  <h2 style="font-size:1.1rem;font-weight:700;color:#163A5F;margin:0;">Welcome Back</h2>
+  <p style="font-size:.8rem;color:#64748B;margin:.25rem 0 0;">Sign in to your account</p>
+</div>
+
+{% if error %}
+<div class="alert alert-danger" style="margin-bottom:1rem;">&#9888; {{ error }}</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('auth.login') }}" data-loading>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  <input type="hidden" name="role_hint" id="roleHint" value="admin"/>
+
+  <div class="form-group">
+    <label class="form-label" for="identifier">&#128100; Username / Email</label>
+    <input type="text" id="identifier" name="identifier" class="form-control"
+           placeholder="Enter your username or email" required autocomplete="username"/>
+  </div>
+
+  <div class="form-group">
+    <label class="form-label" for="password">&#128274; Password</label>
+    <div style="position:relative;">
+      <input type="password" id="password" name="password" class="form-control"
+             placeholder="Enter your password" required autocomplete="current-password"
+             style="padding-right:2.5rem;"/>
+      <button type="button" onclick="togglePwd()" title="Show/hide password"
+              style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);
+                     background:none;border:none;cursor:pointer;color:#64748B;font-size:1rem;">
+        &#128065;
+      </button>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+    <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#64748B;cursor:pointer;">
+      <input type="checkbox" name="remember" style="accent-color:#2563EB;"/> Remember me
+    </label>
+    <a href="#" style="font-size:.82rem;color:#2563EB;">Forgot password?</a>
+  </div>
+
+  <button type="submit" class="btn btn-primary w-100 btn-lg">
+    Login
+  </button>
+</form>
+
+<p style="text-align:center;font-size:.78rem;color:#64748B;margin-top:1.25rem;">
+  Better Breaks. Smarter Teams. Higher Productivity.
+</p>
+
+<p style="text-align:center;font-size:.82rem;color:#64748B;margin-top:.75rem;">
+  Don't have an account?
+  <a href="{{ url_for('auth.register') }}" style="color:#2563EB;font-weight:600;">Sign Up</a>
+</p>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function switchTab(role) {
+  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-role="${role}"]`).classList.add('active');
+  document.getElementById('roleHint').value = role;
+}
+function togglePwd() {
+  const p = document.getElementById('password');
+  p.type = p.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Breaks{% endblock %}
+{% block topbar_title %}Attendance & Break Tracking{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#9749; Break Management</h1>
+    <p>Track and manage employee break records by category.</p>
+  </div>
+  <a href="{{ url_for('reports.index') }}" class="btn btn-export">&#128229; Export</a>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="filters-bar">
+  <div class="filter-group">
+    <span class="filter-label">From</span>
+    <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date','') }}"/>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">To</span>
+    <input type="date" name="to_date" class="form-control" value="{{ request.args.get('to_date','') }}"/>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Category</span>
+    <select name="category" class="form-control">
+      <option value="">All</option>
+      {% for cat in ['Lunch','Tea','Coffee','Personal','Other'] %}
+      <option value="{{ cat }}" {% if request.args.get('category')==cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-outline">&#128269; Filter</button>
+  <a href="{{ url_for('breaks.index') }}" class="btn btn-outline-navy">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          {% if current_user.is_admin %}<th>Employee</th>{% endif %}
+          <th>Category</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Duration</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in breaks %}
+        <tr>
+          <td><strong>{{ b.start_time.strftime('%Y-%m-%d') }}</strong></td>
+          {% if current_user.is_admin %}
+          <td>{{ b.employee.full_name }}</td>
+          {% endif %}
+          <td>
+            {% set cat_colors = {'Lunch':'badge-info','Tea':'badge-warning','Coffee':'badge-warning','Personal':'badge-secondary','Other':'badge-secondary'} %}
+            <span class="badge {{ cat_colors.get(b.category.value, 'badge-secondary') }}">
+              {{ b.category.value }}
+            </span>
+          </td>
+          <td>{{ b.start_time.strftime('%I:%M %p') }}</td>
+          <td>{{ b.end_time.strftime('%I:%M %p') if b.end_time else '—' }}</td>
+          <td>{{ "%.0f"|format(b.duration_minutes) }}m</td>
+          <td>
+            {% if b.end_time %}
+              <span class="badge badge-success">Completed</span>
+            {% else %}
+              <span class="badge badge-warning">Active</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{{ 7 if current_user.is_admin else 6 }}">
+            <div class="empty-state">
+              <div class="empty-icon">&#9749;</div>
+              <h3>No break records</h3>
+              <p>Breaks will appear here after employees start them from the dashboard.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

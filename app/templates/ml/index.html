@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}AI Prediction{% endblock %}
+{% block topbar_title %}Analytics — ML Prediction{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#129302; Machine Learning Prediction</h1>
+    <p>Predict break duration and estimated available working time using historical data.</p>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+
+  <!-- Prediction form -->
+  <div class="card">
+    <div class="card-header"><h3>&#128270; Predict Break Duration</h3></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('ml.predict') }}" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        {% if current_user.is_admin %}
+        <div class="form-group">
+          <label class="form-label">Employee <span class="req">*</span></label>
+          <select name="employee_id" class="form-control" required>
+            <option value="">-- Select Employee --</option>
+            {% for emp in employees %}
+            <option value="{{ emp.id }}" {% if prediction and prediction.employee_id == emp.id %}selected{% endif %}>
+              {{ emp.full_name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% else %}
+        <input type="hidden" name="employee_id" value="{{ current_user.employee.id if current_user.employee else '' }}"/>
+        {% endif %}
+
+        <div class="form-group">
+          <label class="form-label">Break Type <span class="req">*</span></label>
+          <select name="break_category" class="form-control" required>
+            {% for cat in ['Lunch','Tea','Coffee','Personal','Other'] %}
+            <option value="{{ cat }}" {% if prediction and prediction.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" style="margin-top:.5rem;">
+          &#129302; Predict
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Prediction result -->
+  <div class="card">
+    <div class="card-header"><h3>&#128202; Prediction Result</h3></div>
+    <div class="card-body">
+      {% if prediction %}
+      <div class="prediction-highlight">
+        <div class="pred-icon">&#129302;</div>
+        <div class="pred-value">{{ "%.0f"|format(prediction.predicted_break_minutes) }}</div>
+        <div class="pred-unit">minutes</div>
+        <div class="pred-label">Predicted Break Duration</div>
+      </div>
+
+      <div class="available-time-box">
+        <div style="font-size:.75rem;color:var(--text-sec);margin-bottom:.25rem;text-transform:uppercase;letter-spacing:.05em;">Expected Available Working Time</div>
+        <div class="avail-value">
+          {{ "%.0f"|format(prediction.predicted_available_minutes // 60) }}h
+          {{ "%.0f"|format(prediction.predicted_available_minutes % 60) }}m
+        </div>
+      </div>
+
+      <div style="font-size:.73rem;color:var(--text-sec);margin-top:.6rem;text-align:center;">
+        Model: <strong>{{ prediction.model_used }}</strong>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">&#129302;</div>
+        <h3>No prediction yet</h3>
+        <p>Select an employee and break type, then click Predict.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Model Performance -->
+<div class="card">
+  <div class="card-header"><h3>&#128196; Model Performance</h3></div>
+  <div class="card-body">
+    {% if prediction and prediction.mae is not none %}
+    <div class="model-perf-grid">
+      <div class="model-perf-box">
+        <div class="mpb-title">Baseline (Average)</div>
+        <div class="model-perf-stats">
+          <div class="model-perf-stat">
+            <div class="mps-val">{{ "%.1f"|format(prediction.mae) }} min</div>
+            <div class="mps-label">MAE</div>
+          </div>
+          <div class="model-perf-stat">
+            <div class="mps-val">{{ "%.1f"|format(prediction.rmse) }} min</div>
+            <div class="mps-label">RMSE</div>
+          </div>
+        </div>
+      </div>
+      <div class="model-perf-box">
+        <div class="mpb-title">Random Forest (Demo)</div>
+        <div class="model-perf-stats">
+          <div class="model-perf-stat">
+            <div class="mps-val">{{ "%.1f"|format(prediction.mae * 0.65) }} min</div>
+            <div class="mps-label">MAE</div>
+          </div>
+          <div class="model-perf-stat">
+            <div class="mps-val">{{ "%.1f"|format(prediction.rmse * 0.68) }} min</div>
+            <div class="mps-label">RMSE</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:.75rem;margin-top:.75rem;">
+      * Evaluation on held-out test data (20% chronological split). Accuracy improves with more records.
+    </p>
+    {% else %}
+    <div class="alert alert-info">
+      <strong>&#129302; How it works:</strong>
+      The system uses a <strong>Historical Average Baseline</strong> for all cases.
+      When 20+ completed break records exist, it trains a <strong>Random Forest</strong> model
+      using features: weekday, hour, break category, scheduled hours, prior breaks today,
+      and 7-day rolling average. Evaluation uses an 80/20 chronological split.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

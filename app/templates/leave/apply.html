@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Apply for Leave{% endblock %}
+{% block topbar_title %}Apply for Leave{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#128197; Apply for Leave</h1>
+    <p>Submit a new leave request for approval.</p>
+  </div>
+  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">&larr; Back</a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">&#9888; {{ error }}</div>
+{% endif %}
+
+<div class="card" style="max-width:600px;">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('leave.apply') }}" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group">
+        <label class="form-label">Leave Type <span class="req">*</span></label>
+        <select name="leave_type" class="form-control" required>
+          {% for lt in ['Annual','Sick','Casual','Maternity','Paternity','Unpaid','Other'] %}
+          <option value="{{ lt }}">{{ lt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date <span class="req">*</span></label>
+          <input type="date" name="start_date" class="form-control" required/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date <span class="req">*</span></label>
+          <input type="date" name="end_date" class="form-control" required/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Day Type</label>
+        <select name="day_type" class="form-control">
+          <option value="Full Day">Full Day</option>
+          <option value="Half Day">Half Day</option>
+          <option value="Partial">Partial</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Reason <span class="req">*</span></label>
+        <textarea name="reason" class="form-control" rows="4"
+                  placeholder="Describe the reason for your leave request..." required></textarea>
+      </div>
+
+      <div style="display:flex;gap:.75rem;">
+        <button type="submit" class="btn btn-primary">&#128228; Submit Request</button>
+        <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block topbar_title %}Reports (PDF / Excel){% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>&#128196; Reports</h1>
+    <p>Generate and download PDF or Excel reports for attendance, breaks, leave and working hours.</p>
+  </div>
+</div>
+
+<div class="reports-layout">
+
+  <!-- Left: Form -->
+  <div class="card">
+    <div class="card-header"><h3>&#128229; Generate Report</h3></div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('reports.generate') }}" data-loading>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        <div class="form-group">
+          <label class="form-label">Report Type <span class="req">*</span></label>
+          <select name="report_type" class="form-control" required>
+            <option value="attendance">Attendance Report</option>
+            <option value="breaks">Break Report</option>
+            <option value="leave">Leave Report</option>
+            <option value="working_hours">Working Hours Summary</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Format <span class="req">*</span></label>
+          <div style="display:flex;gap:.75rem;">
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.855rem;">
+              <input type="radio" name="format" value="pdf" checked style="accent-color:var(--blue);"/> PDF
+            </label>
+            <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.855rem;">
+              <input type="radio" name="format" value="excel" style="accent-color:var(--blue);"/> Excel
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-bottom:1rem;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">From Date</label>
+            <input type="date" name="from_date" class="form-control"/>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">To Date</label>
+            <input type="date" name="to_date" class="form-control"/>
+          </div>
+        </div>
+
+        {% if current_user.is_admin %}
+        <div class="form-group">
+          <label class="form-label">Employee (optional)</label>
+          <select name="employee_id" class="form-control">
+            <option value="">All Employees</option>
+            {% for emp in employees %}
+            <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.employee_id }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary btn-lg w-100" style="margin-top:.5rem;">
+          &#128229; Generate &amp; Download
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right: Info / preview -->
+  <div class="card">
+    <div class="card-header"><h3>&#128203; Employee Attendance Report</h3>
+      <span style="font-size:.76rem;color:var(--text-sec);">Preview</span>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-info" style="margin-bottom:1rem;">
+        <strong>&#128202; Available Reports</strong>
+      </div>
+      <div class="quick-actions">
+        <div class="quick-action-btn" style="cursor:default;">
+          <div class="qa-icon" style="background:#DBEAFE;color:#2563EB;">&#128203;</div>
+          <div>
+            <div style="font-weight:600;font-size:.845rem;">Attendance Report</div>
+            <div style="font-size:.75rem;color:var(--text-sec);">Check-in, check-out, working hours per employee</div>
+          </div>
+        </div>
+        <div class="quick-action-btn" style="cursor:default;">
+          <div class="qa-icon" style="background:#FEF3C7;color:#F59E0B;">&#9749;</div>
+          <div>
+            <div style="font-weight:600;font-size:.845rem;">Break Report</div>
+            <div style="font-size:.75rem;color:var(--text-sec);">Break categories, durations and totals</div>
+          </div>
+        </div>
+        <div class="quick-action-btn" style="cursor:default;">
+          <div class="qa-icon" style="background:#DCFCE7;color:#16A34A;">&#128197;</div>
+          <div>
+            <div style="font-weight:600;font-size:.845rem;">Leave Report</div>
+            <div style="font-size:.75rem;color:var(--text-sec);">Leave types, dates, approval status</div>
+          </div>
+        </div>
+        <div class="quick-action-btn" style="cursor:default;">
+          <div class="qa-icon" style="background:#EDE9FE;color:#7C3AED;">&#128336;</div>
+          <div>
+            <div style="font-weight:600;font-size:.845rem;">Working Hours Summary</div>
+            <div style="font-size:.75rem;color:var(--text-sec);">Net hours worked after subtracting breaks</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-sec);margin-top:1rem;padding:.6rem;background:var(--bg);border-radius:6px;">
+        &#128161; Reports are generated on-demand from live database records. Use date filters to narrow the data range.
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
