@@ -3,7 +3,7 @@ services:
     name: ebt-system
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
+    startCommand: python bootstrap.py && gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60
     healthCheckPath: /health
     envVars:
       - key: FLASK_ENV
@@ -14,6 +14,8 @@ services:
         value: EBT System
       - key: TIMEZONE
         value: Asia/Kolkata
+      - key: AUTO_SEED_DEMO
+        value: "true"
       - key: SECRET_KEY
         generateValue: true
       - key: WTF_CSRF_SECRET_KEY

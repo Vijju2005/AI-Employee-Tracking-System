@@ -162,6 +162,11 @@ class TestingConfig(Config):
     SQLALCHEMY_DATABASE_URI: str = "sqlite:///:memory:"
     SQLALCHEMY_ENGINE_OPTIONS: dict = {}   # SQLite doesn't need pool options
 
+    def __init__(self):
+        super().__init__()
+        self.SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+        self.SQLALCHEMY_ENGINE_OPTIONS = {}
+
 
 config_map = {
     "development": DevelopmentConfig,
