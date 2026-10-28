@@ -18,10 +18,10 @@
       {% if attendance %}
         {% if attendance.check_out %}
           <div class="status-time">&#128683; Checked Out</div>
-          <div class="status-label">{{ attendance.check_in.strftime('%I:%M %p') }} &mdash; {{ attendance.check_out.strftime('%I:%M %p') }}</div>
+          <div class="status-label">{{ attendance.check_in|local_time }} &mdash; {{ attendance.check_out|local_time }}</div>
         {% else %}
           <div class="status-time">&#128994; Checked In</div>
-          <div class="status-label">Since {{ attendance.check_in.strftime('%I:%M %p') }}</div>
+          <div class="status-label">Since {{ attendance.check_in|local_time }}</div>
         {% endif %}
       {% else %}
         <div class="status-time" style="font-size:1.3rem;">Not Checked In</div>
@@ -55,7 +55,7 @@
           <form method="POST" action="{{ url_for('breaks.end', break_id=active_break.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <button class="btn btn-outline" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff;">
-              &#9632; End Break
+              &#9632; End {{ active_break.category.value }} Break
             </button>
           </form>
         {% endif %}
@@ -80,24 +80,24 @@
         <div class="today-att-grid">
           <div class="today-att-item">
             <div class="att-label">Check In</div>
-            <div class="att-time">{{ attendance.check_in.strftime('%I:%M %p') if attendance else '—' }}</div>
+            <div class="att-time">{{ attendance.check_in|local_time if attendance else '—' }}</div>
           </div>
           <div class="today-att-item">
             <div class="att-label">Check Out</div>
-            <div class="att-time">{{ attendance.check_out.strftime('%I:%M %p') if attendance and attendance.check_out else '—' }}</div>
+            <div class="att-time">{{ attendance.check_out|local_time if attendance and attendance.check_out else '—' }}</div>
           </div>
           <div class="today-att-item">
             <div class="att-label">Total Hours</div>
-            <div class="att-time">
+            <div class="att-time" id="liveWorkingHours">
               {% if attendance %}
-                {{ "%.0f"|format(attendance.net_working_minutes // 60) }}h {{ "%.0f"|format(attendance.net_working_minutes % 60) }}m
+                {{ elapsed_net_minutes|hours_mins }}
               {% else %}0h 0m{% endif %}
             </div>
           </div>
           <div class="today-att-item">
             <div class="att-label">Break Time</div>
-            <div class="att-time">
-              {% if attendance %}{{ "%.0f"|format(attendance.break_duration_minutes) }}m{% else %}0m{% endif %}
+            <div class="att-time" id="liveBreakTime">
+              {% if attendance %}{{ total_break_minutes|mins }}{% else %}0m{% endif %}
             </div>
           </div>
         </div>
@@ -136,17 +136,17 @@
         <div class="mini-stats">
           <div class="mini-stat">
             <div class="ms-icon">&#8987;</div>
-            <div class="ms-value">
+            <div class="ms-value" id="liveWorkingHoursMini">
               {% if attendance %}
-                {{ "%.0f"|format(attendance.net_working_minutes // 60) }}h {{ "%.0f"|format(attendance.net_working_minutes % 60) }}m
+                {{ elapsed_net_minutes|hours_mins }}
               {% else %}0h 0m{% endif %}
             </div>
             <div class="ms-label">Working Hours</div>
           </div>
           <div class="mini-stat">
             <div class="ms-icon">&#9749;</div>
-            <div class="ms-value">
-              {% if attendance %}{{ "%.0f"|format(attendance.break_duration_minutes) }}m{% else %}0m{% endif %}
+            <div class="ms-value" id="liveBreakTimeMini">
+              {% if attendance %}{{ total_break_minutes|mins }}{% else %}0m{% endif %}
             </div>
             <div class="ms-label">Break Time</div>
           </div>
@@ -181,3 +181,54 @@
 
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  // Live attendance & break duration timer
+  const checkInIso = "{{ attendance.check_in.isoformat() + 'Z' if attendance and attendance.check_in else '' }}";
+  const checkOutIso = "{{ attendance.check_out.isoformat() + 'Z' if attendance and attendance.check_out else '' }}";
+  const activeBreakIso = "{{ active_break.start_time.isoformat() + 'Z' if active_break and active_break.start_time else '' }}";
+  const baseCompletedBreakMin = {{ attendance.break_duration_minutes if attendance else 0.0 }};
+
+  if (!checkInIso) return;
+
+  const checkInTime = new Date(checkInIso).getTime();
+  const checkOutTime = checkOutIso ? new Date(checkOutIso).getTime() : null;
+  const activeBreakTime = activeBreakIso ? new Date(activeBreakIso).getTime() : null;
+
+  function updateLiveMetrics() {
+    const now = checkOutTime || Date.now();
+    const grossMinutes = Math.max(0, (now - checkInTime) / 60000);
+
+    let currentBreakMinutes = baseCompletedBreakMin;
+    if (activeBreakTime && !checkOutTime) {
+      currentBreakMinutes += Math.max(0, (now - activeBreakTime) / 60000);
+    }
+
+    const netMinutes = Math.max(0, grossMinutes - currentBreakMinutes);
+
+    const h = Math.floor(netMinutes / 60);
+    const m = Math.floor(netMinutes % 60);
+    const timeStr = `${h}h ${m}m`;
+    const breakStr = `${Math.floor(currentBreakMinutes)}m`;
+
+    const elWork = document.getElementById("liveWorkingHours");
+    const elWorkMini = document.getElementById("liveWorkingHoursMini");
+    const elBreak = document.getElementById("liveBreakTime");
+    const elBreakMini = document.getElementById("liveBreakTimeMini");
+
+    if (elWork) elWork.textContent = timeStr;
+    if (elWorkMini) elWorkMini.textContent = timeStr;
+    if (elBreak) elBreak.textContent = breakStr;
+    if (elBreakMini) elBreakMini.textContent = breakStr;
+  }
+
+  updateLiveMetrics();
+  if (!checkOutTime) {
+    setInterval(updateLiveMetrics, 1000);
+  }
+})();
+</script>
+{% endblock %}
+

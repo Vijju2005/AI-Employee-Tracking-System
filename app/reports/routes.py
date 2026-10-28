@@ -10,6 +10,7 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.models import Attendance, Break, LeaveRequest, Employee, UserRole
+from app.time_utils import format_local_time, format_local_date
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
 
@@ -135,10 +136,10 @@ def _attendance_to_rows(records):
     rows = []
     for r in records:
         rows.append([
-            str(r.date),
+            format_local_date(r.date),
             r.employee.full_name if r.employee else "—",
-            r.check_in.strftime("%H:%M") if r.check_in else "—",
-            r.check_out.strftime("%H:%M") if r.check_out else "—",
+            format_local_time(r.check_in, "%I:%M %p"),
+            format_local_time(r.check_out, "%I:%M %p"),
             f"{r.net_working_minutes / 60:.1f}",
             f"{r.break_duration_minutes:.0f}",
             r.status.value if r.status else "—",
@@ -149,11 +150,11 @@ def _attendance_to_rows(records):
 def _breaks_to_rows(records):
     return [
         [
-            r.start_time.strftime("%Y-%m-%d"),
+            format_local_date(r.start_time),
             r.employee.full_name if r.employee else "—",
             r.category.value if r.category else "—",
-            r.start_time.strftime("%H:%M"),
-            r.end_time.strftime("%H:%M") if r.end_time else "—",
+            format_local_time(r.start_time, "%I:%M %p"),
+            format_local_time(r.end_time, "%I:%M %p"),
             f"{r.duration_minutes:.0f}",
         ]
         for r in records

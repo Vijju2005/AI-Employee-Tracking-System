@@ -113,13 +113,27 @@ def create_app(config_class=None):
         from flask import render_template
         return render_template("errors/500.html"), 500
 
-    # Template globals
+    # Template globals and filters
+    from app.time_utils import (
+        format_local_time, format_local_date, to_local,
+        format_hours_mins, format_mins
+    )
+
+    app.jinja_env.filters["local_time"] = format_local_time
+    app.jinja_env.filters["local_date"] = format_local_date
+    app.jinja_env.filters["hours_mins"] = format_hours_mins
+    app.jinja_env.filters["mins"] = format_mins
+
     @app.context_processor
     def inject_globals():
         from flask_login import current_user
         return {
             "app_name": app.config.get("APP_NAME", "EBT System"),
             "current_user": current_user,
+            "format_local_time": format_local_time,
+            "format_local_date": format_local_date,
+            "format_hours_mins": format_hours_mins,
+            "format_mins": format_mins,
         }
 
     return app

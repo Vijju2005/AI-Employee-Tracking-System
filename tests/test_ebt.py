@@ -302,6 +302,91 @@ class TestAttendance:
             assert att.break_duration_minutes == 30.0
             assert att.net_working_minutes == 450.0  # 480 - 30
 
+    def test_dynamic_break_and_working_hours_calculation(self, db, app):
+        """
+        Verify the exact user scenario:
+        Check-In: 2:00 PM (14:00)
+        Break: 3:00 PM (15:00) to 3:17 PM (15:17) -> 17 minutes
+        Check-Out: 6:00 PM (18:00)
+        Total Working Period: 4 hours (240 min)
+        Break Duration: 17 min
+        Net Working Hours: 3 hours 43 min (223 min)
+        """
+        with app.app_context():
+            from app.models import Attendance, Break, BreakCategory, AttendanceStatus
+            emp = self._setup(db, app)
+            d = date(2025, 2, 10)
+
+            ci = datetime(2025, 2, 10, 14, 0, 0)
+            co = datetime(2025, 2, 10, 18, 0, 0)
+
+            att = Attendance(employee_id=emp.id, date=d, status=AttendanceStatus.PRESENT, check_in=ci, check_out=co)
+            db.session.add(att)
+            db.session.flush()
+
+            # 17-minute break
+            brk = Break(
+                attendance_id=att.id, employee_id=emp.id,
+                category=BreakCategory.TEA,
+                start_time=datetime(2025, 2, 10, 15, 0, 0)
+            )
+            brk.close(datetime(2025, 2, 10, 15, 17, 0))
+            db.session.add(brk)
+            db.session.commit()
+
+            att.recalculate()
+            assert brk.duration_minutes == 17.0
+            assert att.total_duration_minutes == 240.0  # 4 hours
+            assert att.break_duration_minutes == 17.0
+            assert att.net_working_minutes == 223.0    # 3 hours 43 minutes
+
+    def test_live_elapsed_working_time_during_active_session(self, db, app):
+        """
+        Verify that an active employee (checked in, not yet checked out)
+        has live gross and net working minutes calculated dynamically.
+        """
+        with app.app_context():
+            from app.models import Attendance, Break, BreakCategory, AttendanceStatus
+            emp = self._setup(db, app)
+            d = date(2025, 2, 11)
+
+            # Checked in at 14:00 (2:00 PM)
+            ci = datetime(2025, 2, 11, 14, 0, 0)
+            att = Attendance(employee_id=emp.id, date=d, status=AttendanceStatus.PRESENT, check_in=ci)
+            db.session.add(att)
+            db.session.flush()
+
+            # 1. At 15:00 (3:00 PM) with no breaks: exactly 60m gross & net
+            t1 = datetime(2025, 2, 11, 15, 0, 0)
+            assert att.get_elapsed_working_minutes(t1) == 60.0
+            assert att.get_total_break_minutes(t1) == 0.0
+            assert att.get_net_working_minutes(t1) == 60.0
+
+            # 2. Start a break at 15:00
+            brk = Break(
+                attendance_id=att.id, employee_id=emp.id,
+                category=BreakCategory.LUNCH,
+                start_time=t1
+            )
+            db.session.add(brk)
+            db.session.commit()
+
+            # At 15:17 (active break in progress for 17m):
+            t2 = datetime(2025, 2, 11, 15, 17, 0)
+            assert round(att.get_elapsed_working_minutes(t2)) == 77.0
+            assert round(att.get_total_break_minutes(t2)) == 17.0
+            assert round(att.get_net_working_minutes(t2)) == 60.0
+
+            # End break at 15:17
+            brk.close(t2)
+            db.session.commit()
+
+            # At 16:00: total elapsed 120m, break 17m, net 103m (1h 43m)
+            t3 = datetime(2025, 2, 11, 16, 0, 0)
+            assert att.get_elapsed_working_minutes(t3) == 120.0
+            assert att.get_total_break_minutes(t3) == 17.0
+            assert att.get_net_working_minutes(t3) == 103.0
+
     def test_duplicate_checkin_prevented(self, db, app):
         with app.app_context():
             from app.models import Attendance, AttendanceStatus

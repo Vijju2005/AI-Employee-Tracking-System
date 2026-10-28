@@ -8,6 +8,7 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.models import Attendance, Break, BreakCategory, Employee, UserRole
+from app.time_utils import utc_now, local_today, format_mins
 
 breaks_bp = Blueprint("breaks", __name__, url_prefix="/breaks")
 
@@ -50,18 +51,20 @@ def start():
         flash("No employee record linked.", "danger")
         return redirect(url_for("dashboard.employee_dashboard"))
 
-    today = date.today()
-    attendance = Attendance.query.filter_by(employee_id=employee.id, date=today).first()
+    today = local_today()
+    # Find active attendance session (without checkout), fallback to today
+    attendance = Attendance.query.filter_by(employee_id=employee.id, check_out=None).order_by(Attendance.created_at.desc()).first()
+    if not attendance:
+        attendance = Attendance.query.filter_by(employee_id=employee.id, date=today).first()
+
     if not attendance or attendance.check_out:
         flash("You must be checked in to start a break.", "warning")
         return redirect(url_for("dashboard.employee_dashboard"))
 
     # Check for existing active break
-    active = Break.query.filter_by(attendance_id=attendance.id).filter(
-        Break.end_time.is_(None)
-    ).first()
+    active = Break.query.filter_by(attendance_id=attendance.id, end_time=None).first()
     if active:
-        flash("You already have an active break. End it first.", "warning")
+        flash(f"You already have an active {active.category.value} break in progress. End it first.", "warning")
         return redirect(url_for("dashboard.employee_dashboard"))
 
     category_val = request.form.get("category", "Other")
@@ -70,11 +73,12 @@ def start():
     except ValueError:
         cat = BreakCategory.OTHER
 
+    now = utc_now()
     brk = Break(
         attendance_id=attendance.id,
         employee_id=employee.id,
         category=cat,
-        start_time=_utcnow(),
+        start_time=now,
     )
     db.session.add(brk)
     db.session.commit()
@@ -96,13 +100,15 @@ def end(break_id):
         flash("Break already ended.", "warning")
         return redirect(url_for("dashboard.employee_dashboard"))
 
-    now = _utcnow()
+    now = utc_now()
     brk.close(now)
 
     # Recalculate attendance
     attendance = brk.attendance
-    attendance.recalculate()
+    if attendance:
+        attendance.recalculate()
     db.session.commit()
 
-    flash(f"Break ended. Duration: {brk.duration_minutes:.0f} minutes.", "success")
+    duration_str = format_mins(brk.duration_minutes)
+    flash(f"{brk.category.value} break ended. Actual duration: {duration_str}.", "success")
     return redirect(url_for("dashboard.employee_dashboard"))

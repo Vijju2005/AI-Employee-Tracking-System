@@ -14,6 +14,7 @@ from app.models import (
     User, Employee, Attendance, Break, LeaveRequest,
     Department, AttendanceStatus, LeaveStatus, UserRole
 )
+from app.time_utils import local_today, local_now, utc_now
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -39,7 +40,7 @@ def index():
 @login_required
 @admin_required
 def admin_dashboard():
-    today = date.today()
+    today = local_today()
 
     # Stat cards
     total_employees = Employee.query.count()
@@ -96,21 +97,38 @@ def employee_dashboard():
     if current_user.role == UserRole.ADMIN:
         return redirect(url_for("dashboard.admin_dashboard"))
 
-    today = date.today()
+    today = local_today()
     employee = current_user.employee
 
     attendance = None
     active_break = None
     if employee:
+        # Prefer active (non-checked-out) attendance, fallback to today's record
         attendance = Attendance.query.filter_by(
-            employee_id=employee.id, date=today
-        ).first()
+            employee_id=employee.id, check_out=None
+        ).order_by(Attendance.created_at.desc()).first()
+
+        if not attendance:
+            attendance = Attendance.query.filter_by(
+                employee_id=employee.id, date=today
+            ).first()
+
         if attendance:
             active_break = Break.query.filter_by(
-                attendance_id=attendance.id
-            ).filter(Break.end_time.is_(None)).first()
+                attendance_id=attendance.id, end_time=None
+            ).first()
 
     prediction = None
+
+    # Compute current dynamic elapsed times for immediate render
+    elapsed_net = 0.0
+    total_break_min = 0.0
+    total_gross_min = 0.0
+    if attendance and attendance.check_in:
+        now_u = utc_now()
+        total_gross_min = attendance.get_elapsed_working_minutes(now_u)
+        total_break_min = attendance.get_total_break_minutes(now_u)
+        elapsed_net = attendance.get_net_working_minutes(now_u)
 
     return render_template(
         "dashboard/employee.html",
@@ -119,4 +137,7 @@ def employee_dashboard():
         attendance=attendance,
         active_break=active_break,
         prediction=prediction,
+        elapsed_net_minutes=elapsed_net,
+        total_break_minutes=total_break_min,
+        total_gross_minutes=total_gross_min,
     )

@@ -51,7 +51,7 @@
       <tbody>
         {% for b in breaks %}
         <tr>
-          <td><strong>{{ b.start_time.strftime('%Y-%m-%d') }}</strong></td>
+          <td><strong>{{ b.start_time|local_date }}</strong></td>
           {% if current_user.is_admin %}
           <td>{{ b.employee.full_name }}</td>
           {% endif %}
@@ -61,8 +61,8 @@
               {{ b.category.value }}
             </span>
           </td>
-          <td>{{ b.start_time.strftime('%I:%M %p') }}</td>
-          <td>{{ b.end_time.strftime('%I:%M %p') if b.end_time else '—' }}</td>
+          <td>{{ b.start_time|local_time }}</td>
+          <td>{{ b.end_time|local_time }}</td>
           <td>{{ "%.0f"|format(b.duration_minutes) }}m</td>
           <td>
             {% if b.end_time %}

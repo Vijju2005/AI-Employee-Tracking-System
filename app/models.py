@@ -218,6 +218,42 @@ class Attendance(db.Model):
     def __repr__(self):
         return f"<Attendance emp={self.employee_id} date={self.date}>"
 
+    def get_elapsed_working_minutes(self, now: datetime | None = None) -> float:
+        """
+        Calculate gross elapsed working time up to check_out or current time.
+        """
+        if not self.check_in:
+            return 0.0
+        end_ref = self.check_out or (now or utcnow())
+        if end_ref < self.check_in:
+            return 0.0
+        delta = end_ref - self.check_in
+        return max(0.0, delta.total_seconds() / 60)
+
+    def get_total_break_minutes(self, now: datetime | None = None) -> float:
+        """
+        Calculate total break time including completed breaks and any currently active break.
+        """
+        total = 0.0
+        ref_time = now or utcnow()
+        for b in self.breaks:
+            if b.end_time and b.duration_minutes is not None:
+                total += b.duration_minutes
+            elif b.start_time and not b.end_time:
+                # Active break
+                if ref_time > b.start_time:
+                    total += (ref_time - b.start_time).total_seconds() / 60
+        return max(0.0, total)
+
+    def get_net_working_minutes(self, now: datetime | None = None) -> float:
+        """
+        Calculate net working minutes (gross elapsed working time minus total break time).
+        """
+        ref_time = now or utcnow()
+        gross = self.get_elapsed_working_minutes(ref_time)
+        breaks = self.get_total_break_minutes(ref_time)
+        return max(0.0, gross - breaks)
+
     def recalculate(self):
         """Recalculate durations from timestamps and completed breaks."""
         if self.check_in and self.check_out:
@@ -282,6 +318,16 @@ class Break(db.Model):
 
     def __repr__(self):
         return f"<Break {self.category} emp={self.employee_id}>"
+
+    def get_elapsed_minutes(self, now: datetime | None = None) -> float:
+        """Calculate elapsed minutes of this break."""
+        if not self.start_time:
+            return 0.0
+        end_ref = self.end_time or (now or utcnow())
+        if end_ref < self.start_time:
+            return 0.0
+        delta = end_ref - self.start_time
+        return max(0.0, delta.total_seconds() / 60)
 
     def close(self, end_time: datetime):
         """End the break and calculate duration."""
