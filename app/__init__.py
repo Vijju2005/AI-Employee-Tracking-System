@@ -55,15 +55,21 @@ def create_app(config_class=None):
     @app.route("/health")
     def health():
         from flask import jsonify
-        from sqlalchemy import text
+        from sqlalchemy import text, inspect
         db_status = "healthy"
+        tables = []
         try:
             db.session.execute(text("SELECT 1"))
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
         except Exception as e:
+            app.logger.error("Health check database probe failed: %s", e)
             db_status = f"unhealthy: {str(e)}"
         return jsonify({
             "status": "ok" if db_status == "healthy" else "degraded",
-            "database": db_status
+            "database": db_status,
+            "table_count": len(tables),
+            "tables_initialized": len(tables) >= 5,
         }), (200 if db_status == "healthy" else 503)
 
     # Error handlers
@@ -79,6 +85,7 @@ def create_app(config_class=None):
 
     @app.errorhandler(500)
     def server_error(e):
+        app.logger.error("Internal Server Error (500) caught: %s", getattr(e, "description", e), exc_info=True)
         from flask import render_template
         return render_template("errors/500.html"), 500
 
