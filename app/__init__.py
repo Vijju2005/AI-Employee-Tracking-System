@@ -29,6 +29,26 @@ def create_app(config_class=None):
     csrf.init_app(app)
     mail.init_app(app)
 
+    # Automatic idempotent database bootstrap on application startup
+    # Runs db.create_all() and default seeding if tables are uninitialized
+    if not app.config.get("TESTING", False):
+        try:
+            with app.app_context():
+                from sqlalchemy import inspect
+                inspector = inspect(db.engine)
+                existing_tables = inspector.get_table_names()
+                if len(existing_tables) < 5:
+                    app.logger.info("Initializing database tables on startup...")
+                    db.create_all()
+                    # Run bootstrap routines
+                    try:
+                        import bootstrap
+                        bootstrap.bootstrap_database()
+                    except Exception as bs_err:
+                        app.logger.warning("Startup bootstrap encountered: %s", bs_err)
+        except Exception as init_err:
+            app.logger.warning("Auto db table creation skipped on startup: %s", init_err)
+
     # User loader
     from app.models import User
 
