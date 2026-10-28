@@ -11,10 +11,14 @@ from app.extensions import db, login_manager, csrf, mail
 def create_app(config_class=None):
     app = Flask(__name__, template_folder="templates", static_folder="static")
 
-    # Load config
+    # Load config (instantiate if a class is provided to evaluate dynamic __init__)
     if config_class is None:
         config_class = get_config()
-    app.config.from_object(config_class)
+    if isinstance(config_class, type):
+        config_obj = config_class()
+    else:
+        config_obj = config_class
+    app.config.from_object(config_obj)
 
     # Ensure reports directory exists
     os.makedirs(app.config.get("REPORTS_DIR", "app/static/reports"), exist_ok=True)
