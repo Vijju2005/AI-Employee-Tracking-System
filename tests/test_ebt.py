@@ -607,3 +607,96 @@ class TestMLPreprocessing:
         current = datetime(2025, 1, 10, 18, 0, 0)  # past shift end
         avail = calculate_available_time(scheduled_end, current, 0.0, 0.0)
         assert avail == 0.0
+
+
+# ── Security & Authorization Tests ──────────────────────────────────────────
+
+class TestSecurityAndAuthorization:
+    """Security tests verifying RBAC, secure headers, safe redirect, and access control."""
+
+    def test_security_headers_present(self, app):
+        client = app.test_client()
+        resp = client.get("/auth/login")
+        assert resp.status_code == 200
+        assert resp.headers.get("X-Content-Type-Options") == "nosniff"
+        assert resp.headers.get("X-Frame-Options") == "DENY"
+        assert resp.headers.get("X-XSS-Protection") == "1; mode=block"
+        assert resp.headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+
+    def test_unauthenticated_user_cannot_access_employee_dashboard(self, app):
+        client = app.test_client()
+        resp = client.get("/dashboard/employee", follow_redirects=False)
+        assert resp.status_code == 302
+        assert "/auth/login" in resp.headers["Location"]
+
+    def test_unauthenticated_user_cannot_access_admin_dashboard(self, app):
+        client = app.test_client()
+        resp = client.get("/dashboard/admin", follow_redirects=False)
+        assert resp.status_code == 302
+        assert "/auth/login" in resp.headers["Location"]
+
+    def test_employee_cannot_access_admin_dashboard(self, app, db):
+        with app.app_context():
+            from app.models import User, UserRole
+            from werkzeug.security import generate_password_hash
+            emp_user = User(
+                username="test_emp_sec_x",
+                email="emp_sec_x@example.com",
+                password_hash=generate_password_hash("EmpPass@123"),
+                role=UserRole.EMPLOYEE,
+                is_active=True,
+            )
+            db.session.add(emp_user)
+            db.session.commit()
+
+        client = app.test_client()
+        client.post("/auth/login", data={"identifier": "test_emp_sec_x", "password": "EmpPass@123"})
+
+        resp = client.get("/dashboard/admin")
+        assert resp.status_code == 403
+
+    def test_employee_cannot_access_employee_management(self, app, db):
+        with app.app_context():
+            from app.models import User, UserRole
+            from werkzeug.security import generate_password_hash
+            emp_user = User(
+                username="test_emp_sec2_x",
+                email="emp_sec2_x@example.com",
+                password_hash=generate_password_hash("EmpPass@123"),
+                role=UserRole.EMPLOYEE,
+                is_active=True,
+            )
+            db.session.add(emp_user)
+            db.session.commit()
+
+        client = app.test_client()
+        client.post("/auth/login", data={"identifier": "test_emp_sec2_x", "password": "EmpPass@123"})
+
+        resp = client.get("/employees/")
+        assert resp.status_code == 403
+
+    def test_open_redirect_protection_on_login(self, app, db):
+        with app.app_context():
+            from app.models import User, UserRole
+            from werkzeug.security import generate_password_hash
+            user = User(
+                username="test_login_redir_x",
+                email="redir_x@example.com",
+                password_hash=generate_password_hash("Redir@123"),
+                role=UserRole.EMPLOYEE,
+                is_active=True,
+            )
+            db.session.add(user)
+            db.session.commit()
+
+        client = app.test_client()
+        # Malicious next URL trying open redirect
+        resp = client.post(
+            "/auth/login?next=//evil.com",
+            data={"identifier": "test_login_redir_x", "password": "Redir@123"},
+            follow_redirects=False,
+        )
+        assert resp.status_code == 302
+        assert "//evil.com" not in resp.headers["Location"]
+        assert "/dashboard/employee" in resp.headers["Location"]
+

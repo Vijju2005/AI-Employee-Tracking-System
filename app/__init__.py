@@ -112,6 +112,15 @@ def create_app(config_class=None):
         from flask import render_template
         return render_template("errors/500.html"), 500
 
+    # Security headers
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
+
     # Template globals and filters
     from app.time_utils import (
         format_local_time, format_local_date, to_local,

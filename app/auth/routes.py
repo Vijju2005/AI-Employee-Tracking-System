@@ -43,7 +43,8 @@ def login():
                     db.session.commit()
                     login_user(user, remember=remember)
                     next_page = request.args.get("next")
-                    if next_page and next_page.startswith("/"):
+                    # Safe relative redirection check (prevent open redirects like //evil.com or /\evil.com)
+                    if next_page and next_page.startswith("/") and not next_page.startswith("//") and not next_page.startswith("/\\"):
                         return redirect(next_page)
                     return _redirect_by_role(user)
             else:
