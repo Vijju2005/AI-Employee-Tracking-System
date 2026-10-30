@@ -426,3 +426,32 @@ class PredictionHistory(db.Model):
             "mae": self.mae,
             "rmse": self.rmse,
         }
+
+
+class Holiday(db.Model):
+    __tablename__ = "holidays"
+
+    id = Column(Integer, primary_key=True)
+    holiday_name = Column(String(150), nullable=False)
+    holiday_date = Column(db.Date, nullable=False, unique=True, index=True)
+    description = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    creator = relationship("User")
+
+    def __repr__(self):
+        return f"<Holiday {self.holiday_name} on {self.holiday_date}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "holiday_name": self.holiday_name,
+            "holiday_date": self.holiday_date.isoformat() if self.holiday_date else None,
+            "description": self.description,
+            "created_by": self.created_by,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+

@@ -77,6 +77,7 @@ def create_app(config_class=None):
     from app.leave.routes import leave_bp
     from app.reports.routes import reports_bp
     from app.ml.routes import ml_bp
+    from app.holidays.routes import holidays_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -86,6 +87,7 @@ def create_app(config_class=None):
     app.register_blueprint(leave_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(ml_bp)
+    app.register_blueprint(holidays_bp)
 
     # Health check endpoint for cloud deployment (e.g., Render, Railway, K8s)
     @app.route("/health")

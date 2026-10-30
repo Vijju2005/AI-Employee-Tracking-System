@@ -11,7 +11,7 @@ from sqlalchemy import func
 
 from app.extensions import db
 from app.models import (
-    User, Employee, Attendance, Break, LeaveRequest,
+    User, Employee, Attendance, Break, LeaveRequest, Holiday,
     Department, AttendanceStatus, LeaveStatus, UserRole
 )
 from app.time_utils import local_today, local_now, utc_now
@@ -75,6 +75,17 @@ def admin_dashboard():
         .all()
     )
 
+    # Holidays overview
+    upcoming_holidays = (
+        Holiday.query.filter(Holiday.holiday_date >= today)
+        .order_by(Holiday.holiday_date.asc())
+        .limit(5)
+        .all()
+    )
+    total_holidays_2026 = (
+        Holiday.query.filter(func.extract('year', Holiday.holiday_date) == 2026).count()
+    )
+
     return render_template(
         "dashboard/admin.html",
         today=today,
@@ -88,6 +99,8 @@ def admin_dashboard():
         dept_labels=dept_labels,
         dept_counts=dept_counts,
         recent_leaves=recent_leaves,
+        upcoming_holidays=upcoming_holidays,
+        total_holidays_2026=total_holidays_2026,
     )
 
 
@@ -130,6 +143,15 @@ def employee_dashboard():
         total_break_min = attendance.get_total_break_minutes(now_u)
         elapsed_net = attendance.get_net_working_minutes(now_u)
 
+    # Holiday checks for employee
+    today_holiday = Holiday.query.filter_by(holiday_date=today).first()
+    upcoming_holidays = (
+        Holiday.query.filter(Holiday.holiday_date >= today)
+        .order_by(Holiday.holiday_date.asc())
+        .limit(5)
+        .all()
+    )
+
     return render_template(
         "dashboard/employee.html",
         today=today,
@@ -140,4 +162,6 @@ def employee_dashboard():
         elapsed_net_minutes=elapsed_net,
         total_break_minutes=total_break_min,
         total_gross_minutes=total_gross_min,
+        today_holiday=today_holiday,
+        upcoming_holidays=upcoming_holidays,
     )

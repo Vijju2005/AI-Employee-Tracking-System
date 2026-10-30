@@ -10,6 +10,26 @@
   </div>
 </div>
 
+{% if today_holiday %}
+<!-- Prominent Today Holiday Banner -->
+<div class="alert alert-danger" style="background:#FEE2E2;border:1.5px solid #F87171;color:#991B1B;padding:1.1rem 1.4rem;border-radius:12px;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;box-shadow:0 4px 12px rgba(239,68,68,0.12);">
+  <div style="display:flex;align-items:center;gap:0.85rem;">
+    <span style="font-size:2rem;line-height:1;">&#127881;</span>
+    <div>
+      <div style="font-size:1.15rem;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;color:#7F1D1D;">
+        TODAY IS A HOLIDAY! &mdash; {{ today_holiday.holiday_name }}
+      </div>
+      <div style="font-size:0.9rem;color:#B91C1C;margin-top:0.2rem;">
+        {{ today.strftime('%A, %d %B %Y') }}{% if today_holiday.description %} &bull; {{ today_holiday.description }}{% endif %}
+      </div>
+    </div>
+  </div>
+  <a href="{{ url_for('holidays.index') }}" class="btn btn-sm" style="background:#DC2626;color:#ffffff;border:none;font-weight:600;padding:0.45rem 1rem;border-radius:8px;text-decoration:none;">
+    &#128197; View 2026 Calendar
+  </a>
+</div>
+{% endif %}
+
 <!-- Check-in hero card (full width) -->
 <div class="check-status-card" style="margin-bottom:1rem;">
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
@@ -175,6 +195,46 @@
           </div>
           <div class="ai-notice">Based on historical data. Accuracy improves with more records.</div>
         </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Holidays Card -->
+    <div class="card" style="margin-top:1rem;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;font-size:1rem;color:var(--text-color);display:flex;align-items:center;gap:0.4rem;">
+          <span style="color:#DC2626;">&#128197;</span> Upcoming Holidays
+        </h3>
+        <a href="{{ url_for('holidays.index') }}" class="btn btn-sm btn-outline" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
+          Full 2026 Calendar
+        </a>
+      </div>
+      <div class="card-body" style="padding:0.75rem 1rem;">
+        {% if upcoming_holidays %}
+          <div style="display:flex;flex-direction:column;gap:0.6rem;">
+            {% for h in upcoming_holidays %}
+              {% set days_left = (h.holiday_date - today).days %}
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0.6rem;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:6px;">
+                <div>
+                  <div style="font-weight:600;font-size:0.875rem;color:#991B1B;">{{ h.holiday_name }}</div>
+                  <div style="font-size:0.75rem;color:#7F1D1D;">{{ h.holiday_date.strftime('%a, %d %b %Y') }}</div>
+                </div>
+                <div style="text-align:right;">
+                  {% if days_left == 0 %}
+                    <span class="badge" style="background:#DC2626;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.5rem;font-weight:700;">TODAY</span>
+                  {% elif days_left == 1 %}
+                    <span class="badge" style="background:#EA580C;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.5rem;">Tomorrow</span>
+                  {% else %}
+                    <span class="badge" style="background:#991B1B;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.5rem;">in {{ days_left }} days</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">
+            No upcoming holidays scheduled.
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -1,0 +1,948 @@
+{% extends "base.html" %}
+{% block title %}Holiday Management & 2026 Calendar{% endblock %}
+{% block topbar_title %}Holiday Management{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Holiday Calendar Modern & Interactive Styling */
+.calendar-container {
+  background: var(--card-bg, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--border-color, #E2E8F0);
+}
+
+.calendar-header-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color, #E2E8F0);
+}
+
+.calendar-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.calendar-month-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-color, #1E293B);
+  min-width: 220px;
+  text-align: center;
+}
+
+/* Legend */
+.calendar-legend {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-badge {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.legend-holiday {
+  background: #FEE2E2;
+  border: 1.5px solid #DC2626;
+}
+.legend-today {
+  background: #DBEAFE;
+  border: 1.5px solid #2563EB;
+}
+.legend-normal {
+  background: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+}
+
+/* Monthly Calendar Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0;
+}
+.calendar-weekday.sun, .calendar-weekday.sat {
+  color: #94A3B8;
+}
+
+.calendar-day {
+  min-height: 86px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.calendar-day:hover {
+  border-color: #3B82F6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-1px);
+  z-index: 2;
+}
+
+.calendar-day.empty {
+  background: #F8FAFC;
+  border-color: #F1F5F9;
+  cursor: default;
+  opacity: 0.45;
+}
+.calendar-day.empty:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #F1F5F9;
+}
+
+.day-number {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1E293B;
+  display: inline-block;
+}
+
+/* HOLIDAY DATE HIGHLIGHTING - RED COLOR (Strict requirement) */
+.calendar-day.is-holiday {
+  background-color: #FEE2E2 !important;
+  border: 1.5px solid #DC2626 !important;
+  color: #991B1B !important;
+}
+
+.calendar-day.is-holiday .day-number {
+  color: #DC2626 !important;
+  font-weight: 800 !important;
+}
+
+.calendar-day.is-holiday .holiday-chip {
+  background-color: #DC2626;
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 3px rgba(220, 38, 38, 0.25);
+  display: block;
+}
+
+/* TODAY DATE HIGHLIGHTING - BLUE */
+.calendar-day.is-today {
+  border: 2px solid #2563EB !important;
+  box-shadow: 0 0 0 1px #2563EB;
+}
+.calendar-day.is-today .day-number {
+  color: #2563EB;
+  font-weight: 800;
+}
+.calendar-day.is-today::after {
+  content: "TODAY";
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #2563EB;
+  background: #DBEAFE;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* When Today is also a Holiday: Red background with prominent blue indicator */
+.calendar-day.is-holiday.is-today {
+  background-color: #FEE2E2 !important;
+  border: 2.5px solid #2563EB !important;
+}
+.calendar-day.is-holiday.is-today::after {
+  content: "TODAY (HOLIDAY)";
+  color: #DC2626;
+  background: #FFFFFF;
+  border: 1px solid #DC2626;
+}
+
+/* YEARLY VIEW (12 MONTHS GRID) */
+.year-view-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.mini-month-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+
+.mini-month-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1E293B;
+  text-align: center;
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mini-month-title:hover {
+  color: #2563EB;
+}
+
+.mini-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.mini-weekday {
+  text-align: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94A3B8;
+  padding: 2px 0;
+}
+
+.mini-day {
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.mini-day:hover {
+  background: #E2E8F0;
+}
+.mini-day.is-holiday {
+  background-color: #FEE2E2 !important;
+  color: #DC2626 !important;
+  font-weight: 800 !important;
+  border: 1px solid #DC2626 !important;
+}
+.mini-day.is-today {
+  border: 1.5px solid #2563EB !important;
+  font-weight: 800;
+  color: #2563EB;
+}
+.mini-day.empty {
+  cursor: default;
+  background: transparent !important;
+}
+
+/* Modal styling */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.active {
+  display: flex;
+}
+.modal-box {
+  background: #FFFFFF;
+  border-radius: 12px;
+  width: 92%;
+  max-width: 480px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalSlide 0.2s ease-out;
+}
+@keyframes modalSlide {
+  from { transform: translateY(15px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-head {
+  padding: 1.25rem 1.5rem;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-head h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #1E293B;
+  font-weight: 700;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #94A3B8;
+  cursor: pointer;
+  line-height: 1;
+}
+.modal-close:hover {
+  color: #0F172A;
+}
+.modal-body {
+  padding: 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header" style="margin-bottom:1.25rem;">
+  <div class="page-header-text">
+    <h1 style="display:flex;align-items:center;gap:0.5rem;">
+      <span style="color:#DC2626;">&#128197;</span> 
+      {% if current_user.is_admin %}Holiday Management{% else %}Official Holidays{% endif %} &mdash; 2026 Calendar
+    </h1>
+    <p>View official company holidays, upcoming celebrations, and calendar schedules.</p>
+  </div>
+  <div class="page-header-actions" style="display:flex;gap:0.5rem;">
+    {% if current_user.is_admin %}
+      <button class="btn btn-primary" id="btnOpenAddModal">
+        &#10010; Add Holiday
+      </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Stats Strip -->
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));margin-bottom:1.5rem;">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2;color:#DC2626;">&#128197;</div>
+    <div class="stat-info">
+      <div class="stat-value">{{ holidays_2026_count }}</div>
+      <div class="stat-label">Total Holidays (2026)</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7;color:#16A34A;">&#127881;</div>
+    <div class="stat-info">
+      <div class="stat-value">{{ upcoming_holidays|length }}</div>
+      <div class="stat-label">Upcoming Holidays</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE;color:#2563EB;">&#128336;</div>
+    <div class="stat-info">
+      {% if today_holiday %}
+        <div class="stat-value" style="color:#DC2626;font-size:1.15rem;font-weight:700;">{{ today_holiday.holiday_name }}</div>
+        <div class="stat-label" style="color:#DC2626;font-weight:600;">Today is a Holiday!</div>
+      {% else %}
+        <div class="stat-value" style="font-size:1.15rem;">Working Day</div>
+        <div class="stat-label">{{ today.strftime('%d %b %Y') }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Main Card -->
+<div class="calendar-container">
+  <div class="calendar-header-toolbar">
+    <!-- View Switcher -->
+    <div style="display:flex;gap:0.4rem;">
+      <button class="btn btn-sm btn-outline active-view-btn" id="viewMonthBtn" onclick="switchView('month')">
+        Monthly View
+      </button>
+      <button class="btn btn-sm btn-outline" id="viewYearBtn" onclick="switchView('year')">
+        12 Months (2026)
+      </button>
+    </div>
+
+    <!-- Navigation (Month View) -->
+    <div class="calendar-nav-controls" id="monthNavControls">
+      <button class="btn btn-sm btn-outline" onclick="changeMonth(-1)">&larr; Prev</button>
+      <div class="calendar-month-title" id="calendarTitle">January 2026</div>
+      <button class="btn btn-sm btn-outline" onclick="changeMonth(1)">Next &rarr;</button>
+      <button class="btn btn-sm btn-outline" onclick="goToToday()">Today</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="calendar-legend">
+      <div class="legend-item">
+        <span class="legend-badge legend-holiday"></span>
+        <span style="color:#DC2626;font-weight:700;">Red: Holiday</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-badge legend-today"></span>
+        <span style="color:#2563EB;font-weight:700;">Blue: Today</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-badge legend-normal"></span>
+        <span>White: Working Day</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Monthly View Container -->
+  <div id="monthlyView">
+    <div class="calendar-grid">
+      <div class="calendar-weekday sun">Sun</div>
+      <div class="calendar-weekday">Mon</div>
+      <div class="calendar-weekday">Tue</div>
+      <div class="calendar-weekday">Wed</div>
+      <div class="calendar-weekday">Thu</div>
+      <div class="calendar-weekday">Fri</div>
+      <div class="calendar-weekday sat">Sat</div>
+    </div>
+    <div class="calendar-grid" id="daysGrid" style="margin-top:6px;">
+      <!-- Generated via JS -->
+    </div>
+  </div>
+
+  <!-- Yearly View Container (12 Months) -->
+  <div id="yearlyView" style="display:none;">
+    <div class="year-view-grid" id="yearGrid">
+      <!-- 12 mini months generated via JS -->
+    </div>
+  </div>
+</div>
+
+<!-- Holiday List Table & Search Section -->
+<div class="card" style="margin-bottom:2rem;">
+  <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;">
+    <h3 style="margin:0;display:flex;align-items:center;gap:0.5rem;">
+      <span style="color:#DC2626;">&#128221;</span> All Official Holidays
+    </h3>
+    <div style="display:flex;gap:0.6rem;align-items:center;">
+      <input type="text" id="holidaySearchInput" class="form-control" placeholder="Search holiday..." style="max-width:220px;padding:0.35rem 0.6rem;font-size:0.85rem;" oninput="filterHolidayTable()"/>
+      <select id="monthFilterSelect" class="form-control" style="max-width:160px;padding:0.35rem 0.6rem;font-size:0.85rem;" onchange="filterHolidayTable()">
+        <option value="">All Months</option>
+        <option value="01">January</option>
+        <option value="02">February</option>
+        <option value="03">March</option>
+        <option value="04">April</option>
+        <option value="05">May</option>
+        <option value="06">June</option>
+        <option value="07">July</option>
+        <option value="08">August</option>
+        <option value="09">September</option>
+        <option value="10">October</option>
+        <option value="11">November</option>
+        <option value="12">December</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-wrapper">
+    <table class="data-table" id="holidaysTable">
+      <thead>
+        <tr>
+          <th>Holiday Name</th>
+          <th>Date</th>
+          <th>Day</th>
+          <th>Description</th>
+          <th>Status</th>
+          {% if current_user.is_admin %}
+            <th style="text-align:right;">Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in holidays %}
+          {% set is_past = h.holiday_date < today %}
+          <tr data-name="{{ h.holiday_name|lower }}" data-month="{{ h.holiday_date.strftime('%m') }}">
+            <td>
+              <strong style="color:#DC2626;">{{ h.holiday_name }}</strong>
+            </td>
+            <td>
+              <span class="badge" style="background:#FEE2E2;color:#991B1B;font-weight:600;">
+                {{ h.holiday_date.strftime('%d %b %Y') }}
+              </span>
+            </td>
+            <td>{{ h.holiday_date.strftime('%A') }}</td>
+            <td style="color:#64748B;">{{ h.description or '—' }}</td>
+            <td>
+              {% if h.holiday_date == today %}
+                <span class="badge" style="background:#DC2626;color:#ffffff;font-weight:700;">TODAY</span>
+              {% elif is_past %}
+                <span class="badge badge-secondary" style="background:#E2E8F0;color:#64748B;">Past</span>
+              {% else %}
+                <span class="badge" style="background:#DCFCE7;color:#16A34A;font-weight:600;">Upcoming</span>
+              {% endif %}
+            </td>
+            {% if current_user.is_admin %}
+              <td style="text-align:right;">
+                <div style="display:inline-flex;gap:0.4rem;">
+                  <button class="btn btn-sm btn-outline" onclick="openEditModal({{ h.id }}, '{{ h.holiday_name|replace("'", "\\'") }}', '{{ h.holiday_date.isoformat() }}', '{{ (h.description or '')|replace("'", "\\'") }}')">
+                    Edit
+                  </button>
+                  <form method="POST" action="{{ url_for('holidays.delete_holiday', holiday_id=h.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete holiday {{ h.holiday_name }}?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-sm btn-danger" style="padding:0.25rem 0.6rem;">Delete</button>
+                  </form>
+                </div>
+              </td>
+            {% endif %}
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="{% if current_user.is_admin %}6{% else %}5{% endif %}" style="text-align:center;padding:2rem;color:#64748B;">
+              No holidays added yet. {% if current_user.is_admin %}Click "Add Holiday" above to create one.{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ADD HOLIDAY MODAL (Admin only) -->
+{% if current_user.is_admin %}
+<div class="modal-overlay" id="addHolidayModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>&#10010; Add New Holiday</h3>
+      <button class="modal-close" onclick="closeAddModal()">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('holidays.add_holiday') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label style="font-weight:600;font-size:0.85rem;margin-bottom:0.3rem;display:block;">Holiday Name *</label>
+          <input type="text" name="holiday_name" class="form-control" required placeholder="e.g. Republic Day, Diwali, Christmas"/>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label style="font-weight:600;font-size:0.85rem;margin-bottom:0.3rem;display:block;">Holiday Date *</label>
+          <input type="date" name="holiday_date" id="addModalDateInput" class="form-control" required value="2026-01-26"/>
+        </div>
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label style="font-weight:600;font-size:0.85rem;margin-bottom:0.3rem;display:block;">Description / Notes</label>
+          <textarea name="description" class="form-control" rows="3" placeholder="Optional notes about the holiday celebration..."></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:0.6rem;">
+          <button type="button" class="btn btn-outline" onclick="closeAddModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#DC2626;border-color:#DC2626;">Save Holiday</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT HOLIDAY MODAL (Admin only) -->
+<div class="modal-overlay" id="editHolidayModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>&#9998; Edit Holiday</h3>
+      <button class="modal-close" onclick="closeEditModal()">&times;</button>
+    </div>
+    <form method="POST" id="editHolidayForm" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label style="font-weight:600;font-size:0.85rem;margin-bottom:0.3rem;display:block;">Holiday Name *</label>
+          <input type="text" name="holiday_name" id="editModalName" class="form-control" required/>
+        </div>
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label style="font-weight:600;font-size:0.85rem;margin-bottom:0.3rem;display:block;">Holiday Date *</label>
+          <input type="date" name="holiday_date" id="editModalDate" class="form-control" required/>
+        </div>
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label style="font-weight:600;font-size:0.85rem;margin-bottom:0.3rem;display:block;">Description / Notes</label>
+          <textarea name="description" id="editModalDesc" class="form-control" rows="3"></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:0.6rem;">
+          <button type="button" class="btn btn-outline" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Holiday</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<!-- VIEW HOLIDAY DETAILS POPUP (Admin & Employee) -->
+<div class="modal-overlay" id="viewHolidayModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="viewModalHeader">&#128197; Date Details</h3>
+      <button class="modal-close" onclick="closeViewModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="viewModalBody">
+      <!-- Dynamic info -->
+    </div>
+    <div style="padding:0.75rem 1.5rem;background:#F8FAFC;border-top:1px solid #E2E8F0;display:flex;justify-content:flex-end;gap:0.5rem;" id="viewModalActions">
+      <button type="button" class="btn btn-outline" onclick="closeViewModal()">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Holiday data serialized from server
+const holidaysData = [
+  {% for h in holidays %}
+  {
+    id: {{ h.id }},
+    name: {{ h.holiday_name|tojson }},
+    date: "{{ h.holiday_date.isoformat() }}",
+    description: {{ (h.description or "")|tojson }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+// Date map for fast lookup: "YYYY-MM-DD" -> holiday
+const holidayMap = {};
+holidaysData.forEach(h => {
+  holidayMap[h.date] = h;
+});
+
+// Current view state
+const todayIso = "{{ today.isoformat() }}";
+const isAdmin = {{ 'true' if current_user.is_admin else 'false' }};
+let currentYear = 2026;
+// Default to today's month if in 2026, otherwise January
+const todayDate = new Date(todayIso);
+let currentMonth = (todayDate.getFullYear() === 2026) ? todayDate.getMonth() : 0; 
+let currentView = 'month';
+
+const monthNames = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
+function renderMonthlyCalendar() {
+  const titleEl = document.getElementById("calendarTitle");
+  titleEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+  const daysGrid = document.getElementById("daysGrid");
+  daysGrid.innerHTML = "";
+
+  const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+  const totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  // Empty leading days
+  for (let i = 0; i < firstDayIndex; i++) {
+    const emptyCell = document.createElement("div");
+    emptyCell.className = "calendar-day empty";
+    daysGrid.appendChild(emptyCell);
+  }
+
+  // Actual days
+  for (let d = 1; d <= totalDays; d++) {
+    const dayStr = String(d).padStart(2, '0');
+    const monthStr = String(currentMonth + 1).padStart(2, '0');
+    const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
+
+    const cell = document.createElement("div");
+    cell.className = "calendar-day";
+    cell.dataset.date = dateKey;
+
+    const isToday = (dateKey === todayIso);
+    const holiday = holidayMap[dateKey];
+
+    if (isToday) {
+      cell.classList.add("is-today");
+    }
+
+    if (holiday) {
+      cell.classList.add("is-holiday");
+    }
+
+    let cellHtml = `<div class="day-number">${d}</div>`;
+    if (holiday) {
+      cellHtml += `<div class="holiday-chip" title="${holiday.name}">🎉 ${holiday.name}</div>`;
+    }
+    cell.innerHTML = cellHtml;
+
+    // Click handler: opens holiday detail or add prompt
+    cell.addEventListener("click", () => handleDateClick(dateKey, holiday));
+
+    daysGrid.appendChild(cell);
+  }
+}
+
+function renderYearlyCalendar() {
+  const yearGrid = document.getElementById("yearGrid");
+  yearGrid.innerHTML = "";
+
+  for (let m = 0; m < 12; m++) {
+    const card = document.createElement("div");
+    card.className = "mini-month-card";
+
+    // Count holidays in this month
+    const count = holidaysData.filter(h => {
+      const parts = h.date.split("-");
+      return parseInt(parts[0]) === currentYear && parseInt(parts[1]) === (m + 1);
+    }).length;
+
+    let cardHtml = `
+      <div class="mini-month-title" onclick="jumpToMonth(${m})">
+        <span>${monthNames[m]} ${currentYear}</span>
+        ${count > 0 ? `<span style="font-size:0.75rem;background:#FEE2E2;color:#DC2626;padding:1px 6px;border-radius:10px;font-weight:700;">${count}</span>` : ''}
+      </div>
+      <div class="mini-month-grid">
+        <div class="mini-weekday">Su</div>
+        <div class="mini-weekday">Mo</div>
+        <div class="mini-weekday">Tu</div>
+        <div class="mini-weekday">We</div>
+        <div class="mini-weekday">Th</div>
+        <div class="mini-weekday">Fr</div>
+        <div class="mini-weekday">Sa</div>
+    `;
+
+    const firstDay = new Date(currentYear, m, 1).getDay();
+    const totalDays = new Date(currentYear, m + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      cardHtml += `<div class="mini-day empty"></div>`;
+    }
+
+    for (let d = 1; d <= totalDays; d++) {
+      const dayStr = String(d).padStart(2, '0');
+      const monthStr = String(m + 1).padStart(2, '0');
+      const dateKey = `${currentYear}-${monthStr}-${dayStr}`;
+      const isToday = (dateKey === todayIso);
+      const holiday = holidayMap[dateKey];
+
+      let classes = "mini-day";
+      if (isToday) classes += " is-today";
+      if (holiday) classes += " is-holiday";
+
+      cardHtml += `<div class="${classes}" onclick="handleDateClick('${dateKey}', holidayMap['${dateKey}'])" title="${holiday ? holiday.name : dateKey}">${d}</div>`;
+    }
+
+    cardHtml += `</div>`;
+    card.innerHTML = cardHtml;
+    yearGrid.appendChild(card);
+  }
+}
+
+function handleDateClick(dateKey, holiday) {
+  if (holiday) {
+    showHolidayDetails(holiday);
+  } else {
+    showNormalDayDetails(dateKey);
+  }
+}
+
+function showHolidayDetails(holiday) {
+  const d = new Date(holiday.date + "T00:00:00");
+  const formattedDate = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  
+  document.getElementById("viewModalHeader").innerHTML = `🎉 Official Holiday`;
+  let body = `
+    <div style="background:#FEE2E2;border:1.5px solid #FCA5A5;border-left:5px solid #DC2626;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+      <h4 style="margin:0 0 0.25rem 0;color:#991B1B;font-size:1.2rem;">${holiday.name}</h4>
+      <div style="font-weight:600;color:#7F1D1D;font-size:0.9rem;">${formattedDate}</div>
+    </div>
+    <div style="margin-bottom:0.75rem;">
+      <span style="font-size:0.75rem;text-transform:uppercase;color:#64748B;font-weight:700;">Status</span>
+      <div style="margin-top:0.2rem;"><span class="badge" style="background:#DC2626;color:#ffffff;font-size:0.8rem;padding:0.3rem 0.6rem;font-weight:700;">Official Holiday (Non-Working Day)</span></div>
+    </div>
+    <div>
+      <span style="font-size:0.75rem;text-transform:uppercase;color:#64748B;font-weight:700;">Description</span>
+      <div style="margin-top:0.25rem;color:#334155;font-size:0.9rem;line-height:1.4;">${holiday.description || 'No additional description provided.'}</div>
+    </div>
+  `;
+  document.getElementById("viewModalBody").innerHTML = body;
+
+  const actionsEl = document.getElementById("viewModalActions");
+  if (isAdmin) {
+    actionsEl.innerHTML = `
+      <button type="button" class="btn btn-outline" onclick="closeViewModal()">Close</button>
+      <button type="button" class="btn btn-primary" onclick="closeViewModal(); openEditModal(${holiday.id}, '${holiday.name.replace(/'/g, "\\'")}', '${holiday.date}', '${(holiday.description || '').replace(/'/g, "\\'")}')">Edit Holiday</button>
+    `;
+  } else {
+    actionsEl.innerHTML = `<button type="button" class="btn btn-outline" onclick="closeViewModal()">Close</button>`;
+  }
+
+  document.getElementById("viewHolidayModal").classList.add("active");
+}
+
+function showNormalDayDetails(dateKey) {
+  const d = new Date(dateKey + "T00:00:00");
+  const formattedDate = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const isPast = (dateKey < todayIso);
+
+  document.getElementById("viewModalHeader").innerHTML = `📅 Date Details`;
+  let body = `
+    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-left:5px solid #3B82F6;border-radius:8px;padding:1rem;margin-bottom:1rem;">
+      <h4 style="margin:0 0 0.25rem 0;color:#1E293B;font-size:1.1rem;">Normal Working Day</h4>
+      <div style="font-weight:600;color:#64748B;font-size:0.9rem;">${formattedDate}</div>
+    </div>
+    <p style="color:#64748B;font-size:0.9rem;margin:0;">No official holiday is scheduled on this date.</p>
+  `;
+  document.getElementById("viewModalBody").innerHTML = body;
+
+  const actionsEl = document.getElementById("viewModalActions");
+  if (isAdmin) {
+    actionsEl.innerHTML = `
+      <button type="button" class="btn btn-outline" onclick="closeViewModal()">Close</button>
+      <button type="button" class="btn btn-primary" style="background:#DC2626;border-color:#DC2626;" onclick="closeViewModal(); openAddModalForDate('${dateKey}')">Add Holiday</button>
+    `;
+  } else {
+    actionsEl.innerHTML = `<button type="button" class="btn btn-outline" onclick="closeViewModal()">Close</button>`;
+  }
+
+  document.getElementById("viewHolidayModal").classList.add("active");
+}
+
+function closeViewModal() {
+  document.getElementById("viewHolidayModal").classList.remove("active");
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 11) {
+    currentMonth = 0;
+    currentYear++;
+  } else if (currentMonth < 0) {
+    currentMonth = 11;
+    currentYear--;
+  }
+  renderMonthlyCalendar();
+}
+
+function goToToday() {
+  const now = new Date(todayIso);
+  currentYear = now.getFullYear();
+  currentMonth = now.getMonth();
+  if (currentView === 'year') {
+    switchView('month');
+  } else {
+    renderMonthlyCalendar();
+  }
+}
+
+function jumpToMonth(m) {
+  currentMonth = m;
+  switchView('month');
+}
+
+function switchView(view) {
+  currentView = view;
+  const monthBtn = document.getElementById("viewMonthBtn");
+  const yearBtn = document.getElementById("viewYearBtn");
+  const monthlyView = document.getElementById("monthlyView");
+  const yearlyView = document.getElementById("yearlyView");
+  const navControls = document.getElementById("monthNavControls");
+
+  if (view === 'month') {
+    monthBtn.classList.add("active-view-btn");
+    monthBtn.style.background = "#2563EB";
+    monthBtn.style.color = "#FFFFFF";
+    yearBtn.classList.remove("active-view-btn");
+    yearBtn.style.background = "transparent";
+    yearBtn.style.color = "inherit";
+    monthlyView.style.display = "block";
+    yearlyView.style.display = "none";
+    navControls.style.display = "flex";
+    renderMonthlyCalendar();
+  } else {
+    yearBtn.classList.add("active-view-btn");
+    yearBtn.style.background = "#2563EB";
+    yearBtn.style.color = "#FFFFFF";
+    monthBtn.classList.remove("active-view-btn");
+    monthBtn.style.background = "transparent";
+    monthBtn.style.color = "inherit";
+    monthlyView.style.display = "none";
+    yearlyView.style.display = "block";
+    navControls.style.display = "none";
+    renderYearlyCalendar();
+  }
+}
+
+// Table filtering
+function filterHolidayTable() {
+  const searchVal = document.getElementById("holidaySearchInput").value.toLowerCase().trim();
+  const monthVal = document.getElementById("monthFilterSelect").value;
+  const rows = document.querySelectorAll("#holidaysTable tbody tr");
+
+  rows.forEach(row => {
+    const name = row.dataset.name || "";
+    const month = row.dataset.month || "";
+
+    const matchesName = !searchVal || name.includes(searchVal);
+    const matchesMonth = !monthVal || month === monthVal;
+
+    if (matchesName && matchesMonth) {
+      row.style.display = "";
+    } else {
+      row.style.display = "none";
+    }
+  });
+}
+
+// Admin Modal handlers
+{% if current_user.is_admin %}
+const addModal = document.getElementById("addHolidayModal");
+const editModal = document.getElementById("editHolidayModal");
+
+document.getElementById("btnOpenAddModal")?.addEventListener("click", () => {
+  document.getElementById("addModalDateInput").value = "2026-01-26";
+  addModal.classList.add("active");
+});
+
+function openAddModalForDate(dateKey) {
+  document.getElementById("addModalDateInput").value = dateKey;
+  addModal.classList.add("active");
+}
+
+function closeAddModal() {
+  addModal.classList.remove("active");
+}
+
+function openEditModal(id, name, date, desc) {
+  const form = document.getElementById("editHolidayForm");
+  form.action = `/holidays/${id}/edit`;
+  document.getElementById("editModalName").value = name;
+  document.getElementById("editModalDate").value = date;
+  document.getElementById("editModalDesc").value = desc;
+  editModal.classList.add("active");
+}
+
+function closeEditModal() {
+  editModal.classList.remove("active");
+}
+{% endif %}
+
+// Initialize calendar
+document.addEventListener("DOMContentLoaded", () => {
+  switchView('month');
+});
+</script>
+{% endblock %}

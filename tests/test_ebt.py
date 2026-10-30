@@ -913,3 +913,200 @@ class TestSecurityAndAuthorization:
         assert "//evil.com" not in resp.headers["Location"]
         assert "/dashboard/employee" in resp.headers["Location"]
 
+
+class TestHolidayManagement:
+    """Tests for the Holiday Management System with 2026 Interactive Calendar."""
+
+    def test_holiday_model_and_to_dict(self, app, db):
+        with app.app_context():
+            from app.models import Holiday
+            from datetime import date
+            h = Holiday(
+                holiday_name="New Year Day",
+                holiday_date=date(2026, 1, 1),
+                description="Global New Year celebration",
+            )
+            db.session.add(h)
+            db.session.commit()
+
+            assert h.id is not None
+            d = h.to_dict()
+            assert d["holiday_name"] == "New Year Day"
+            assert d["holiday_date"] == "2026-01-01"
+            assert d["description"] == "Global New Year celebration"
+
+    def test_admin_can_access_and_add_holiday(self, app, db):
+        with app.app_context():
+            from app.models import User, UserRole, Holiday
+            from werkzeug.security import generate_password_hash
+            from datetime import date
+            admin_user = User(
+                username="test_admin_h1",
+                email="admin_h1@example.com",
+                password_hash=generate_password_hash("AdminPass@123"),
+                role=UserRole.ADMIN,
+                is_active=True,
+            )
+            db.session.add(admin_user)
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "test_admin_h1", "password": "AdminPass@123"})
+
+        # Access Holiday Management page
+        resp = client.get("/holidays/")
+        assert resp.status_code == 200
+        assert b"Holiday Management" in resp.data or b"2026 Calendar" in resp.data
+
+        # Add holiday
+        add_resp = client.post("/holidays/add", data={
+            "holiday_name": "Republic Day",
+            "holiday_date": "2026-01-26",
+            "description": "National holiday in India",
+        }, follow_redirects=True)
+        assert add_resp.status_code == 200
+        assert b"Republic Day" in add_resp.data
+
+        # Verify duplicate date rejection
+        dup_resp = client.post("/holidays/add", data={
+            "holiday_name": "Another Republic Day",
+            "holiday_date": "2026-01-26",
+            "description": "Duplicate should fail",
+        }, follow_redirects=True)
+        assert dup_resp.status_code == 200
+        assert b"already exists on" in dup_resp.data
+
+    def test_admin_can_edit_and_delete_holiday(self, app, db):
+        with app.app_context():
+            from app.models import Holiday, User, UserRole
+            from datetime import date
+            from werkzeug.security import generate_password_hash
+            admin_user = User(
+                username="test_admin_h2",
+                email="admin_h2@example.com",
+                password_hash=generate_password_hash("AdminPass@123"),
+                role=UserRole.ADMIN,
+                is_active=True,
+            )
+            db.session.add(admin_user)
+            db.session.commit()
+
+            h = Holiday(
+                holiday_name="Independence Day",
+                holiday_date=date(2026, 8, 15),
+                description="Original description",
+            )
+            db.session.add(h)
+            db.session.commit()
+            hid = h.id
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "test_admin_h2", "password": "AdminPass@123"})
+
+        # Edit holiday
+        edit_resp = client.post(f"/holidays/{hid}/edit", data={
+            "holiday_name": "Independence Day India",
+            "holiday_date": "2026-08-15",
+            "description": "Updated national celebration description",
+        }, follow_redirects=True)
+        assert edit_resp.status_code == 200
+        assert b"Independence Day India" in edit_resp.data
+
+        # Delete holiday
+        del_resp = client.post(f"/holidays/{hid}/delete", follow_redirects=True)
+        assert del_resp.status_code == 200
+        assert b"deleted successfully" in del_resp.data
+
+        with app.app_context():
+            from app.models import Holiday
+            assert db.session.get(Holiday, hid) is None
+
+    def test_employee_can_view_calendar_but_cannot_mutate(self, app, db):
+        with app.app_context():
+            from app.models import User, UserRole
+            from werkzeug.security import generate_password_hash
+            emp_user = User(
+                username="test_emp_h1",
+                email="emp_h1@example.com",
+                password_hash=generate_password_hash("EmpPass@123"),
+                role=UserRole.EMPLOYEE,
+                is_active=True,
+            )
+            db.session.add(emp_user)
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "test_emp_h1", "password": "EmpPass@123"})
+
+        # Employee can view calendar
+        view_resp = client.get("/holidays/")
+        assert view_resp.status_code == 200
+        assert b"2026 Calendar" in view_resp.data
+
+        # Employee JSON API
+        api_resp = client.get("/holidays/api/events?year=2026")
+        assert api_resp.status_code == 200
+        assert "holidays" in api_resp.get_json()
+
+        # Employee cannot add holiday (redirects with flash)
+        add_resp = client.post("/holidays/add", data={
+            "holiday_name": "Unauthorized Holiday",
+            "holiday_date": "2026-05-01",
+        }, follow_redirects=True)
+        assert add_resp.status_code == 200
+        assert b"Access denied" in add_resp.data
+
+    def test_today_holiday_detection_on_employee_dashboard(self, app, db):
+        with app.app_context():
+            from app.models import User, UserRole, Employee, Department, Holiday
+            from werkzeug.security import generate_password_hash
+            from app.time_utils import local_today
+            
+            dept = Department.query.first()
+            if not dept:
+                dept = Department(name="IT Dept")
+                db.session.add(dept)
+                db.session.commit()
+
+            user = User(
+                username="test_holiday_user",
+                email="holiday_tester@example.com",
+                password_hash=generate_password_hash("Pass@123"),
+                role=UserRole.EMPLOYEE,
+                is_active=True,
+            )
+            db.session.add(user)
+            db.session.flush()
+
+            emp = Employee(
+                employee_id="EMP-H99",
+                full_name="Holiday Tester",
+                email="holiday_tester@example.com",
+                department_id=dept.id,
+                user_id=user.id,
+            )
+            db.session.add(emp)
+
+            # Insert holiday for today
+            today = local_today()
+            h_today = Holiday(
+                holiday_name="Company Founders Day",
+                holiday_date=today,
+                description="Annual company celebration",
+            )
+            db.session.add(h_today)
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "test_holiday_user", "password": "Pass@123"})
+
+        resp = client.get("/dashboard/employee")
+        assert resp.status_code == 200
+        assert b"TODAY IS A HOLIDAY!" in resp.data
+        assert b"Company Founders Day" in resp.data
+
+
