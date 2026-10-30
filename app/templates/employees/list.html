@@ -52,7 +52,7 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Email</th><th>Department</th>
+          <th>ID</th><th>Name</th><th>Company</th><th>Email</th><th>Department</th>
           <th>Designation</th><th>Status</th><th>Actions</th>
         </tr>
       </thead>
@@ -61,6 +61,7 @@
         <tr>
           <td><code style="background:var(--bg);padding:.15rem .4rem;border-radius:4px;font-size:.78rem;">{{ emp.employee_id }}</code></td>
           <td><strong>{{ emp.full_name }}</strong></td>
+          <td style="color:var(--text-sec);font-size:.85rem;">{{ emp.company_name or 'EBT System' }}</td>
           <td style="color:var(--text-sec);">{{ emp.email }}</td>
           <td>{{ emp.department.name if emp.department else '—' }}</td>
           <td>{{ emp.designation or '—' }}</td>

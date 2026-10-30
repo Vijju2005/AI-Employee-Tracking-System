@@ -45,6 +45,19 @@ def create_app(config_class=None):
                         bootstrap.bootstrap_database()
                     except Exception as bs_err:
                         app.logger.warning("Startup bootstrap error: %s", bs_err)
+                else:
+                    # Safe idempotent column migration for existing tables
+                    if "employees" in existing_tables:
+                        cols = [c["name"] for c in inspector.get_columns("employees")]
+                        if "company_name" not in cols:
+                            try:
+                                from sqlalchemy import text
+                                db.session.execute(text("ALTER TABLE employees ADD COLUMN company_name VARCHAR(150) DEFAULT 'EBT System'"))
+                                db.session.commit()
+                                app.logger.info("Migrated employees table: added company_name column.")
+                            except Exception as mig_err:
+                                db.session.rollback()
+                                app.logger.warning("Column migration skipped or failed: %s", mig_err)
         except Exception as init_err:
             app.logger.warning("Auto db table creation skipped on startup: %s", init_err)
 

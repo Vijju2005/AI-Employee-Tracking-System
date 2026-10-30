@@ -279,6 +279,81 @@ class TestEmployeeManagement:
             # Ensure linked user's email was synced for login
             assert updated_emp.user.email == new_email
 
+    def test_admin_add_employee_auto_id_and_role_and_company(self, app, db):
+        with app.app_context():
+            from app.models import User, Employee, Department, WorkSchedule, UserRole
+            import uuid
+            uid = uuid.uuid4().hex[:6]
+            admin = _make_user(db, role="admin", username=f"adm_add_{uid}", email=f"adm_add_{uid}@test.com")
+            dept = Department(name=f"Design_{uid}")
+            db.session.add(dept)
+            db.session.commit()
+            admin_username = admin.username
+            dept_id_val = dept.id
+
+        client = app.test_client()
+        client.post("/auth/login", data={"identifier": admin_username, "password": "Test@1234"})
+
+        # GET Add form: verify auto_emp_id is in response
+        get_resp = client.get("/employees/add")
+        assert get_resp.status_code == 200
+        assert b"EMP" in get_resp.data
+
+        # 1. Add employee with standard designation and custom company
+        emp_email = f"emp_auto_{uid}@test.com"
+        resp1 = client.post("/employees/add", data={
+            "full_name": "Sequential Emp One",
+            "email": emp_email,
+            "company_name": "Acme Corp",
+            "role": "Employee",
+            "phone": "+91 12345 67890",
+            "department_id": str(dept_id_val),
+            "designation_choice": "Software Developer",
+            "custom_designation": "",
+            "status": "active",
+            "date_joined": "2025-01-10",
+            "username": f"user_auto_{uid}",
+            "password": "Password@123",
+        }, follow_redirects=True)
+        assert resp1.status_code == 200
+
+        with app.app_context():
+            from app.models import Employee, User
+            e1 = Employee.query.filter_by(email=emp_email).first()
+            assert e1 is not None
+            assert e1.employee_id.startswith("EMP")
+            assert e1.designation == "Software Developer"
+            assert e1.company_name == "Acme Corp"
+            assert e1.user.role == UserRole.EMPLOYEE
+
+        # 2. Add second employee with "Other" custom designation and Admin role
+        admin_email2 = f"adm_auto2_{uid}@test.com"
+        resp2 = client.post("/employees/add", data={
+            "full_name": "Custom Desig Admin",
+            "email": admin_email2,
+            "company_name": "Initech Global",
+            "role": "Admin",
+            "phone": "+91 99999 88888",
+            "department_id": str(dept_id_val),
+            "designation_choice": "Other",
+            "custom_designation": "Chief Happiness Officer",
+            "status": "active",
+            "date_joined": "2025-02-01",
+            "username": f"user_adm2_{uid}",
+            "password": "Password@123",
+        }, follow_redirects=True)
+        assert resp2.status_code == 200
+
+        with app.app_context():
+            from app.models import Employee, User
+            e2 = Employee.query.filter_by(email=admin_email2).first()
+            assert e2 is not None
+            assert e2.designation == "Chief Happiness Officer"
+            assert e2.company_name == "Initech Global"
+            assert e2.user.role == UserRole.ADMIN
+
+        client.get("/auth/logout")
+
     def test_public_registration_disabled(self, app):
         client = app.test_client()
         resp = client.get("/auth/register", follow_redirects=False)
@@ -602,6 +677,71 @@ class TestLeave:
                 assert "Family Event" not in msg.subject
                 assert emp.full_name in msg.body
                 assert "Approved" in msg.body or "APPROVED" in msg.body
+
+    def test_admin_approve_and_reject_leave_routes(self, app, db):
+        with app.app_context():
+            from app.models import User, Employee, LeaveRequest, LeaveType, LeaveStatus, LeaveDayType
+            import uuid
+            uid = uuid.uuid4().hex[:6]
+            admin = _make_user(db, role="admin", username=f"adm_lr_{uid}", email=f"adm_lr_{uid}@test.com")
+            emp_user = _make_user(db, role="employee", username=f"emp_lr_{uid}", email=f"emp_lr_{uid}@test.com")
+            emp = _make_employee(db, emp_user, emp_id=f"ELR_{uid}", name="Leave Emp")
+            db.session.commit()
+
+            lr1 = LeaveRequest(
+                employee_id=emp.id,
+                leave_type=LeaveType.CASUAL,
+                day_type=LeaveDayType.FULL_DAY,
+                start_date=date(2025, 6, 1),
+                end_date=date(2025, 6, 2),
+                reason="Medical appointment",
+                status=LeaveStatus.PENDING,
+            )
+            lr2 = LeaveRequest(
+                employee_id=emp.id,
+                leave_type=LeaveType.SICK,
+                day_type=LeaveDayType.HALF_DAY,
+                start_date=date(2025, 6, 10),
+                end_date=date(2025, 6, 10),
+                reason="Doctor Visit",
+                status=LeaveStatus.PENDING,
+            )
+            db.session.add_all([lr1, lr2])
+            db.session.commit()
+            lr1_id = lr1.id
+            lr2_id = lr2.id
+            admin_username = admin.username
+
+        client = app.test_client()
+        client.post("/auth/login", data={"identifier": admin_username, "password": "Test@1234"})
+
+        # Test Approve
+        resp_approve = client.post(f"/leave/{lr1_id}/review", data={
+            "action": "approve",
+            "admin_notes": "Approved by manager",
+        }, follow_redirects=True)
+        assert resp_approve.status_code == 200
+
+        with app.app_context():
+            from app.models import LeaveRequest, LeaveStatus
+            req1 = db.session.get(LeaveRequest, lr1_id)
+            assert req1.status == LeaveStatus.APPROVED
+            assert req1.admin_notes == "Approved by manager"
+
+        # Test Reject
+        resp_reject = client.post(f"/leave/{lr2_id}/review", data={
+            "action": "reject",
+            "admin_notes": "Coverage not available",
+        }, follow_redirects=True)
+        assert resp_reject.status_code == 200
+
+        with app.app_context():
+            from app.models import LeaveRequest, LeaveStatus
+            req2 = db.session.get(LeaveRequest, lr2_id)
+            assert req2.status == LeaveStatus.REJECTED
+            assert req2.admin_notes == "Coverage not available"
+
+        client.get("/auth/logout")
 
 
 # ── ML Preprocessing Tests ────────────────────────────────────────────────────

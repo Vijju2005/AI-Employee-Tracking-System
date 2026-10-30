@@ -51,8 +51,19 @@ if (clockEl) {
 
 // ── Form submit loading state ──────────────────────────────
 document.querySelectorAll('form[data-loading]').forEach(form => {
-  form.addEventListener('submit', () => {
-    const btn = form.querySelector('button[type="submit"]');
+  form.addEventListener('submit', (e) => {
+    // If the submitter is a button with a name/value (e.g. approve/reject), preserve its value via hidden input before disabling
+    const submitter = e.submitter;
+    if (submitter && submitter.name && submitter.value) {
+      if (!form.querySelector(`input[type="hidden"][name="${submitter.name}"]`)) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = submitter.name;
+        hidden.value = submitter.value;
+        form.appendChild(hidden);
+      }
+    }
+    const btn = submitter || form.querySelector('button[type="submit"]');
     if (btn) {
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span> Please wait...';

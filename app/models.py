@@ -157,6 +157,7 @@ class Employee(db.Model):
     phone = Column(String(20))
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     designation = Column(String(100))
+    company_name = Column(String(150), default="EBT System")
     work_schedule_id = Column(Integer, ForeignKey("work_schedules.id"), nullable=True)
     status = Column(Enum(AccountStatus), default=AccountStatus.ACTIVE, nullable=False)
     date_joined = Column(DateTime, default=utcnow)
@@ -183,6 +184,7 @@ class Employee(db.Model):
             "department": self.department.name if self.department else None,
             "department_id": self.department_id,
             "designation": self.designation,
+            "company_name": self.company_name,
             "work_schedule": self.work_schedule.name if self.work_schedule else None,
             "work_schedule_id": self.work_schedule_id,
             "status": self.status.value,

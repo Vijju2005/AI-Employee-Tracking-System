@@ -51,6 +51,31 @@ def list_employees():
     return render_template("employees/list.html", employees=employees, departments=departments)
 
 
+def get_next_employee_id() -> str:
+    """
+    Generate next sequential employee ID (e.g. EMP001, EMP002, ...).
+    Inspects all existing IDs in the format EMP<number> and picks max + 1.
+    """
+    import re
+    all_emp_ids = [e.employee_id for e in Employee.query.with_entities(Employee.employee_id).all()]
+    max_num = 0
+    for emp_id in all_emp_ids:
+        match = re.match(r"^EMP(\d+)$", (emp_id or "").strip(), re.IGNORECASE)
+        if match:
+            try:
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+            except ValueError:
+                pass
+    next_num = max_num + 1 if max_num > 0 else 1
+    candidate = f"EMP{next_num:03d}"
+    while Employee.query.filter_by(employee_id=candidate).first():
+        next_num += 1
+        candidate = f"EMP{next_num:03d}"
+    return candidate
+
+
 @employees_bp.route("/add", methods=["GET", "POST"])
 @login_required
 @admin_required
@@ -60,12 +85,24 @@ def add_employee():
     error = None
 
     if request.method == "POST":
-        emp_id = request.form.get("employee_id", "").strip()
+        emp_id = request.form.get("employee_id", "").strip() or get_next_employee_id()
         full_name = request.form.get("full_name", "").strip()
         email = request.form.get("email", "").strip().lower()
         phone = request.form.get("phone", "").strip()
         dept_id = request.form.get("department_id") or None
-        designation = request.form.get("designation", "").strip()
+        
+        # Designation: handle dropdown + custom "Other"
+        desig_choice = request.form.get("designation_choice", "").strip()
+        custom_desig = request.form.get("custom_designation", "").strip()
+        if desig_choice == "Other" and custom_desig:
+            designation = custom_desig
+        elif desig_choice and desig_choice != "Other":
+            designation = desig_choice
+        else:
+            designation = request.form.get("designation", "").strip() or None
+
+        company_name = request.form.get("company_name", "").strip() or "EBT System"
+        role_choice = request.form.get("role", "Employee").strip().lower()
         schedule_id = request.form.get("work_schedule_id") or None
         status = request.form.get("status", "active")
         date_joined_str = request.form.get("date_joined", "").strip()
@@ -91,11 +128,13 @@ def add_employee():
                 except ValueError:
                     joined_dt = None
 
+            account_role = UserRole.ADMIN if role_choice == "admin" else UserRole.EMPLOYEE
+
             user = User(
                 username=username,
                 email=email,
                 password_hash=generate_password_hash(password),
-                role=UserRole.EMPLOYEE,
+                role=account_role,
                 is_active=(status == "active"),
             )
             db.session.add(user)
@@ -109,6 +148,7 @@ def add_employee():
                 "phone": phone or None,
                 "department_id": int(dept_id) if dept_id else None,
                 "designation": designation or None,
+                "company_name": company_name,
                 "work_schedule_id": int(schedule_id) if schedule_id else None,
                 "status": status_val,
                 "user_id": user.id,
@@ -119,11 +159,12 @@ def add_employee():
             emp = Employee(**emp_kwargs)
             db.session.add(emp)
             db.session.commit()
-            flash(f"Employee '{full_name}' added successfully.", "success")
+            flash(f"Employee '{full_name}' ({account_role.value}) added successfully with ID {emp_id}.", "success")
             return redirect(url_for("employees.list_employees"))
 
+    auto_emp_id = get_next_employee_id()
     return render_template("employees/form.html", departments=departments,
-                           schedules=schedules, error=error)
+                           schedules=schedules, auto_emp_id=auto_emp_id, error=error)
 
 
 @employees_bp.route("/<int:emp_id>/edit", methods=["GET", "POST"])
@@ -141,7 +182,19 @@ def edit_employee(emp_id):
         email = request.form.get("email", "").strip().lower()
         phone = request.form.get("phone", "").strip()
         dept_id = request.form.get("department_id") or None
-        designation = request.form.get("designation", "").strip()
+        
+        # Designation: handle dropdown + custom "Other"
+        desig_choice = request.form.get("designation_choice", "").strip()
+        custom_desig = request.form.get("custom_designation", "").strip()
+        if desig_choice == "Other" and custom_desig:
+            designation = custom_desig
+        elif desig_choice and desig_choice != "Other":
+            designation = desig_choice
+        else:
+            designation = request.form.get("designation", "").strip() or None
+
+        company_name = request.form.get("company_name", "").strip() or "EBT System"
+        role_choice = request.form.get("role", "").strip().lower()
         schedule_id = request.form.get("work_schedule_id") or None
         status = request.form.get("status", "active")
         date_joined_str = request.form.get("date_joined", "").strip()
@@ -168,13 +221,20 @@ def edit_employee(emp_id):
             employee.phone = phone or None
             employee.department_id = int(dept_id) if dept_id else None
             employee.designation = designation or None
+            employee.company_name = company_name
             employee.work_schedule_id = int(schedule_id) if schedule_id else None
             employee.status = AccountStatus.ACTIVE if status == "active" else AccountStatus.INACTIVE
 
-            # Sync user email and active status if linked
+            # Sync user email, role, and active status if linked
             if employee.user:
                 employee.user.email = email
                 employee.user.is_active = (status == "active")
+                if role_choice in ("admin", "employee"):
+                    # Prevent admin from accidentally demoting themselves
+                    if employee.user.id == current_user.id and role_choice == "employee":
+                        pass
+                    else:
+                        employee.user.role = UserRole.ADMIN if role_choice == "admin" else UserRole.EMPLOYEE
 
             db.session.commit()
             flash(f"Employee '{full_name}' updated successfully.", "success")

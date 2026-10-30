@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% set is_edit = employee is defined and employee %}
-{% block title %}{{ 'Edit' if is_edit else 'Add' }} Employee{% endblock %}
-{% block topbar_title %}{{ 'Edit' if is_edit else 'Add' }} Employee{% endblock %}
+{% block title %}{{ 'Edit Employee' if is_edit else 'Add Employee' }}{% endblock %}
+{% block topbar_title %}{{ 'Edit Employee' if is_edit else 'Add Employee' }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>{{ '&#9998; Edit' if is_edit else '&#43; Add' }} Employee</h1>
+    <h1>{{ 'Edit Employee' if is_edit else '+ Add Employee' }}</h1>
     <p>{{ 'Update employee information.' if is_edit else 'Register a new employee in the system.' }}</p>
   </div>
   <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">&larr; Back</a>
@@ -27,14 +27,31 @@
         <div class="form-group">
           <label class="form-label">Employee ID <span class="req">*</span></label>
           <input type="text" name="employee_id" class="form-control"
-                 value="{{ employee.employee_id if is_edit else '' }}"
-                 placeholder="EMP001" required/>
+                 value="{{ employee.employee_id if is_edit else (auto_emp_id or '') }}"
+                 placeholder="EMP001" required readonly style="background-color:#F8FAFC;font-weight:600;color:#1E293B;cursor:not-allowed;"/>
+          <small style="font-size:.72rem;color:#64748B;">Auto-generated sequential ID</small>
         </div>
         <div class="form-group">
           <label class="form-label">Full Name <span class="req">*</span></label>
           <input type="text" name="full_name" class="form-control"
                  value="{{ employee.full_name if is_edit else '' }}"
                  placeholder="Full Name" required/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Company Name</label>
+          <input type="text" name="company_name" class="form-control"
+                 value="{{ employee.company_name if is_edit else 'EBT System' }}"
+                 placeholder="Company Name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Account Role</label>
+          <select name="role" class="form-control">
+            <option value="Employee" {% if is_edit and employee.user and employee.user.role.value == 'employee' %}selected{% elif not is_edit %}selected{% endif %}>Employee</option>
+            <option value="Admin" {% if is_edit and employee.user and employee.user.role.value == 'admin' %}selected{% endif %}>Admin</option>
+          </select>
         </div>
       </div>
 
@@ -53,6 +70,22 @@
         </div>
       </div>
 
+      {% set standard_desigs = [
+        'Software Developer',
+        'Web Developer',
+        'Frontend Developer',
+        'Backend Developer',
+        'Data Analyst',
+        'Data Scientist',
+        'HR Executive',
+        'Project Manager',
+        'Team Leader',
+        'Accountant',
+        'System Administrator'
+      ] %}
+      {% set current_desig = employee.designation if is_edit and employee.designation else '' %}
+      {% set is_custom_desig = is_edit and current_desig and (current_desig not in standard_desigs) %}
+
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Department</label>
@@ -68,9 +101,22 @@
         </div>
         <div class="form-group">
           <label class="form-label">Designation</label>
-          <input type="text" name="designation" class="form-control"
-                 value="{{ employee.designation or '' if is_edit else '' }}"
-                 placeholder="Software Engineer"/>
+          <select name="designation_choice" id="designationSelect" class="form-control" onchange="handleDesignationChange()">
+            <option value="">-- Select Designation --</option>
+            {% for desig in standard_desigs %}
+            <option value="{{ desig }}" {% if current_desig == desig %}selected{% endif %}>{{ desig }}</option>
+            {% endfor %}
+            <option value="Other" {% if is_custom_desig %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row" id="customDesignationRow" style="display: {{ 'grid' if is_custom_desig else 'none' }}; margin-bottom: 1rem;">
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label class="form-label">Custom Designation <span class="req">*</span></label>
+          <input type="text" name="custom_designation" id="customDesignationInput" class="form-control"
+                 value="{{ current_desig if is_custom_desig else '' }}"
+                 placeholder="Enter custom designation"/>
         </div>
       </div>
 
@@ -125,11 +171,28 @@
 
       <div style="display:flex;gap:.75rem;margin-top:.5rem;">
         <button type="submit" class="btn btn-primary">
-          {{ '&#128190; Save Changes' if is_edit else '&#128100; Add Employee' }}
+          {{ 'Save Changes' if is_edit else '+ Add Employee' }}
         </button>
         <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">Cancel</a>
       </div>
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function handleDesignationChange() {
+  const sel = document.getElementById('designationSelect');
+  const customRow = document.getElementById('customDesignationRow');
+  const customInput = document.getElementById('customDesignationInput');
+  if (sel.value === 'Other') {
+    customRow.style.display = 'grid';
+    customInput.focus();
+  } else {
+    customRow.style.display = 'none';
+    if (customInput) customInput.value = '';
+  }
+}
+</script>
 {% endblock %}

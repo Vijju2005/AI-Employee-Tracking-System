@@ -106,15 +106,19 @@ def review(leave_id):
     leave = LeaveRequest.query.get_or_404(leave_id)
 
     if request.method == "POST":
-        action = request.form.get("action")
+        action = (request.form.get("action") or "").strip().lower()
         admin_notes = request.form.get("admin_notes", "").strip()
+
+        if leave.status != LeaveStatus.PENDING:
+            flash(f"This leave request has already been processed as {leave.status.value}.", "warning")
+            return redirect(url_for("leave.index"))
 
         if action == "approve":
             leave.status = LeaveStatus.APPROVED
-            msg = "Leave request approved."
+            msg = f"Leave request for {leave.employee.full_name} has been approved."
         elif action == "reject":
             leave.status = LeaveStatus.REJECTED
-            msg = "Leave request rejected."
+            msg = f"Leave request for {leave.employee.full_name} has been rejected."
         else:
             flash("Invalid action.", "danger")
             return redirect(url_for("leave.review", leave_id=leave_id))
