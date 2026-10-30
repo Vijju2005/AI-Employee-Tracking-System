@@ -55,68 +55,9 @@ def login():
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """Self-service employee registration."""
-    if current_user.is_authenticated:
-        return _redirect_by_role(current_user)
-
-    error = None
-    form_data = None
-
-    if request.method == "POST":
-        username    = request.form.get("username", "").strip()
-        full_name   = request.form.get("full_name", "").strip()
-        email       = request.form.get("email", "").strip().lower()
-        password    = request.form.get("password", "")
-        confirm     = request.form.get("confirm_password", "")
-
-        # Preserve entered values so user doesn't retype everything on error
-        form_data = {"username": username, "full_name": full_name, "email": email}
-
-        if not all([username, full_name, email, password, confirm]):
-            error = "All fields are required."
-        elif len(username) < 3:
-            error = "Username must be at least 3 characters."
-        elif len(password) < 8:
-            error = "Password must be at least 8 characters."
-        elif password != confirm:
-            error = "Passwords do not match."
-        elif User.query.filter_by(username=username).first():
-            error = "That username is already taken. Please choose another."
-        elif User.query.filter_by(email=email).first():
-            error = "An account with that email already exists."
-        else:
-            new_user = User(
-                username=username,
-                email=email,
-                password_hash=generate_password_hash(password),
-                role=UserRole.EMPLOYEE,
-                is_active=True,
-            )
-            db.session.add(new_user)
-            db.session.flush()   # get new_user.id before commit
-
-            # Generate a sequential employee ID (EMP001, EMP002, …)
-            from app.models import Employee
-            count      = Employee.query.count() + 1
-            emp_id     = f"EMP{count:03d}"
-            # Ensure uniqueness in the unlikely event of a collision
-            while Employee.query.filter_by(employee_id=emp_id).first():
-                count += 1
-                emp_id = f"EMP{count:03d}"
-
-            new_emp = Employee(
-                employee_id=emp_id,
-                full_name=full_name,
-                email=email,
-                user_id=new_user.id,
-            )
-            db.session.add(new_emp)
-            db.session.commit()
-
-            flash("Account created successfully! Please log in.", "success")
-            return redirect(url_for("auth.login"))
-
-    return render_template("auth/register.html", error=error, form_data=form_data)
+    """Public employee self-registration is disabled. Accounts are provisioned by Admin."""
+    flash("Public registration is disabled. Please contact your administrator for your account credentials.", "info")
+    return redirect(url_for("auth.login"))
 
 
 @auth_bp.route("/logout")

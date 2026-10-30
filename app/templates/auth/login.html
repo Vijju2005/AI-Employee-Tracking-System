@@ -12,6 +12,16 @@
   <p style="font-size:.8rem;color:#64748B;margin:.25rem 0 0;">Sign in to your account</p>
 </div>
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category if category != 'message' else 'info' }}" style="margin-bottom:1rem;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
 {% if error %}
 <div class="alert alert-danger" style="margin-bottom:1rem;">&#9888; {{ error }}</div>
 {% endif %}
@@ -54,11 +64,6 @@
 
 <p style="text-align:center;font-size:.78rem;color:#64748B;margin-top:1.25rem;">
   Better Breaks. Smarter Teams. Higher Productivity.
-</p>
-
-<p style="text-align:center;font-size:.82rem;color:#64748B;margin-top:.75rem;">
-  Don't have an account?
-  <a href="{{ url_for('auth.register') }}" style="color:#2563EB;font-weight:600;">Sign Up</a>
 </p>
 {% endblock %}
 

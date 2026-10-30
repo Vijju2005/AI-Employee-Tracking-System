@@ -28,7 +28,7 @@
           <label class="form-label">Employee ID <span class="req">*</span></label>
           <input type="text" name="employee_id" class="form-control"
                  value="{{ employee.employee_id if is_edit else '' }}"
-                 placeholder="EMP001" required {{ 'readonly' if is_edit else '' }}/>
+                 placeholder="EMP001" required/>
         </div>
         <div class="form-group">
           <label class="form-label">Full Name <span class="req">*</span></label>
@@ -76,6 +76,11 @@
 
       <div class="form-row">
         <div class="form-group">
+          <label class="form-label">Joining Date</label>
+          <input type="date" name="date_joined" class="form-control"
+                 value="{{ employee.date_joined.strftime('%Y-%m-%d') if is_edit and employee.date_joined else '' }}"/>
+        </div>
+        <div class="form-group">
           <label class="form-label">Work Schedule</label>
           <select name="work_schedule_id" class="form-control">
             <option value="">-- Select Schedule --</option>
@@ -87,8 +92,11 @@
             {% endfor %}
           </select>
         </div>
+      </div>
+
+      <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Status</label>
+          <label class="form-label">Account Status</label>
           <select name="status" class="form-control">
             <option value="active" {% if not is_edit or employee.status.value == 'active' %}selected{% endif %}>Active</option>
             <option value="inactive" {% if is_edit and employee.status.value == 'inactive' %}selected{% endif %}>Inactive</option>

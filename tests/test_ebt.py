@@ -223,6 +223,79 @@ class TestEmployeeManagement:
             assert "full_name" in d
             assert d["employee_id"] == emp.employee_id
 
+    def test_admin_edit_employee_details(self, app, db):
+        with app.app_context():
+            from app.models import User, Employee, Department, WorkSchedule, AccountStatus
+            from datetime import time
+            import uuid
+            uid = uuid.uuid4().hex[:6]
+            admin = _make_user(db, role="admin", username=f"admin_ed_{uid}", email=f"admin_ed_{uid}@test.com")
+            emp_user = _make_user(db, role="employee", username=f"emp_ed_{uid}", email=f"emp_ed_{uid}@test.com")
+            dept = Department(name=f"Engineering_{uid}")
+            sched = WorkSchedule(name=f"General_{uid}", start_time=time(9, 0), end_time=time(17, 0), total_hours=8.0)
+            db.session.add_all([dept, sched])
+            db.session.commit()
+
+            emp = _make_employee(db, emp_user, emp_id=f"ED_{uid}", name="Initial Name")
+            emp.department_id = dept.id
+            emp.work_schedule_id = sched.id
+            db.session.commit()
+            emp_id_db = emp.id
+            admin_username = admin.username
+            dept_id_val = dept.id
+            sched_id_val = sched.id
+
+        client = app.test_client()
+        # Log in as admin
+        client.post("/auth/login", data={"identifier": admin_username, "password": "Test@1234"})
+
+        # Submit edit update
+        new_email = f"updated_{uid}@test.com"
+        resp = client.post(f"/employees/{emp_id_db}/edit", data={
+            "employee_id": f"NEWID_{uid}",
+            "full_name": "Updated Employee Name",
+            "email": new_email,
+            "phone": "+91 98765 43210",
+            "department_id": str(dept_id_val),
+            "designation": "Lead Engineer",
+            "work_schedule_id": str(sched_id_val),
+            "status": "active",
+            "date_joined": "2024-01-15",
+        }, follow_redirects=True)
+        assert resp.status_code == 200
+
+        # Log out admin so subsequent tests start unauthenticated
+        client.get("/auth/logout")
+
+        with app.app_context():
+            from app.models import Employee, User
+            updated_emp = Employee.query.get(emp_id_db)
+            assert updated_emp.full_name == "Updated Employee Name"
+            assert updated_emp.employee_id == f"NEWID_{uid}"
+            assert updated_emp.email == new_email
+            assert updated_emp.phone == "+91 98765 43210"
+            assert updated_emp.designation == "Lead Engineer"
+            assert updated_emp.date_joined.strftime("%Y-%m-%d") == "2024-01-15"
+            # Ensure linked user's email was synced for login
+            assert updated_emp.user.email == new_email
+
+    def test_public_registration_disabled(self, app):
+        client = app.test_client()
+        resp = client.get("/auth/register", follow_redirects=False)
+        assert resp.status_code == 302
+        assert "/auth/login" in resp.headers["Location"]
+
+        # POST should also redirect to login with message
+        resp_post = client.post("/auth/register", data={
+            "username": "selfreg",
+            "full_name": "Self Reg",
+            "email": "selfreg@test.com",
+            "password": "Password@123",
+            "confirm_password": "Password@123",
+        }, follow_redirects=True)
+        assert resp_post.status_code == 200
+        assert b"Public registration is disabled" in resp_post.data
+
 
 # ── Attendance Tests ──────────────────────────────────────────────────────────
 
