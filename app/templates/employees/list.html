@@ -1,27 +1,33 @@
 {% extends "base.html" %}
-{% block title %}Employees{% endblock %}
-{% block topbar_title %}Employee Management (Admin){% endblock %}
+{% block title %}Employee Directory{% endblock %}
+{% block topbar_title %}Employee Management{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#128101; Employee Management</h1>
-    <p>Add, view, edit and manage employee records.</p>
+    <h1>
+      <i data-lucide="users" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Employee Directory</span>
+    </h1>
+    <p>Manage employee records, organizational departments, designations, and account status.</p>
   </div>
-  <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">&#43; Add Employee</a>
+  <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">
+    <i data-lucide="user-plus"></i>
+    <span>Add Employee</span>
+  </a>
 </div>
 
-<!-- Filters -->
+<!-- Filters bar -->
 <form method="GET" class="filters-bar">
   <div class="filter-group">
-    <span class="filter-label">Search</span>
+    <span class="filter-label">Search Query</span>
     <input type="text" name="q" class="form-control" placeholder="Search by name, ID or email..."
-           value="{{ request.args.get('q','') }}" style="min-width:200px;"/>
+           value="{{ request.args.get('q','') }}" style="min-width:220px;"/>
   </div>
   <div class="filter-group">
     <span class="filter-label">Department</span>
     <select name="dept" class="form-control">
-      <option value="">All</option>
+      <option value="">All Departments</option>
       {% for d in departments %}
       <option value="{{ d.id }}" {% if request.args.get('dept')|string == d.id|string %}selected{% endif %}>
         {{ d.name }}
@@ -32,19 +38,28 @@
   <div class="filter-group">
     <span class="filter-label">Status</span>
     <select name="status" class="form-control">
-      <option value="">All</option>
+      <option value="">All Statuses</option>
       <option value="active" {% if request.args.get('status')=='active' %}selected{% endif %}>Active</option>
       <option value="inactive" {% if request.args.get('status')=='inactive' %}selected{% endif %}>Inactive</option>
     </select>
   </div>
-  <button type="submit" class="btn btn-outline">&#128269; Filter</button>
-  <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">Reset</a>
+  <button type="submit" class="btn btn-primary">
+    <i data-lucide="search"></i>
+    <span>Apply Filter</span>
+  </button>
+  <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">
+    <i data-lucide="rotate-ccw"></i>
+    <span>Reset</span>
+  </a>
 </form>
 
 <div class="card">
   <div class="card-header">
-    <h3>Employees ({{ employees.total if employees.total is defined else employees|length }})</h3>
-    <span style="font-size:.78rem;color:var(--text-sec);">
+    <h3>
+      <i data-lucide="list"></i>
+      <span>Employees ({{ employees.total if employees.total is defined else employees|length }})</span>
+    </h3>
+    <span style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">
       Showing {{ employees.items|length }} of {{ employees.total }} records
     </span>
   </div>
@@ -52,79 +67,113 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th>ID</th><th>Name</th><th>Company</th><th>Email</th><th>Department</th>
-          <th>Designation</th><th>Status</th><th>Actions</th>
+          <th>ID</th>
+          <th>Employee Name</th>
+          <th>Company</th>
+          <th>Work Email</th>
+          <th>Department</th>
+          <th>Designation</th>
+          <th>Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
         {% for emp in employees.items %}
         <tr>
-          <td><code style="background:var(--bg);padding:.15rem .4rem;border-radius:4px;font-size:.78rem;">{{ emp.employee_id }}</code></td>
-          <td><strong>{{ emp.full_name }}</strong></td>
-          <td style="color:var(--text-sec);font-size:.85rem;">{{ emp.company_name or 'EBT System' }}</td>
-          <td style="color:var(--text-sec);">{{ emp.email }}</td>
-          <td>{{ emp.department.name if emp.department else '—' }}</td>
-          <td>{{ emp.designation or '—' }}</td>
+          <td>
+            <code style="background:var(--bg-subtle);padding:0.25rem 0.55rem;border-radius:6px;font-size:0.8rem;font-weight:700;color:var(--navy);border:1px solid var(--border);">
+              {{ emp.employee_id }}
+            </code>
+          </td>
+          <td>
+            <div style="font-weight:700;color:var(--navy);">{{ emp.full_name }}</div>
+          </td>
+          <td style="color:var(--text-sec);font-size:0.84rem;">{{ emp.company_name or 'EBT System' }}</td>
+          <td style="color:var(--text-sec);font-size:0.84rem;">{{ emp.email }}</td>
+          <td>
+            <span class="badge badge-info" style="font-weight:600;">
+              {{ emp.department.name if emp.department else '—' }}
+            </span>
+          </td>
+          <td style="font-size:0.84rem;color:var(--text-sec);">{{ emp.designation or '—' }}</td>
           <td>
             {% if emp.status.value == 'active' %}
-              <span class="badge badge-success">Active</span>
+              <span class="badge badge-success">
+                <i data-lucide="check" style="width:12px;height:12px;"></i> Active
+              </span>
             {% else %}
-              <span class="badge badge-secondary">Inactive</span>
+              <span class="badge badge-secondary">
+                <i data-lucide="minus-circle" style="width:12px;height:12px;"></i> Inactive
+              </span>
             {% endif %}
           </td>
           <td>
-            <a href="{{ url_for('employees.edit_employee', emp_id=emp.id) }}"
-               class="btn btn-sm btn-outline" title="Edit">&#9998; Edit</a>
-            <form method="POST" action="{{ url_for('employees.toggle_status', emp_id=emp.id) }}"
-                  style="display:inline;">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-              <button type="submit" class="btn btn-sm btn-warning"
-                      data-confirm="Toggle status for {{ emp.full_name }}?">
-                {% if emp.status.value == 'active' %}&#9940;{% else %}&#9989;{% endif %}
-              </button>
-            </form>
+            <div style="display:flex;align-items:center;gap:0.4rem;">
+              <a href="{{ url_for('employees.edit_employee', emp_id=emp.id) }}"
+                 class="btn btn-sm btn-outline" title="Edit Employee Details">
+                <i data-lucide="edit-3"></i>
+                <span>Edit</span>
+              </a>
+              <form method="POST" action="{{ url_for('employees.toggle_status', emp_id=emp.id) }}"
+                    style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit"
+                        class="btn btn-sm {{ 'btn-danger' if emp.status.value == 'active' else 'btn-success' }}"
+                        data-confirm="Are you sure you want to {{ 'deactivate' if emp.status.value == 'active' else 'activate' }} this employee?"
+                        title="{{ 'Deactivate' if emp.status.value == 'active' else 'Activate' }}">
+                  {% if emp.status.value == 'active' %}
+                    <i data-lucide="user-x"></i>
+                  {% else %}
+                    <i data-lucide="user-check"></i>
+                  {% endif %}
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7">
-            <div class="empty-state">
-              <div class="empty-icon">&#128101;</div>
-              <h3>No employees found</h3>
-              <p>Add your first employee to get started.</p>
-              <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary mt-2">Add Employee</a>
-            </div>
+          <td colspan="8" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
+            <i data-lucide="users" style="width:36px;height:36px;margin-bottom:0.5rem;display:inline-block;color:var(--text-muted);"></i>
+            <div style="font-weight:700;color:var(--navy);font-size:1rem;">No employees found</div>
+            <div style="font-size:0.84rem;">Try adjusting your search criteria or add a new employee.</div>
           </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+</div>
 
-  {% if employees.pages is defined and employees.pages > 1 %}
-  <div style="padding:1rem;">
-    <div class="pagination">
-      {% if employees.has_prev %}
-      <a href="{{ url_for('employees.list_employees', page=employees.prev_num, **request.args) }}"
-         class="page-link">&laquo; Prev</a>
+<!-- Pagination controls -->
+{% if employees.pages > 1 %}
+<div class="pagination">
+  {% if employees.has_prev %}
+    <a href="{{ url_for('employees.list_employees', page=employees.prev_num, q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status','')) }}"
+       class="page-link">&laquo; Prev</a>
+  {% else %}
+    <span class="page-link disabled">&laquo; Prev</span>
+  {% endif %}
+
+  {% for page_num in employees.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+    {% if page_num %}
+      {% if page_num == employees.page %}
+        <span class="page-link active">{{ page_num }}</span>
+      {% else %}
+        <a href="{{ url_for('employees.list_employees', page=page_num, q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status','')) }}"
+           class="page-link">{{ page_num }}</a>
       {% endif %}
-      {% for p in employees.iter_pages() %}
-        {% if p %}
-          <a href="{{ url_for('employees.list_employees', page=p, **request.args) }}"
-             class="page-link {{ 'active' if p == employees.page }}">{{ p }}</a>
-        {% else %}
-          <span class="page-link disabled">&hellip;</span>
-        {% endif %}
-      {% endfor %}
-      {% if employees.has_next %}
-      <a href="{{ url_for('employees.list_employees', page=employees.next_num, **request.args) }}"
-         class="page-link">Next &raquo;</a>
-      {% endif %}
-    </div>
-    <div style="text-align:center;font-size:.76rem;color:var(--text-sec);margin-top:.5rem;">
-      Showing {{ ((employees.page-1)*employees.per_page)+1 }}–{{ [employees.page*employees.per_page, employees.total]|min }} of {{ employees.total }} employees
-    </div>
-  </div>
+    {% else %}
+      <span class="page-link disabled">&hellip;</span>
+    {% endif %}
+  {% endfor %}
+
+  {% if employees.has_next %}
+    <a href="{{ url_for('employees.list_employees', page=employees.next_num, q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status','')) }}"
+       class="page-link">Next &raquo;</a>
+  {% else %}
+    <span class="page-link disabled">Next &raquo;</span>
   {% endif %}
 </div>
+{% endif %}
 {% endblock %}

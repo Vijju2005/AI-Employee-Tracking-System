@@ -1,21 +1,27 @@
 {% extends "base_auth.html" %}
-{% block title %}Login{% endblock %}
+{% block title %}Sign In{% endblock %}
 
 {% block auth_content %}
 <div class="login-tabs" id="loginTabs">
-  <div class="login-tab active" data-role="admin" onclick="switchTab('admin')">&#128737; Admin</div>
-  <div class="login-tab" data-role="employee" onclick="switchTab('employee')">&#128100; Employee</div>
+  <div class="login-tab active" data-role="admin" onclick="switchTab('admin')">
+    <i data-lucide="shield-check"></i>
+    <span>Admin</span>
+  </div>
+  <div class="login-tab" data-role="employee" onclick="switchTab('employee')">
+    <i data-lucide="user"></i>
+    <span>Employee</span>
+  </div>
 </div>
 
-<div style="text-align:center;margin-bottom:1.25rem;">
-  <h2 style="font-size:1.1rem;font-weight:700;color:#163A5F;margin:0;">Welcome Back</h2>
-  <p style="font-size:.8rem;color:#64748B;margin:.25rem 0 0;">Sign in to your account</p>
+<div style="text-align:center;margin-bottom:1.5rem;">
+  <h2 style="font-size:1.3rem;font-weight:800;color:var(--navy);margin:0;letter-spacing:-0.02em;">Welcome Back</h2>
+  <p style="font-size:0.84rem;color:var(--text-sec);margin:0.35rem 0 0;">Sign in to access your enterprise dashboard</p>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% for category, message in messages %}
-      <div class="alert alert-{{ category if category != 'message' else 'info' }}" style="margin-bottom:1rem;">
+      <div class="alert alert-{{ category if category != 'message' else 'info' }}" style="margin-bottom:1.25rem;">
         {{ message }}
       </div>
     {% endfor %}
@@ -23,7 +29,10 @@
 {% endwith %}
 
 {% if error %}
-<div class="alert alert-danger" style="margin-bottom:1rem;">&#9888; {{ error }}</div>
+<div class="alert alert-danger" style="margin-bottom:1.25rem;">
+  <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
 {% endif %}
 
 <form method="POST" action="{{ url_for('auth.login') }}" data-loading>
@@ -31,52 +40,72 @@
   <input type="hidden" name="role_hint" id="roleHint" value="admin"/>
 
   <div class="form-group">
-    <label class="form-label" for="identifier">&#128100; Username / Email</label>
+    <label class="form-label" for="identifier">
+      <i data-lucide="mail"></i>
+      <span>Username or Work Email</span>
+    </label>
     <input type="text" id="identifier" name="identifier" class="form-control"
-           placeholder="Enter your username or email" required autocomplete="username"/>
+           placeholder="e.g. admin or employee@company.com" required autocomplete="username"/>
   </div>
 
   <div class="form-group">
-    <label class="form-label" for="password">&#128274; Password</label>
+    <label class="form-label" for="password">
+      <i data-lucide="lock"></i>
+      <span>Password</span>
+    </label>
     <div style="position:relative;">
       <input type="password" id="password" name="password" class="form-control"
-             placeholder="Enter your password" required autocomplete="current-password"
-             style="padding-right:2.5rem;"/>
+             placeholder="Enter your secret password" required autocomplete="current-password"
+             style="padding-right:2.75rem;"/>
       <button type="button" onclick="togglePwd()" title="Show/hide password"
-              style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);
-                     background:none;border:none;cursor:pointer;color:#64748B;font-size:1rem;">
-        &#128065;
+              style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);
+                     background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;">
+        <i data-lucide="eye" id="pwdEye" style="width:18px;height:18px;"></i>
       </button>
     </div>
   </div>
 
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-    <label style="display:flex;align-items:center;gap:.4rem;font-size:.82rem;color:#64748B;cursor:pointer;">
-      <input type="checkbox" name="remember" style="accent-color:#2563EB;"/> Remember me
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.82rem;color:var(--text-sec);cursor:pointer;">
+      <input type="checkbox" name="remember" style="accent-color:var(--blue);width:15px;height:15px;border-radius:4px;"/> Keep me signed in
     </label>
-    <a href="#" style="font-size:.82rem;color:#2563EB;">Forgot password?</a>
+    <a href="#" style="font-size:0.82rem;color:var(--blue);font-weight:600;">Forgot password?</a>
   </div>
 
   <button type="submit" class="btn btn-primary w-100 btn-lg">
-    Login
+    <span>Sign In to Platform</span>
+    <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
   </button>
 </form>
 
-<p style="text-align:center;font-size:.78rem;color:#64748B;margin-top:1.25rem;">
-  Better Breaks. Smarter Teams. Higher Productivity.
-</p>
+<div style="text-align:center;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+  <span style="font-size:0.78rem;color:var(--text-muted);">
+    Protected by Enterprise Multi-factor &amp; Session Guard
+  </span>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 function switchTab(role) {
   document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`[data-role="${role}"]`).classList.add('active');
+  document.querySelector(`[data-role="${role}"]`)?.classList.add('active');
   document.getElementById('roleHint').value = role;
 }
+
 function togglePwd() {
   const p = document.getElementById('password');
-  p.type = p.type === 'password' ? 'text' : 'password';
+  const eye = document.getElementById('pwdEye');
+  if (p.type === 'password') {
+    p.type = 'text';
+    eye.setAttribute('data-lucide', 'eye-off');
+  } else {
+    p.type = 'password';
+    eye.setAttribute('data-lucide', 'eye');
+  }
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
 }
 </script>
 {% endblock %}

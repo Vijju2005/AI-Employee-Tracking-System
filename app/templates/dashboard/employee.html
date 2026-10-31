@@ -1,86 +1,132 @@
 {% extends "base.html" %}
-{% block title %}My Dashboard{% endblock %}
-{% block topbar_title %}Dashboard{% endblock %}
+{% block title %}My Workplace Dashboard{% endblock %}
+{% block topbar_title %}Employee Workspace{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#127968; Welcome, {{ employee.full_name if employee else current_user.username }}</h1>
-    <p>Here's your work summary for today &mdash; {{ today.strftime('%A, %d %B %Y') }}</p>
+    <h1>
+      <i data-lucide="sparkles" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Welcome back, {{ employee.full_name if employee else current_user.username }}</span>
+    </h1>
+    <p>
+      {{ employee.designation if employee and employee.designation else 'Team Member' }}
+      &bull; {{ employee.department.name if employee and employee.department else 'Operations' }}
+      &mdash; {{ today.strftime('%A, %d %B %Y') }}
+    </p>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <a href="{{ url_for('leave.apply') }}" class="btn btn-primary">
+      <i data-lucide="calendar-plus"></i>
+      <span>Request Leave</span>
+    </a>
+    <a href="{{ url_for('attendance.history') }}" class="btn btn-outline">
+      <i data-lucide="history"></i>
+      <span>My History</span>
+    </a>
   </div>
 </div>
 
 {% if today_holiday %}
 <!-- Prominent Today Holiday Banner -->
-<div class="alert alert-danger" style="background:#FEE2E2;border:1.5px solid #F87171;color:#991B1B;padding:1.1rem 1.4rem;border-radius:12px;margin-bottom:1.25rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;box-shadow:0 4px 12px rgba(239,68,68,0.12);">
-  <div style="display:flex;align-items:center;gap:0.85rem;">
-    <span style="font-size:2rem;line-height:1;">&#127881;</span>
+<div class="alert alert-danger" style="background:#FEF2F2;border:1.5px solid #F87171;color:#991B1B;padding:1.25rem 1.5rem;border-radius:14px;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;box-shadow:var(--shadow-md);">
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <div style="width:48px;height:48px;border-radius:12px;background:#FEE2E2;display:flex;align-items:center;justify-content:center;color:#DC2626;flex-shrink:0;">
+      <i data-lucide="calendar-heart" style="width:26px;height:26px;"></i>
+    </div>
     <div>
-      <div style="font-size:1.15rem;font-weight:700;letter-spacing:0.02em;text-transform:uppercase;color:#7F1D1D;">
+      <div style="font-size:1.1rem;font-weight:800;letter-spacing:0.02em;text-transform:uppercase;color:#7F1D1D;">
         TODAY IS A HOLIDAY! &mdash; {{ today_holiday.holiday_name }}
       </div>
-      <div style="font-size:0.9rem;color:#B91C1C;margin-top:0.2rem;">
+      <div style="font-size:0.86rem;color:#B91C1C;margin-top:0.2rem;">
         {{ today.strftime('%A, %d %B %Y') }}{% if today_holiday.description %} &bull; {{ today_holiday.description }}{% endif %}
       </div>
     </div>
   </div>
-  <a href="{{ url_for('holidays.index') }}" class="btn btn-sm" style="background:#DC2626;color:#ffffff;border:none;font-weight:600;padding:0.45rem 1rem;border-radius:8px;text-decoration:none;">
-    &#128197; View 2026 Calendar
+  <a href="{{ url_for('holidays.index') }}" class="btn btn-danger" style="box-shadow:none;">
+    <i data-lucide="calendar"></i>
+    <span>View 2026 Calendar</span>
   </a>
 </div>
 {% endif %}
 
 <!-- Check-in hero card (full width) -->
-<div class="check-status-card" style="margin-bottom:1rem;">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+<div class="check-status-card" style="margin-bottom:1.5rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.25rem;">
     <div>
-      <div style="font-size:.72rem;opacity:.65;margin-bottom:.2rem;text-transform:uppercase;letter-spacing:.06em;">Today's Status</div>
+      <div style="font-size:0.75rem;opacity:0.75;margin-bottom:0.35rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;">
+        Active Session Status
+      </div>
       {% if attendance %}
         {% if attendance.check_out %}
-          <div class="status-time">&#128683; Checked Out</div>
-          <div class="status-label">{{ attendance.check_in|local_time }} &mdash; {{ attendance.check_out|local_time }}</div>
+          <div class="status-time">
+            <span class="badge badge-secondary" style="font-size:0.9rem;padding:0.4rem 0.8rem;">
+              <i data-lucide="check-check"></i> Shift Completed
+            </span>
+          </div>
+          <div class="status-label">Checked out at {{ attendance.check_out|local_time }} (Session: {{ attendance.check_in|local_time }} &mdash; {{ attendance.check_out|local_time }})</div>
         {% else %}
-          <div class="status-time">&#128994; Checked In</div>
-          <div class="status-label">Since {{ attendance.check_in|local_time }}</div>
+          <div class="status-time">
+            <span class="badge badge-success" style="font-size:0.9rem;padding:0.4rem 0.8rem;">
+              <i data-lucide="activity"></i> Currently Checked In
+            </span>
+          </div>
+          <div class="status-label">Session active since {{ attendance.check_in|local_time }} IST</div>
         {% endif %}
       {% else %}
-        <div class="status-time" style="font-size:1.3rem;">Not Checked In</div>
-        <div class="status-label">You haven't checked in today</div>
+        <div class="status-time" style="font-size:1.45rem;">
+          <span class="badge badge-warning" style="font-size:0.9rem;padding:0.4rem 0.8rem;">
+            <i data-lucide="clock"></i> Not Checked In
+          </span>
+        </div>
+        <div class="status-label">Begin your working day by clocking in below</div>
       {% endif %}
     </div>
+
     <div class="action-buttons">
       {% if not attendance %}
         <form method="POST" action="{{ url_for('attendance.checkin') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-          <button class="btn btn-success btn-lg">&#9989; Check In</button>
+          <button class="btn btn-success btn-lg">
+            <i data-lucide="log-in"></i>
+            <span>Check In Now</span>
+          </button>
         </form>
       {% elif not attendance.check_out %}
         <form method="POST" action="{{ url_for('attendance.checkout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-          <button class="btn btn-primary">&#128683; Check Out</button>
+          <button class="btn btn-primary btn-lg">
+            <i data-lucide="log-out"></i>
+            <span>Check Out</span>
+          </button>
         </form>
         {% if not active_break %}
-          <form method="POST" action="{{ url_for('breaks.start') }}" style="display:flex;gap:.4rem;align-items:center;">
+          <form method="POST" action="{{ url_for('breaks.start') }}" style="display:flex;gap:0.5rem;align-items:center;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <select name="category" class="form-control" style="min-width:110px;padding:.42rem .6rem;">
+            <select name="category" class="form-control" style="min-width:125px;padding:0.55rem 0.8rem;border-radius:var(--radius-sm);background:#FFFFFF;">
               <option value="Lunch">Lunch</option>
               <option value="Tea">Tea</option>
               <option value="Coffee">Coffee</option>
               <option value="Personal">Personal</option>
               <option value="Other">Other</option>
             </select>
-            <button class="btn btn-warning">&#9749; Start Break</button>
+            <button class="btn btn-warning">
+              <i data-lucide="coffee"></i>
+              <span>Start Break</span>
+            </button>
           </form>
         {% else %}
           <form method="POST" action="{{ url_for('breaks.end', break_id=active_break.id) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button class="btn btn-outline" style="background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff;">
-              &#9632; End {{ active_break.category.value }} Break
+            <button class="btn btn-danger">
+              <i data-lucide="square"></i>
+              <span>End {{ active_break.category.value }} Break</span>
             </button>
           </form>
         {% endif %}
-        <a href="{{ url_for('leave.apply') }}" class="btn" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.35);color:#fff;">
-          &#128197; Apply Leave
+        <a href="{{ url_for('leave.apply') }}" class="btn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#FFFFFF;">
+          <i data-lucide="calendar-plus"></i>
+          <span>Apply Leave</span>
         </a>
       {% endif %}
     </div>
@@ -92,31 +138,34 @@
 
   <!-- Left: Today's Attendance + Quick Links -->
   <div>
-    <div class="card" style="margin-bottom:1rem;">
+    <div class="card" style="margin-bottom:1.25rem;">
       <div class="card-header">
-        <h3>&#128203; Today's Attendance</h3>
+        <h3>
+          <i data-lucide="timer"></i>
+          <span>Today's Time Analytics</span>
+        </h3>
       </div>
       <div class="card-body">
         <div class="today-att-grid">
           <div class="today-att-item">
-            <div class="att-label">Check In</div>
+            <div class="att-label">Check In Time</div>
             <div class="att-time">{{ attendance.check_in|local_time if attendance else '—' }}</div>
           </div>
           <div class="today-att-item">
-            <div class="att-label">Check Out</div>
+            <div class="att-label">Check Out Time</div>
             <div class="att-time">{{ attendance.check_out|local_time if attendance and attendance.check_out else '—' }}</div>
           </div>
           <div class="today-att-item">
-            <div class="att-label">Total Hours</div>
-            <div class="att-time" id="liveWorkingHours">
+            <div class="att-label">Net Working Hours</div>
+            <div class="att-time" id="liveWorkingHours" style="color:var(--blue);">
               {% if attendance %}
                 {{ elapsed_net_minutes|hours_mins }}
               {% else %}0h 0m{% endif %}
             </div>
           </div>
           <div class="today-att-item">
-            <div class="att-label">Break Time</div>
-            <div class="att-time" id="liveBreakTime">
+            <div class="att-label">Total Break Duration</div>
+            <div class="att-time" id="liveBreakTime" style="color:#D97706;">
               {% if attendance %}{{ total_break_minutes|mins }}{% else %}0m{% endif %}
             </div>
           </div>
@@ -125,113 +174,143 @@
     </div>
 
     <div class="card">
-      <div class="card-header"><h3>&#9889; Quick Links</h3></div>
+      <div class="card-header">
+        <h3>
+          <i data-lucide="compass"></i>
+          <span>Workspace Shortcuts</span>
+        </h3>
+      </div>
       <div class="card-body">
         <div class="quick-actions">
           <a href="{{ url_for('attendance.history') }}" class="quick-action-btn">
-            <div class="qa-icon" style="background:#DBEAFE;color:#2563EB;">&#128203;</div>
-            <span>View Attendance History</span>
-            <span class="qa-arrow">&#8250;</span>
+            <div class="qa-icon" style="background:#EFF6FF;color:#2563EB;">
+              <i data-lucide="calendar-check"></i>
+            </div>
+            <span>View Complete Attendance History</span>
+            <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
           </a>
           <a href="{{ url_for('leave.index') }}" class="quick-action-btn">
-            <div class="qa-icon" style="background:#FEF3C7;color:#F59E0B;">&#128197;</div>
-            <span>Leave Requests</span>
-            <span class="qa-arrow">&#8250;</span>
+            <div class="qa-icon" style="background:#FFFBEB;color:#D97706;">
+              <i data-lucide="calendar-days"></i>
+            </div>
+            <span>Track My Leave Applications</span>
+            <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
           </a>
           <a href="{{ url_for('breaks.index') }}" class="quick-action-btn">
-            <div class="qa-icon" style="background:#DCFCE7;color:#16A34A;">&#9749;</div>
-            <span>Break History</span>
-            <span class="qa-arrow">&#8250;</span>
+            <div class="qa-icon" style="background:#ECFEFF;color:#0891B2;">
+              <i data-lucide="coffee"></i>
+            </div>
+            <span>My Break Logs &amp; Categories</span>
+            <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
           </a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Right: Mini Stats + AI Prediction -->
+  <!-- Right: Mini Stats + AI Prediction + Holidays -->
   <div>
-    <div class="card" style="margin-bottom:1rem;">
-      <div class="card-header"><h3>&#128202; Working Hours</h3></div>
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div class="card-header">
+        <h3>
+          <i data-lucide="gauge"></i>
+          <span>Shift Summary</span>
+        </h3>
+      </div>
       <div class="card-body">
         <div class="mini-stats">
           <div class="mini-stat">
-            <div class="ms-icon">&#8987;</div>
+            <div class="ms-icon">
+              <i data-lucide="briefcase"></i>
+            </div>
             <div class="ms-value" id="liveWorkingHoursMini">
               {% if attendance %}
                 {{ elapsed_net_minutes|hours_mins }}
               {% else %}0h 0m{% endif %}
             </div>
-            <div class="ms-label">Working Hours</div>
+            <div class="ms-label">Net Working Time</div>
           </div>
           <div class="mini-stat">
-            <div class="ms-icon">&#9749;</div>
-            <div class="ms-value" id="liveBreakTimeMini">
+            <div class="ms-icon" style="background:#FEF3C7;color:#D97706;">
+              <i data-lucide="coffee"></i>
+            </div>
+            <div class="ms-value" id="liveBreakTimeMini" style="color:#B45309;">
               {% if attendance %}{{ total_break_minutes|mins }}{% else %}0m{% endif %}
             </div>
-            <div class="ms-label">Break Time</div>
+            <div class="ms-label">Total Break Taken</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- AI Prediction mini -->
-    <div class="card">
+    <!-- AI Smart Prediction Card -->
+    <div class="card" style="margin-bottom:1.25rem;">
       <div class="card-header">
-        <h3>&#129302; AI Prediction</h3>
-        <a href="{{ url_for('ml.index') }}" class="btn btn-sm btn-outline">View Details</a>
+        <h3>
+          <i data-lucide="sparkles" style="color:#6366F1;"></i>
+          <span>AI Availability &amp; Break Prediction</span>
+        </h3>
+        <a href="{{ url_for('ml.index') }}" class="btn btn-sm btn-outline">Details</a>
       </div>
       <div class="card-body">
         <div class="ai-card">
-          <div class="ai-header">&#129302; Smart Break Prediction</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+          <div class="ai-header">
+            <i data-lucide="brain-circuit"></i>
+            <span>Machine Learning Availability Model</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.85rem;">
             <div>
-              <div class="ai-value">{{ prediction.break_min if prediction else '--' }}<span style="font-size:1rem;">m</span></div>
-              <div class="ai-label">Predicted Break Duration</div>
+              <div class="ai-value">{{ prediction.break_min if prediction else '--' }}<span style="font-size:1rem;font-weight:600;">m</span></div>
+              <div class="ai-label">Expected Break Duration</div>
             </div>
             <div>
-              <div class="ai-value">{{ prediction.avail_h if prediction else '--' }}<span style="font-size:1rem;">h</span></div>
-              <div class="ai-label">Estimated Available Working</div>
+              <div class="ai-value">{{ prediction.avail_h if prediction else '--' }}<span style="font-size:1rem;font-weight:600;">h</span></div>
+              <div class="ai-label">Est. Available Working Time</div>
             </div>
           </div>
-          <div class="ai-notice">Based on historical data. Accuracy improves with more records.</div>
+          <div class="ai-notice">
+            Dynamically adapted using Random Forest regression based on your historical work habits.
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Upcoming Holidays Card -->
-    <div class="card" style="margin-top:1rem;">
+    <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
-        <h3 style="margin:0;font-size:1rem;color:var(--text-color);display:flex;align-items:center;gap:0.4rem;">
-          <span style="color:#DC2626;">&#128197;</span> Upcoming Holidays
+        <h3 style="margin:0;">
+          <i data-lucide="calendar-heart" style="color:var(--danger);"></i>
+          <span>Upcoming 2026 Holidays</span>
         </h3>
-        <a href="{{ url_for('holidays.index') }}" class="btn btn-sm btn-outline" style="font-size:0.75rem;padding:0.25rem 0.6rem;">
-          Full 2026 Calendar
+        <a href="{{ url_for('holidays.index') }}" class="btn btn-sm btn-outline">
+          <span>Calendar</span>
+          <i data-lucide="arrow-right" style="width:13px;height:13px;"></i>
         </a>
       </div>
-      <div class="card-body" style="padding:0.75rem 1rem;">
+      <div class="card-body" style="padding:0.9rem 1.15rem;">
         {% if upcoming_holidays %}
-          <div style="display:flex;flex-direction:column;gap:0.6rem;">
+          <div style="display:flex;flex-direction:column;gap:0.65rem;">
             {% for h in upcoming_holidays %}
               {% set days_left = (h.holiday_date - today).days %}
-              <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0.6rem;background:#FEE2E2;border-left:4px solid #DC2626;border-radius:6px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:0.65rem 0.85rem;background:#FEF2F2;border-left:4px solid #DC2626;border-radius:8px;">
                 <div>
-                  <div style="font-weight:600;font-size:0.875rem;color:#991B1B;">{{ h.holiday_name }}</div>
-                  <div style="font-size:0.75rem;color:#7F1D1D;">{{ h.holiday_date.strftime('%a, %d %b %Y') }}</div>
+                  <div style="font-weight:700;font-size:0.88rem;color:#991B1B;">{{ h.holiday_name }}</div>
+                  <div style="font-size:0.75rem;color:#7F1D1D;margin-top:0.1rem;">{{ h.holiday_date.strftime('%a, %d %b %Y') }}</div>
                 </div>
                 <div style="text-align:right;">
                   {% if days_left == 0 %}
-                    <span class="badge" style="background:#DC2626;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.5rem;font-weight:700;">TODAY</span>
+                    <span class="badge" style="background:#DC2626;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.55rem;font-weight:700;">TODAY</span>
                   {% elif days_left == 1 %}
-                    <span class="badge" style="background:#EA580C;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.5rem;">Tomorrow</span>
+                    <span class="badge" style="background:#EA580C;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.55rem;">Tomorrow</span>
                   {% else %}
-                    <span class="badge" style="background:#991B1B;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.5rem;">in {{ days_left }} days</span>
+                    <span class="badge" style="background:#991B1B;color:#ffffff;font-size:0.7rem;padding:0.25rem 0.55rem;">in {{ days_left }} days</span>
                   {% endif %}
                 </div>
               </div>
             {% endfor %}
           </div>
         {% else %}
-          <div style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">
+          <div style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1.5rem 0;">
             No upcoming holidays scheduled.
           </div>
         {% endif %}
@@ -291,4 +370,3 @@
 })();
 </script>
 {% endblock %}
-

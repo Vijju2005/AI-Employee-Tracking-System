@@ -1,85 +1,130 @@
 {% extends "base.html" %}
-{% block title %}Admin Dashboard{% endblock %}
-{% block topbar_title %}Dashboard{% endblock %}
+{% block title %}Admin Overview{% endblock %}
+{% block topbar_title %}Enterprise Overview{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#128202; Admin Dashboard</h1>
-    <p>Overview of your organisation &mdash; {{ today.strftime('%A, %d %B %Y') }}</p>
+    <h1>
+      <i data-lucide="layout-dashboard" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Admin Dashboard</span>
+    </h1>
+    <p>Real-time workforce attendance, break distribution, and availability metrics &mdash; {{ today.strftime('%A, %d %B %Y') }}</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">
+      <i data-lucide="user-plus"></i>
+      <span>Add Employee</span>
+    </a>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-outline">
+      <i data-lucide="download"></i>
+      <span>Export Reports</span>
+    </a>
   </div>
 </div>
 
-<!-- Stat cards -->
+<!-- Stat cards with Linear-style accents -->
 <div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-icon blue">&#128101;</div>
+  <div class="stat-card accent-blue">
+    <div class="stat-icon blue">
+      <i data-lucide="users"></i>
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ total_employees }}</div>
       <div class="stat-label">Total Employees</div>
+      <div class="stat-sub">Active in directory</div>
     </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon green">&#9989;</div>
+
+  <div class="stat-card accent-emerald">
+    <div class="stat-icon emerald">
+      <i data-lucide="check-circle-2"></i>
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ present_today }}</div>
       <div class="stat-label">Present Today</div>
+      <div class="stat-sub">Checked in session</div>
     </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon orange">&#128336;</div>
+
+  <div class="stat-card accent-cyan">
+    <div class="stat-icon cyan">
+      <i data-lucide="clock"></i>
+    </div>
     <div class="stat-info">
       {% set total_work_h = (present_today * 8) %}
-      <div class="stat-value">{{ total_work_h }}<span style="font-size:1rem;font-weight:500"> hrs</span></div>
+      <div class="stat-value">{{ total_work_h }}<span style="font-size:1rem;font-weight:600;color:var(--text-sec);"> hrs</span></div>
       <div class="stat-label">Working Hours</div>
+      <div class="stat-sub">Total shift capacity</div>
     </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon orange">&#9749;</div>
+
+  <div class="stat-card accent-amber">
+    <div class="stat-icon amber">
+      <i data-lucide="coffee"></i>
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ active_breaks }}</div>
-      <div class="stat-label">Total Break Time</div>
+      <div class="stat-label">Active Breaks</div>
+      <div class="stat-sub">Currently on pause</div>
     </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-icon" style="background:#FEE2E2;color:#DC2626;">&#128197;</div>
+
+  <div class="stat-card accent-rose">
+    <div class="stat-icon rose">
+      <i data-lucide="calendar"></i>
+    </div>
     <div class="stat-info">
       <div class="stat-value">{{ total_holidays_2026 }}</div>
       <div class="stat-label">2026 Holidays</div>
+      <div class="stat-sub">Karnataka General List</div>
     </div>
   </div>
 </div>
 
 <!-- Charts row -->
-<div class="charts-grid" style="margin-bottom:1.4rem;">
+<div class="charts-grid" style="margin-bottom:1.5rem;">
   <!-- Attendance trend -->
   <div class="card">
     <div class="card-header">
-      <h3>&#128200; Attendance Trend (Last 7 Days)</h3>
+      <h3>
+        <i data-lucide="trending-up"></i>
+        <span>Attendance Trend (Last 7 Days)</span>
+      </h3>
+      <span class="badge badge-info">Live Sync</span>
     </div>
     <div class="card-body">
       <canvas id="attendanceChart" height="170"></canvas>
     </div>
   </div>
 
-  <!-- Department pie -->
+  <!-- Department distribution doughnut -->
   <div class="card">
     <div class="card-header">
-      <h3>&#127968; Department Wise</h3>
+      <h3>
+        <i data-lucide="pie-chart"></i>
+        <span>Department Distribution</span>
+      </h3>
     </div>
-    <div class="card-body" style="display:flex;align-items:center;justify-content:center;min-height:200px;">
+    <div class="card-body" style="display:flex;align-items:center;justify-content:center;min-height:220px;">
       <canvas id="deptChart" height="200"></canvas>
     </div>
   </div>
 </div>
 
-<!-- Bottom row -->
+<!-- Bottom row: Pending Leaves & Quick Actions -->
 <div class="charts-grid">
   <!-- Pending leaves -->
   <div class="card">
     <div class="card-header">
-      <h3>&#128203; Pending Leave Requests</h3>
-      <a href="{{ url_for('leave.index') }}" class="btn btn-sm btn-outline">View All</a>
+      <h3>
+        <i data-lucide="calendar-clock"></i>
+        <span>Pending Leave Requests</span>
+      </h3>
+      <a href="{{ url_for('leave.index') }}" class="btn btn-sm btn-outline">
+        <span>View All</span>
+        <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+      </a>
     </div>
     <div class="table-wrapper">
       <table class="data-table">
@@ -95,18 +140,34 @@
         <tbody>
           {% for lr in recent_leaves %}
           <tr>
-            <td><strong>{{ lr.employee.full_name }}</strong></td>
-            <td>{{ lr.leave_type.value }}</td>
-            <td>{{ lr.start_date.strftime('%Y-%m-%d') }}</td>
-            <td><span class="badge badge-warning">Pending</span></td>
             <td>
-              <a href="{{ url_for('leave.review', leave_id=lr.id) }}" class="btn btn-sm btn-primary">Review</a>
+              <div style="font-weight:700;color:var(--navy);">{{ lr.employee.full_name }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ lr.employee.department.name if lr.employee.department else 'General' }}</div>
+            </td>
+            <td>
+              <span class="badge badge-info">{{ lr.leave_type.value }}</span>
+            </td>
+            <td>
+              <div style="font-weight:600;font-size:0.84rem;">{{ lr.start_date.strftime('%d %b %Y') }}</div>
+            </td>
+            <td>
+              <span class="badge badge-warning">
+                <i data-lucide="clock" style="width:12px;height:12px;"></i>
+                <span>Pending</span>
+              </span>
+            </td>
+            <td>
+              <a href="{{ url_for('leave.review', leave_id=lr.id) }}" class="btn btn-sm btn-primary">
+                <span>Review</span>
+              </a>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="5" style="text-align:center;color:#64748B;padding:1.5rem;">
-              No pending leave requests &#127881;
+            <td colspan="5" style="text-align:center;color:var(--text-muted);padding:2.5rem 1.5rem;">
+              <i data-lucide="check-circle" style="width:28px;height:28px;color:var(--success);margin-bottom:0.5rem;display:inline-block;"></i>
+              <div style="font-weight:600;color:var(--navy);">All caught up!</div>
+              <div style="font-size:0.8rem;">No pending leave requests awaiting approval.</div>
             </td>
           </tr>
           {% endfor %}
@@ -117,38 +178,55 @@
 
   <!-- Quick actions -->
   <div class="card">
-    <div class="card-header"><h3>&#9889; Quick Actions</h3></div>
+    <div class="card-header">
+      <h3>
+        <i data-lucide="zap"></i>
+        <span>Quick Management Actions</span>
+      </h3>
+    </div>
     <div class="card-body">
       <div class="quick-actions">
         <a href="{{ url_for('employees.add_employee') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#DBEAFE;color:#2563EB;">&#128100;</div>
-          <span>Add Employee</span>
-          <span class="qa-arrow">&#8250;</span>
-        </a>
-        <a href="{{ url_for('reports.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#DCFCE7;color:#16A34A;">&#128196;</div>
-          <span>View Reports</span>
-          <span class="qa-arrow">&#8250;</span>
-        </a>
-        <a href="{{ url_for('leave.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#FEF3C7;color:#F59E0B;">&#128197;</div>
-          <span>Manage Leaves</span>
-          <span class="qa-arrow">&#8250;</span>
+          <div class="qa-icon" style="background:#EFF6FF;color:#2563EB;">
+            <i data-lucide="user-plus"></i>
+          </div>
+          <span>Add New Employee</span>
+          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
         </a>
         <a href="{{ url_for('attendance.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#EDE9FE;color:#7C3AED;">&#128203;</div>
-          <span>View Attendance</span>
-          <span class="qa-arrow">&#8250;</span>
+          <div class="qa-icon" style="background:#ECFEFF;color:#0891B2;">
+            <i data-lucide="calendar-check"></i>
+          </div>
+          <span>Review Today's Attendance</span>
+          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
         </a>
-        <a href="{{ url_for('ml.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#EDE9FE;color:#7C3AED;">&#129302;</div>
-          <span>AI Prediction</span>
-          <span class="qa-arrow">&#8250;</span>
+        <a href="{{ url_for('leave.index') }}" class="quick-action-btn">
+          <div class="qa-icon" style="background:#FFFBEB;color:#D97706;">
+            <i data-lucide="calendar-days"></i>
+          </div>
+          <span>Approve / Reject Leaves</span>
+          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
         </a>
         <a href="{{ url_for('holidays.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#FEE2E2;color:#DC2626;">&#128197;</div>
-          <span>Holiday Management</span>
-          <span class="qa-arrow">&#8250;</span>
+          <div class="qa-icon" style="background:#FEF2F2;color:#DC2626;">
+            <i data-lucide="calendar"></i>
+          </div>
+          <span>2026 Karnataka Calendar</span>
+          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+        </a>
+        <a href="{{ url_for('ml.index') }}" class="quick-action-btn">
+          <div class="qa-icon" style="background:#EEF2FF;color:#4F46E5;">
+            <i data-lucide="sparkles"></i>
+          </div>
+          <span>AI Availability Analytics</span>
+          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="quick-action-btn">
+          <div class="qa-icon" style="background:#F1F5F9;color:#475569;">
+            <i data-lucide="file-bar-chart"></i>
+          </div>
+          <span>Generate Audit Reports</span>
+          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
         </a>
       </div>
     </div>
@@ -156,21 +234,25 @@
 </div>
 
 <!-- Upcoming Holidays Row -->
-<div class="card" style="margin-top:1.4rem;">
+<div class="card" style="margin-top:1.5rem;">
   <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
-    <h3 style="display:flex;align-items:center;gap:0.5rem;margin:0;">
-      <span style="color:#DC2626;">&#128197;</span> Upcoming Official Holidays
+    <h3 style="margin:0;">
+      <i data-lucide="calendar-heart" style="color:var(--danger);"></i>
+      <span>Upcoming Official Karnataka Holidays</span>
     </h3>
-    <a href="{{ url_for('holidays.index') }}" class="btn btn-sm btn-outline">Manage 2026 Calendar</a>
+    <a href="{{ url_for('holidays.index') }}" class="btn btn-sm btn-outline">
+      <span>Interactive 2026 Calendar</span>
+      <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+    </a>
   </div>
   <div class="card-body">
     {% if upcoming_holidays %}
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));gap:1rem;">
         {% for h in upcoming_holidays %}
           {% set days_left = (h.holiday_date - today).days %}
-          <div style="background:#FEE2E2;border:1.5px solid #FCA5A5;border-left:5px solid #DC2626;border-radius:8px;padding:0.85rem 1rem;">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.35rem;">
-              <span style="font-weight:700;color:#991B1B;font-size:0.95rem;">{{ h.holiday_name }}</span>
+          <div style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #DC2626;border-radius:10px;padding:0.95rem 1.1rem;box-shadow:var(--shadow-xs);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.4rem;">
+              <span style="font-weight:700;color:#991B1B;font-size:0.94rem;">{{ h.holiday_name }}</span>
               {% if days_left == 0 %}
                 <span class="badge" style="background:#DC2626;color:#ffffff;font-size:0.7rem;font-weight:700;">TODAY</span>
               {% elif days_left == 1 %}
@@ -179,7 +261,7 @@
                 <span class="badge" style="background:#991B1B;color:#ffffff;font-size:0.7rem;">in {{ days_left }}d</span>
               {% endif %}
             </div>
-            <div style="font-size:0.82rem;color:#7F1D1D;font-weight:600;">
+            <div style="font-size:0.84rem;color:#7F1D1D;font-weight:600;">
               {{ h.holiday_date.strftime('%A, %d %B %Y') }}
             </div>
             {% if h.description %}
@@ -189,7 +271,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p style="color:var(--text-muted);margin:0;text-align:center;padding:1rem;">No upcoming holidays found.</p>
+      <p style="color:var(--text-muted);margin:0;text-align:center;padding:1.5rem;">No upcoming holidays found.</p>
     {% endif %}
   </div>
 </div>
@@ -197,7 +279,7 @@
 
 {% block extra_js %}
 <script>
-// Attendance trend chart
+// Attendance trend chart with modern palette
 const attCtx = document.getElementById('attendanceChart')?.getContext('2d');
 if (attCtx) {
   new Chart(attCtx, {
@@ -206,27 +288,41 @@ if (attCtx) {
       labels: {{ attendance_labels | tojson }},
       datasets: [
         {
-          label: 'Present',
+          label: 'Present Employees',
           data: {{ attendance_present | tojson }},
           backgroundColor: '#2563EB',
-          borderRadius: 5,
+          borderRadius: 6,
           borderSkipped: false,
         },
         {
           label: 'Absent',
           data: {{ attendance_absent | tojson }},
-          backgroundColor: '#FECACA',
-          borderRadius: 5,
+          backgroundColor: '#E2E8F0',
+          borderRadius: 6,
           borderSkipped: false,
         }
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { position: 'top', labels: { padding: 12 } } },
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: { padding: 14, boxWidth: 10, boxHeight: 10, usePointStyle: true }
+        }
+      },
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#F1F5F9' } },
-        x: { grid: { display: false } }
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, color: '#94A3B8' },
+          grid: { color: '#F1F5F9' }
+        },
+        x: {
+          ticks: { color: '#64748B' },
+          grid: { display: false }
+        }
       }
     }
   });
@@ -241,15 +337,22 @@ if (deptCtx) {
       labels: {{ dept_labels | tojson }},
       datasets: [{
         data: {{ dept_counts | tojson }},
-        backgroundColor: ['#2563EB','#163A5F','#7C3AED','#F59E0B','#16A34A','#DC2626'],
-        borderWidth: 3, borderColor: '#fff',
+        backgroundColor: ['#2563EB','#06B6D4','#6366F1','#F59E0B','#10B981','#0B192C'],
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
         hoverOffset: 6,
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '62%',
-      plugins: { legend: { position: 'bottom', labels: { padding: 10 } } }
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '66%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { padding: 12, boxWidth: 10, boxHeight: 10, usePointStyle: true }
+        }
+      }
     }
   });
 }

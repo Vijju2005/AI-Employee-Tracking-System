@@ -1,45 +1,67 @@
 {% extends "base.html" %}
 {% block title %}Leave Management{% endblock %}
-{% block topbar_title %}Leave Management{% endblock %}
+{% block topbar_title %}Time-Off &amp; Leave Administration{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#128197; Leave Management</h1>
-    <p>{% if current_user.is_admin %}Review and manage employee leave requests.{% else %}Apply for leave and track your requests.{% endif %}</p>
+    <h1>
+      <i data-lucide="calendar-days" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Leave Management &amp; Approvals</span>
+    </h1>
+    <p>{% if current_user.is_admin %}Review pending employee leave requests, approve, or reject with immediate notifications.{% else %}Submit time-off requests, track approval status, and view historical leaves.{% endif %}</p>
   </div>
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
     {% if not current_user.is_admin %}
-    <a href="{{ url_for('leave.apply') }}" class="btn btn-primary">&#43; Apply Leave</a>
+    <a href="{{ url_for('leave.apply') }}" class="btn btn-primary">
+      <i data-lucide="calendar-plus"></i>
+      <span>Apply for Leave</span>
+    </a>
     {% endif %}
-    <a href="{{ url_for('reports.index') }}" class="btn btn-export">&#128229; Export</a>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-outline">
+      <i data-lucide="file-spreadsheet"></i>
+      <span>Export Leaves</span>
+    </a>
   </div>
 </div>
 
-<!-- Filters -->
+<!-- Filters Toolbar -->
 <form method="GET" class="filters-bar">
   <div class="filter-group">
-    <span class="filter-label">All Status</span>
+    <span class="filter-label">Status</span>
     <select name="status" class="form-control">
-      <option value="">All Status</option>
+      <option value="">All Statuses</option>
       {% for s in ['Pending','Approved','Rejected'] %}
       <option value="{{ s }}" {% if request.args.get('status')==s %}selected{% endif %}>{{ s }}</option>
       {% endfor %}
     </select>
   </div>
   <div class="filter-group">
-    <span class="filter-label">Date Range</span>
-    <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date','') }}" placeholder="From"/>
+    <span class="filter-label">From Date</span>
+    <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date','') }}"/>
   </div>
   <div class="filter-group">
-    <span class="filter-label">&nbsp;</span>
-    <input type="date" name="to_date" class="form-control" value="{{ request.args.get('to_date','') }}" placeholder="To"/>
+    <span class="filter-label">To Date</span>
+    <input type="date" name="to_date" class="form-control" value="{{ request.args.get('to_date','') }}"/>
   </div>
-  <button type="submit" class="btn btn-outline">&#128269; Filter</button>
-  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">Reset</a>
+  <button type="submit" class="btn btn-primary">
+    <i data-lucide="filter"></i>
+    <span>Apply Filter</span>
+  </button>
+  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">
+    <i data-lucide="rotate-ccw"></i>
+    <span>Reset</span>
+  </a>
 </form>
 
 <div class="card">
+  <div class="card-header">
+    <h3>
+      <i data-lucide="list"></i>
+      <span>Leave Applications</span>
+    </h3>
+    <span class="badge badge-info">{{ leave_requests|length }} Applications</span>
+  </div>
   <div class="table-wrapper">
     <table class="data-table">
       <thead>
@@ -57,42 +79,57 @@
         {% for lr in leave_requests %}
         <tr>
           {% if current_user.is_admin %}
-          <td><strong>{{ lr.employee.full_name }}</strong></td>
+          <td>
+            <div style="font-weight:700;color:var(--navy);">{{ lr.employee.full_name }}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">{{ lr.employee.employee_id }}</div>
+          </td>
           {% endif %}
-          <td>{{ lr.leave_type.value }}</td>
-          <td>{{ lr.start_date.strftime('%Y-%m-%d') }}</td>
-          <td>{{ lr.end_date.strftime('%Y-%m-%d') }}</td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ lr.reason }}">
+          <td>
+            <span class="badge badge-info" style="font-weight:600;">{{ lr.leave_type.value }}</span>
+          </td>
+          <td>
+            <div style="font-weight:600;font-size:0.84rem;">{{ lr.start_date.strftime('%d %b %Y') }}</div>
+          </td>
+          <td>
+            <div style="font-weight:600;font-size:0.84rem;">{{ lr.end_date.strftime('%d %b %Y') }}</div>
+          </td>
+          <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-sec);font-size:0.84rem;" title="{{ lr.reason }}">
             {{ lr.reason[:50] }}{{ '...' if lr.reason|length > 50 else '' }}
           </td>
           <td>
             {% if lr.status.value == 'Approved' %}
-              <span class="badge badge-success">&#9989; Approved</span>
+              <span class="badge badge-success">
+                <i data-lucide="check-circle" style="width:12px;height:12px;"></i> Approved
+              </span>
             {% elif lr.status.value == 'Rejected' %}
-              <span class="badge badge-danger">&#10060; Rejected</span>
+              <span class="badge badge-danger">
+                <i data-lucide="x-circle" style="width:12px;height:12px;"></i> Rejected
+              </span>
             {% else %}
-              <span class="badge badge-warning">&#9203; Pending</span>
+              <span class="badge badge-warning">
+                <i data-lucide="clock" style="width:12px;height:12px;"></i> Pending Review
+              </span>
             {% endif %}
           </td>
           {% if current_user.is_admin %}
           <td>
             {% if lr.status.value == 'Pending' %}
-            <a href="{{ url_for('leave.review', leave_id=lr.id) }}" class="btn btn-sm btn-primary">Review</a>
-            {% else %}&mdash;{% endif %}
+            <a href="{{ url_for('leave.review', leave_id=lr.id) }}" class="btn btn-sm btn-primary">
+              <i data-lucide="check-square"></i>
+              <span>Review</span>
+            </a>
+            {% else %}
+            <span style="font-size:0.76rem;color:var(--text-muted);font-weight:500;">Closed</span>
+            {% endif %}
           </td>
           {% endif %}
         </tr>
         {% else %}
         <tr>
-          <td colspan="{{ 7 if current_user.is_admin else 5 }}">
-            <div class="empty-state">
-              <div class="empty-icon">&#128197;</div>
-              <h3>No leave requests</h3>
-              {% if not current_user.is_admin %}
-              <p>Apply for leave using the button above.</p>
-              <a href="{{ url_for('leave.apply') }}" class="btn btn-primary mt-2">Apply Leave</a>
-              {% endif %}
-            </div>
+          <td colspan="{{ 7 if current_user.is_admin else 5 }}" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
+            <i data-lucide="calendar" style="width:36px;height:36px;margin-bottom:0.5rem;display:inline-block;"></i>
+            <div style="font-weight:700;color:var(--navy);font-size:1rem;">No leave requests found</div>
+            <div style="font-size:0.84rem;">New applications will appear here for management review.</div>
           </td>
         </tr>
         {% endfor %}

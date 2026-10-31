@@ -1,40 +1,59 @@
 {% extends "base.html" %}
-{% block title %}Breaks{% endblock %}
-{% block topbar_title %}Attendance & Break Tracking{% endblock %}
+{% block title %}Break Logs{% endblock %}
+{% block topbar_title %}Break Tracking &amp; Analytics{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#9749; Break Management</h1>
-    <p>Track and manage employee break records by category.</p>
+    <h1>
+      <i data-lucide="coffee" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Break Management &amp; Category Logs</span>
+    </h1>
+    <p>Monitor intervals, categorized pauses (Lunch, Tea, Coffee, Personal), and duration adherence.</p>
   </div>
-  <a href="{{ url_for('reports.index') }}" class="btn btn-export">&#128229; Export</a>
+  <a href="{{ url_for('reports.index') }}" class="btn btn-outline">
+    <i data-lucide="file-spreadsheet"></i>
+    <span>Export Break Data</span>
+  </a>
 </div>
 
-<!-- Filters -->
+<!-- Filters Toolbar -->
 <form method="GET" class="filters-bar">
   <div class="filter-group">
-    <span class="filter-label">From</span>
+    <span class="filter-label">From Date</span>
     <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date','') }}"/>
   </div>
   <div class="filter-group">
-    <span class="filter-label">To</span>
+    <span class="filter-label">To Date</span>
     <input type="date" name="to_date" class="form-control" value="{{ request.args.get('to_date','') }}"/>
   </div>
   <div class="filter-group">
     <span class="filter-label">Category</span>
     <select name="category" class="form-control">
-      <option value="">All</option>
+      <option value="">All Categories</option>
       {% for cat in ['Lunch','Tea','Coffee','Personal','Other'] %}
       <option value="{{ cat }}" {% if request.args.get('category')==cat %}selected{% endif %}>{{ cat }}</option>
       {% endfor %}
     </select>
   </div>
-  <button type="submit" class="btn btn-outline">&#128269; Filter</button>
-  <a href="{{ url_for('breaks.index') }}" class="btn btn-outline-navy">Reset</a>
+  <button type="submit" class="btn btn-primary">
+    <i data-lucide="filter"></i>
+    <span>Apply Filter</span>
+  </button>
+  <a href="{{ url_for('breaks.index') }}" class="btn btn-outline-navy">
+    <i data-lucide="rotate-ccw"></i>
+    <span>Reset</span>
+  </a>
 </form>
 
 <div class="card">
+  <div class="card-header">
+    <h3>
+      <i data-lucide="list"></i>
+      <span>Break Sessions Log</span>
+    </h3>
+    <span class="badge badge-info">{{ breaks|length }} Sessions</span>
+  </div>
   <div class="table-wrapper">
     <table class="data-table">
       <thead>
@@ -51,24 +70,44 @@
       <tbody>
         {% for b in breaks %}
         <tr>
-          <td><strong>{{ b.start_time|local_date }}</strong></td>
+          <td>
+            <div style="font-weight:700;color:var(--navy);">{{ b.start_time|local_date }}</div>
+          </td>
           {% if current_user.is_admin %}
-          <td>{{ b.employee.full_name }}</td>
+          <td>
+            <div style="font-weight:600;color:var(--navy);">{{ b.employee.full_name }}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">{{ b.employee.employee_id }}</div>
+          </td>
           {% endif %}
           <td>
             {% set cat_colors = {'Lunch':'badge-info','Tea':'badge-warning','Coffee':'badge-warning','Personal':'badge-secondary','Other':'badge-secondary'} %}
             <span class="badge {{ cat_colors.get(b.category.value, 'badge-secondary') }}">
-              {{ b.category.value }}
+              <i data-lucide="coffee" style="width:12px;height:12px;"></i>
+              <span>{{ b.category.value }}</span>
             </span>
           </td>
-          <td>{{ b.start_time|local_time }}</td>
-          <td>{{ b.end_time|local_time }}</td>
-          <td>{{ "%.0f"|format(b.duration_minutes) }}m</td>
+          <td>
+            <span class="badge badge-secondary" style="font-variant-numeric:tabular-nums;">
+              {{ b.start_time|local_time }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-secondary" style="font-variant-numeric:tabular-nums;">
+              {{ b.end_time|local_time }}
+            </span>
+          </td>
+          <td>
+            <strong style="color:#D97706;font-size:0.92rem;">{{ "%.0f"|format(b.duration_minutes) }}m</strong>
+          </td>
           <td>
             {% if b.end_time %}
-              <span class="badge badge-success">Completed</span>
+              <span class="badge badge-success">
+                <i data-lucide="check" style="width:12px;height:12px;"></i> Completed
+              </span>
             {% else %}
-              <span class="badge badge-warning">Active</span>
+              <span class="badge badge-warning">
+                <i data-lucide="loader" style="width:12px;height:12px;"></i> In Progress
+              </span>
             {% endif %}
           </td>
         </tr>
@@ -76,9 +115,9 @@
         <tr>
           <td colspan="{{ 7 if current_user.is_admin else 6 }}">
             <div class="empty-state">
-              <div class="empty-icon">&#9749;</div>
-              <h3>No break records</h3>
-              <p>Breaks will appear here after employees start them from the dashboard.</p>
+              <i data-lucide="coffee" style="width:40px;height:40px;color:var(--text-muted);margin-bottom:0.75rem;display:inline-block;"></i>
+              <h3>No break records found</h3>
+              <p>Break logs will appear once employees initiate and conclude breaks.</p>
             </div>
           </td>
         </tr>

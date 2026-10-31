@@ -1,32 +1,41 @@
 {% extends "base.html" %}
-{% block title %}Attendance{% endblock %}
-{% block topbar_title %}Attendance & Break Tracking{% endblock %}
+{% block title %}Attendance Monitoring{% endblock %}
+{% block topbar_title %}Attendance &amp; Shift Management{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#128203; Attendance &amp; Break Tracking</h1>
-    <p>Track daily check-in / check-out records.</p>
+    <h1>
+      <i data-lucide="calendar-check" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Attendance Records</span>
+    </h1>
+    <p>Comprehensive logs of daily check-in, check-out, break intervals, and net shift durations.</p>
   </div>
-  <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
     {% if not current_user.is_admin %}
     <form method="POST" action="{{ url_for('attendance.checkin') }}" style="display:inline;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <button class="btn btn-success">&#9989; Check In</button>
+      <button class="btn btn-success">
+        <i data-lucide="log-in"></i>
+        <span>Check In</span>
+      </button>
     </form>
     {% endif %}
-    <a href="{{ url_for('reports.index') }}" class="btn btn-export">&#128229; Export</a>
+    <a href="{{ url_for('reports.index') }}" class="btn btn-outline">
+      <i data-lucide="file-spreadsheet"></i>
+      <span>Export Attendance</span>
+    </a>
   </div>
 </div>
 
-<!-- Filters -->
+<!-- Filters Toolbar -->
 <form method="GET" class="filters-bar">
   <div class="filter-group">
-    <span class="filter-label">From</span>
+    <span class="filter-label">From Date</span>
     <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date','') }}"/>
   </div>
   <div class="filter-group">
-    <span class="filter-label">To</span>
+    <span class="filter-label">To Date</span>
     <input type="date" name="to_date" class="form-control" value="{{ request.args.get('to_date','') }}"/>
   </div>
   {% if current_user.is_admin %}
@@ -42,11 +51,24 @@
     </select>
   </div>
   {% endif %}
-  <button type="submit" class="btn btn-outline">&#128269; Filter</button>
-  <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-navy">Reset</a>
+  <button type="submit" class="btn btn-primary">
+    <i data-lucide="filter"></i>
+    <span>Filter Records</span>
+  </button>
+  <a href="{{ url_for('attendance.index') }}" class="btn btn-outline-navy">
+    <i data-lucide="rotate-ccw"></i>
+    <span>Reset</span>
+  </a>
 </form>
 
 <div class="card">
+  <div class="card-header">
+    <h3>
+      <i data-lucide="list"></i>
+      <span>Daily Attendance Log</span>
+    </h3>
+    <span class="badge badge-info">{{ records|length }} Records</span>
+  </div>
   <div class="table-wrapper">
     <table class="data-table">
       <thead>
@@ -55,44 +77,65 @@
           {% if current_user.is_admin %}<th>Employee</th>{% endif %}
           <th>Check In</th>
           <th>Check Out</th>
-          <th>Total Hours</th>
+          <th>Gross Hours</th>
           <th>Break Time</th>
-          <th>Net Hours</th>
+          <th>Net Working Time</th>
           <th>Status</th>
         </tr>
       </thead>
       <tbody>
         {% for rec in records %}
         <tr>
-          <td><strong>{{ rec.date|local_date }}</strong></td>
+          <td>
+            <div style="font-weight:700;color:var(--navy);">{{ rec.date|local_date }}</div>
+          </td>
           {% if current_user.is_admin %}
-          <td>{{ rec.employee.full_name }}</td>
+          <td>
+            <div style="font-weight:600;color:var(--navy);">{{ rec.employee.full_name }}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">{{ rec.employee.employee_id }}</div>
+          </td>
           {% endif %}
-          <td>{{ rec.check_in|local_time }}</td>
-          <td>{{ rec.check_out|local_time }}</td>
+          <td>
+            <span class="badge badge-secondary" style="font-variant-numeric:tabular-nums;">
+              {{ rec.check_in|local_time }}
+            </span>
+          </td>
+          <td>
+            <span class="badge badge-secondary" style="font-variant-numeric:tabular-nums;">
+              {{ rec.check_out|local_time }}
+            </span>
+          </td>
           <td>{{ "%.1f"|format(rec.total_duration_minutes/60) }}h</td>
-          <td>{{ "%.0f"|format(rec.break_duration_minutes) }}m</td>
-          <td><strong>{{ "%.1f"|format(rec.net_working_minutes/60) }}h</strong></td>
+          <td>
+            <span style="color:#D97706;font-weight:600;">{{ "%.0f"|format(rec.break_duration_minutes) }}m</span>
+          </td>
+          <td>
+            <strong style="color:var(--blue);font-size:0.92rem;">{{ "%.1f"|format(rec.net_working_minutes/60) }}h</strong>
+          </td>
           <td>
             {% if rec.status.value == 'Present' %}
-              <span class="badge badge-success">Present</span>
+              <span class="badge badge-success">
+                <i data-lucide="check-circle-2" style="width:12px;height:12px;"></i> Present
+              </span>
             {% elif rec.status.value == 'Half Day' %}
-              <span class="badge badge-warning">Half Day</span>
-            {% elif rec.status.value == 'On Leave' %}
-              <span class="badge badge-info">On Leave</span>
+              <span class="badge badge-warning">
+                <i data-lucide="clock" style="width:12px;height:12px;"></i> Half Day
+              </span>
+            {% elif rec.status.value == 'Absent' %}
+              <span class="badge badge-danger">
+                <i data-lucide="x-circle" style="width:12px;height:12px;"></i> Absent
+              </span>
             {% else %}
-              <span class="badge badge-danger">Absent</span>
+              <span class="badge badge-secondary">{{ rec.status.value }}</span>
             {% endif %}
           </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="{{ 8 if current_user.is_admin else 7 }}">
-            <div class="empty-state">
-              <div class="empty-icon">&#128203;</div>
-              <h3>No attendance records</h3>
-              <p>Records will appear here once employees check in.</p>
-            </div>
+          <td colspan="{{ 8 if current_user.is_admin else 7 }}" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
+            <i data-lucide="calendar" style="width:36px;height:36px;margin-bottom:0.5rem;display:inline-block;"></i>
+            <div style="font-weight:700;color:var(--navy);font-size:1rem;">No attendance records found</div>
+            <div style="font-size:0.84rem;">Records will populate as employees check in daily.</div>
           </td>
         </tr>
         {% endfor %}

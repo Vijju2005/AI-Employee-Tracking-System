@@ -1,63 +1,96 @@
 {% extends "base.html" %}
 {% block title %}Apply for Leave{% endblock %}
-{% block topbar_title %}Apply for Leave{% endblock %}
+{% block topbar_title %}Submit Leave Application{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#128197; Apply for Leave</h1>
-    <p>Submit a new leave request for approval.</p>
+    <h1>
+      <i data-lucide="calendar-plus" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Apply for Time-Off / Leave</span>
+    </h1>
+    <p>Submit your formal leave request to administration. Notifications will be dispatched immediately.</p>
   </div>
-  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">&larr; Back</a>
+  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">
+    <i data-lucide="arrow-left"></i>
+    <span>Back to Leave List</span>
+  </a>
 </div>
 
 {% if error %}
-<div class="alert alert-danger">&#9888; {{ error }}</div>
+<div class="alert alert-danger">
+  <i data-lucide="alert-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
 {% endif %}
 
-<div class="card" style="max-width:600px;">
+<div class="card" style="max-width:640px;margin-bottom:2rem;">
+  <div class="card-header">
+    <h3>
+      <i data-lucide="file-text"></i>
+      <span>Leave Details Form</span>
+    </h3>
+  </div>
   <div class="card-body">
     <form method="POST" action="{{ url_for('leave.apply') }}" data-loading>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
       <div class="form-group">
-        <label class="form-label">Leave Type <span class="req">*</span></label>
+        <label class="form-label">
+          <i data-lucide="tag"></i>
+          <span>Leave Classification</span> <span class="req">*</span>
+        </label>
         <select name="leave_type" class="form-control" required>
           {% for lt in ['Annual','Sick','Casual','Maternity','Paternity','Unpaid','Other'] %}
-          <option value="{{ lt }}">{{ lt }}</option>
+          <option value="{{ lt }}">{{ lt }} Leave</option>
           {% endfor %}
         </select>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Start Date <span class="req">*</span></label>
+          <label class="form-label">
+            <i data-lucide="calendar"></i>
+            <span>Start Date</span> <span class="req">*</span>
+          </label>
           <input type="date" name="start_date" class="form-control" required/>
         </div>
         <div class="form-group">
-          <label class="form-label">End Date <span class="req">*</span></label>
+          <label class="form-label">
+            <i data-lucide="calendar"></i>
+            <span>End Date</span> <span class="req">*</span>
+          </label>
           <input type="date" name="end_date" class="form-control" required/>
         </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Day Type</label>
+        <label class="form-label">
+          <i data-lucide="clock"></i>
+          <span>Duration Type</span>
+        </label>
         <select name="day_type" class="form-control">
-          <option value="Full Day">Full Day</option>
-          <option value="Half Day">Half Day</option>
-          <option value="Partial">Partial</option>
+          <option value="Full Day">Full Day (Standard)</option>
+          <option value="Half Day">Half Day (First / Second Half)</option>
+          <option value="Partial">Partial Hours</option>
         </select>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Reason <span class="req">*</span></label>
+        <label class="form-label">
+          <i data-lucide="message-square"></i>
+          <span>Reason for Leave</span> <span class="req">*</span>
+        </label>
         <textarea name="reason" class="form-control" rows="4"
-                  placeholder="Describe the reason for your leave request..." required></textarea>
+                  placeholder="Provide brief context for administrative review..." required></textarea>
       </div>
 
-      <div style="display:flex;gap:.75rem;">
-        <button type="submit" class="btn btn-primary">&#128228; Submit Request</button>
-        <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">Cancel</a>
+      <div style="display:flex;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border);">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i data-lucide="send"></i>
+          <span>Submit Leave Request</span>
+        </button>
+        <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy btn-lg">Cancel</a>
       </div>
     </form>
   </div>

@@ -3,31 +3,38 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}EBT System{% endblock %} | Employee Break Tracking</title>
+  <title>{% block title %}Sign In{% endblock %} | EBT System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"/>
+  <script src="https://unpkg.com/lucide@latest"></script>
   {% block extra_css %}{% endblock %}
 </head>
 <body>
 <div class="login-wrapper">
   <div class="login-split">
-    <!-- Left illustration panel -->
+    <!-- Left Hero & Image Panel -->
     <div class="login-panel-left">
       <div class="login-panel-logo">
-        <span class="login-panel-logo-icon">&#128107;</span>
+        <div class="login-panel-logo-icon">
+          <i data-lucide="layers"></i>
+        </div>
         <div>
           <span class="login-panel-logo-name">Employee Break Tracking &amp;<br>Availability Prediction System</span>
-          <span class="login-panel-logo-sub">Smarter Work. Better Tomorrow.</span>
+          <span class="login-panel-logo-sub">Enterprise Workforce Intelligence Platform</span>
         </div>
       </div>
       <div class="login-panel-illustration">
         <img src="{{ url_for('static', filename='images/office-meeting.png') }}"
-             alt="Office meeting illustration"
+             alt="Office team meeting"
              class="login-illustration-img"/>
       </div>
+      <div class="login-tagline">
+        Smarter schedules &bull; Predictive breaks &bull; Peak team performance
+      </div>
     </div>
-    <!-- Right login card -->
+    <!-- Right Form Card -->
     <div class="login-panel-right">
       <div class="login-box">
         {% block auth_content %}{% endblock %}

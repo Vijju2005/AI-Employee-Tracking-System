@@ -1,8 +1,17 @@
-// EBT System — main.js
+// EBT System — Enterprise SaaS main.js
+
+// ── Initialize Lucide Icons ────────────────────────────────
+function initLucideIcons() {
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initLucideIcons);
 
 // ── Sidebar toggle (mobile) ────────────────────────────────
-const sidebar  = document.getElementById('sidebar');
-const overlay  = document.getElementById('sidebarOverlay');
+const sidebar   = document.getElementById('sidebar');
+const overlay   = document.getElementById('sidebarOverlay');
 const hamburger = document.getElementById('hamburger');
 
 function openSidebar()  { sidebar?.classList.add('open');   overlay?.classList.add('active'); }
@@ -15,7 +24,7 @@ overlay?.addEventListener('click', closeSidebar);
 document.querySelectorAll('.flash-msg').forEach(msg => {
   const close = msg.querySelector('.close-flash');
   close?.addEventListener('click', () => msg.remove());
-  setTimeout(() => msg?.remove(), 5000);
+  setTimeout(() => msg?.remove(), 6000);
 });
 
 // ── Confirm dialogs ────────────────────────────────────────
@@ -25,7 +34,7 @@ document.querySelectorAll('[data-confirm]').forEach(el => {
   });
 });
 
-// ── Active nav item ────────────────────────────────────────
+// ── Active nav item detection ──────────────────────────────
 (function() {
   const path = window.location.pathname;
   document.querySelectorAll('.nav-item').forEach(item => {
@@ -38,7 +47,7 @@ document.querySelectorAll('[data-confirm]').forEach(el => {
   });
 })();
 
-// ── Clock in topbar ────────────────────────────────────────
+// ── Topbar live clock ──────────────────────────────────────
 const clockEl = document.getElementById('liveClock');
 if (clockEl) {
   function updateClock() {
@@ -49,10 +58,9 @@ if (clockEl) {
   setInterval(updateClock, 1000);
 }
 
-// ── Form submit loading state ──────────────────────────────
+// ── Form submit loading state with button-name preservation
 document.querySelectorAll('form[data-loading]').forEach(form => {
   form.addEventListener('submit', (e) => {
-    // If the submitter is a button with a name/value (e.g. approve/reject), preserve its value via hidden input before disabling
     const submitter = e.submitter;
     if (submitter && submitter.name && submitter.value) {
       if (!form.querySelector(`input[type="hidden"][name="${submitter.name}"]`)) {
@@ -66,14 +74,14 @@ document.querySelectorAll('form[data-loading]').forEach(form => {
     const btn = submitter || form.querySelector('button[type="submit"]');
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Please wait...';
+      btn.innerHTML = '<span class="spinner"></span> Processing...';
     }
   });
 });
 
-// ── Chart.js default styling ───────────────────────────────
+// ── Chart.js Enterprise Styling Default ────────────────────
 if (typeof Chart !== 'undefined') {
-  Chart.defaults.font.family = "'Inter', -apple-system, sans-serif";
+  Chart.defaults.font.family = "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif";
   Chart.defaults.font.size = 12;
   Chart.defaults.color = '#64748B';
   Chart.defaults.plugins.legend.position = 'bottom';

@@ -1,22 +1,42 @@
 {% extends "base.html" %}
 {% set is_edit = employee is defined and employee %}
 {% block title %}{{ 'Edit Employee' if is_edit else 'Add Employee' }}{% endblock %}
-{% block topbar_title %}{{ 'Edit Employee' if is_edit else 'Add Employee' }}{% endblock %}
+{% block topbar_title %}{{ 'Edit Employee Record' if is_edit else 'Register New Employee' }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>{{ 'Edit Employee' if is_edit else '+ Add Employee' }}</h1>
-    <p>{{ 'Update employee information.' if is_edit else 'Register a new employee in the system.' }}</p>
+    <h1>
+      <i data-lucide="{{ 'user-check' if is_edit else 'user-plus' }}" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>{{ 'Edit Employee Record' if is_edit else 'Add New Employee' }}</span>
+    </h1>
+    <p>{{ 'Update organizational attributes, login credentials, and department assignment.' if is_edit else 'Create a corporate profile and credentials with automatic sequential ID generation.' }}</p>
   </div>
-  <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">&larr; Back</a>
+  <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">
+    <i data-lucide="arrow-left"></i>
+    <span>Back to Directory</span>
+  </a>
 </div>
 
 {% if error %}
-<div class="alert alert-danger">&#9888; {{ error }}</div>
+<div class="alert alert-danger">
+  <i data-lucide="alert-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
 {% endif %}
 
-<div class="card" style="max-width:700px;">
+<div class="card" style="max-width:760px;margin-bottom:2rem;">
+  <div class="card-header">
+    <h3>
+      <i data-lucide="id-card"></i>
+      <span>Employee Information</span>
+    </h3>
+    {% if is_edit %}
+      <span class="badge badge-info">{{ employee.employee_id }}</span>
+    {% else %}
+      <span class="badge badge-success">Sequential ID Auto-Assigned</span>
+    {% endif %}
+  </div>
   <div class="card-body">
     <form method="POST"
           action="{{ url_for('employees.edit_employee', emp_id=employee.id) if is_edit else url_for('employees.add_employee') }}"
@@ -25,48 +45,66 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Employee ID <span class="req">*</span></label>
+          <label class="form-label">
+            <i data-lucide="hash"></i>
+            <span>Employee ID</span> <span class="req">*</span>
+          </label>
           <input type="text" name="employee_id" class="form-control"
                  value="{{ employee.employee_id if is_edit else (auto_emp_id or '') }}"
-                 placeholder="EMP001" required readonly style="background-color:#F8FAFC;font-weight:600;color:#1E293B;cursor:not-allowed;"/>
-          <small style="font-size:.72rem;color:#64748B;">Auto-generated sequential ID</small>
+                 placeholder="EMP001" required readonly style="background-color:#F8FAFC;font-weight:700;color:var(--navy);cursor:not-allowed;"/>
+          <small class="form-hint">System-managed sequential primary ID</small>
         </div>
         <div class="form-group">
-          <label class="form-label">Full Name <span class="req">*</span></label>
+          <label class="form-label">
+            <i data-lucide="user"></i>
+            <span>Full Legal Name</span> <span class="req">*</span>
+          </label>
           <input type="text" name="full_name" class="form-control"
                  value="{{ employee.full_name if is_edit else '' }}"
-                 placeholder="Full Name" required/>
+                 placeholder="e.g. Vijju Kumar" required/>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Company Name</label>
+          <label class="form-label">
+            <i data-lucide="building-2"></i>
+            <span>Company Name</span>
+          </label>
           <input type="text" name="company_name" class="form-control"
                  value="{{ employee.company_name if is_edit else 'EBT System' }}"
                  placeholder="Company Name"/>
         </div>
         <div class="form-group">
-          <label class="form-label">Account Role</label>
+          <label class="form-label">
+            <i data-lucide="shield"></i>
+            <span>System Access Role</span>
+          </label>
           <select name="role" class="form-control">
-            <option value="Employee" {% if is_edit and employee.user and employee.user.role.value == 'employee' %}selected{% elif not is_edit %}selected{% endif %}>Employee</option>
-            <option value="Admin" {% if is_edit and employee.user and employee.user.role.value == 'admin' %}selected{% endif %}>Admin</option>
+            <option value="Employee" {% if is_edit and employee.user and employee.user.role.value == 'employee' %}selected{% elif not is_edit %}selected{% endif %}>Employee (Standard Access)</option>
+            <option value="Admin" {% if is_edit and employee.user and employee.user.role.value == 'admin' %}selected{% endif %}>Admin (Full Privileges)</option>
           </select>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Email <span class="req">*</span></label>
+          <label class="form-label">
+            <i data-lucide="mail"></i>
+            <span>Corporate Email</span> <span class="req">*</span>
+          </label>
           <input type="email" name="email" class="form-control"
                  value="{{ employee.email if is_edit else '' }}"
-                 placeholder="email@company.com" required/>
+                 placeholder="employee@company.com" required/>
         </div>
         <div class="form-group">
-          <label class="form-label">Phone</label>
+          <label class="form-label">
+            <i data-lucide="phone"></i>
+            <span>Phone Contact</span>
+          </label>
           <input type="text" name="phone" class="form-control"
                  value="{{ employee.phone or '' if is_edit else '' }}"
-                 placeholder="+91 XXXXX XXXXX"/>
+                 placeholder="+91 98765 43210"/>
         </div>
       </div>
 
@@ -78,19 +116,23 @@
         'Data Analyst',
         'Data Scientist',
         'HR Executive',
-        'Project Manager',
-        'Team Leader',
-        'Accountant',
-        'System Administrator'
+        'Marketing Manager',
+        'Sales Executive',
+        'Finance Analyst',
+        'Operations Manager',
+        'Product Manager',
+        'UI/UX Designer',
+        'QA Engineer',
+        'DevOps Engineer'
       ] %}
-      {% set current_desig = employee.designation if is_edit and employee.designation else '' %}
-      {% set is_custom_desig = is_edit and current_desig and (current_desig not in standard_desigs) %}
-
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Department</label>
+          <label class="form-label">
+            <i data-lucide="briefcase"></i>
+            <span>Department</span>
+          </label>
           <select name="department_id" class="form-control">
-            <option value="">-- Select Department --</option>
+            <option value="">Select Department</option>
             {% for d in departments %}
             <option value="{{ d.id }}"
               {% if is_edit and employee.department_id == d.id %}selected{% endif %}>
@@ -100,99 +142,84 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Designation</label>
-          <select name="designation_choice" id="designationSelect" class="form-control" onchange="handleDesignationChange()">
-            <option value="">-- Select Designation --</option>
-            {% for desig in standard_desigs %}
-            <option value="{{ desig }}" {% if current_desig == desig %}selected{% endif %}>{{ desig }}</option>
-            {% endfor %}
-            <option value="Other" {% if is_custom_desig %}selected{% endif %}>Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="form-row" id="customDesignationRow" style="display: {{ 'grid' if is_custom_desig else 'none' }}; margin-bottom: 1rem;">
-        <div class="form-group" style="grid-column: 1 / -1;">
-          <label class="form-label">Custom Designation <span class="req">*</span></label>
-          <input type="text" name="custom_designation" id="customDesignationInput" class="form-control"
-                 value="{{ current_desig if is_custom_desig else '' }}"
-                 placeholder="Enter custom designation"/>
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Joining Date</label>
-          <input type="date" name="date_joined" class="form-control"
-                 value="{{ employee.date_joined.strftime('%Y-%m-%d') if is_edit and employee.date_joined else '' }}"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Work Schedule</label>
-          <select name="work_schedule_id" class="form-control">
-            <option value="">-- Select Schedule --</option>
-            {% for s in schedules %}
-            <option value="{{ s.id }}"
-              {% if is_edit and employee.work_schedule_id == s.id %}selected{% endif %}>
-              {{ s.name }}
+          <label class="form-label">
+            <i data-lucide="award"></i>
+            <span>Designation</span>
+          </label>
+          <select name="designation" class="form-control">
+            <option value="">Select Designation</option>
+            {% for des in standard_desigs %}
+            <option value="{{ des }}"
+              {% if (is_edit and employee.designation == des) or (not is_edit and des == 'Software Developer') %}selected{% endif %}>
+              {{ des }}
             </option>
             {% endfor %}
+            {% if is_edit and employee.designation and employee.designation not in standard_desigs %}
+            <option value="{{ employee.designation }}" selected>{{ employee.designation }}</option>
+            {% endif %}
           </select>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Account Status</label>
-          <select name="status" class="form-control">
-            <option value="active" {% if not is_edit or employee.status.value == 'active' %}selected{% endif %}>Active</option>
-            <option value="inactive" {% if is_edit and employee.status.value == 'inactive' %}selected{% endif %}>Inactive</option>
+          <label class="form-label">
+            <i data-lucide="calendar"></i>
+            <span>Date of Joining</span>
+          </label>
+          <input type="date" name="date_of_joining" class="form-control"
+                 value="{{ employee.date_of_joining.strftime('%Y-%m-%d') if is_edit and employee.date_of_joining else '' }}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            <i data-lucide="clock"></i>
+            <span>Work Schedule</span>
+          </label>
+          <select name="work_schedule" class="form-control">
+            <option value="9:00 AM - 5:00 PM" {% if is_edit and employee.work_schedule == '9:00 AM - 5:00 PM' %}selected{% endif %}>General Shift (9:00 AM - 5:00 PM)</option>
+            <option value="10:00 AM - 6:00 PM" {% if is_edit and employee.work_schedule == '10:00 AM - 6:00 PM' %}selected{% endif %}>Standard Shift (10:00 AM - 6:00 PM)</option>
+            <option value="8:00 AM - 4:00 PM" {% if is_edit and employee.work_schedule == '8:00 AM - 4:00 PM' %}selected{% endif %}>Morning Shift (8:00 AM - 4:00 PM)</option>
+            <option value="1:00 PM - 9:00 PM" {% if is_edit and employee.work_schedule == '1:00 PM - 9:00 PM' %}selected{% endif %}>Afternoon Shift (1:00 PM - 9:00 PM)</option>
+            <option value="Flexible" {% if is_edit and employee.work_schedule == 'Flexible' %}selected{% endif %}>Flexible Schedule</option>
           </select>
         </div>
       </div>
 
-      {% if not is_edit %}
-      <hr style="margin:1rem 0;border-color:#E2E8F0;"/>
-      <p style="font-size:.85rem;color:#64748B;margin-bottom:.75rem;">
-        <strong>Login Credentials</strong> — Creates a portal account for the employee.
-      </p>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Username <span class="req">*</span></label>
-          <input type="text" name="username" class="form-control"
-                 placeholder="john.doe" required/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Initial Password <span class="req">*</span></label>
-          <input type="password" name="password" class="form-control"
-                 placeholder="Min. 8 characters" required/>
-        </div>
+      {% if is_edit %}
+      <div class="form-group">
+        <label class="form-label">
+          <i data-lucide="toggle-left"></i>
+          <span>Account Operational Status</span>
+        </label>
+        <select name="status" class="form-control">
+          <option value="active" {% if employee.status.value == 'active' %}selected{% endif %}>Active (Login permitted)</option>
+          <option value="inactive" {% if employee.status.value == 'inactive' %}selected{% endif %}>Inactive (Suspended)</option>
+        </select>
       </div>
       {% endif %}
 
-      <div style="display:flex;gap:.75rem;margin-top:.5rem;">
-        <button type="submit" class="btn btn-primary">
-          {{ 'Save Changes' if is_edit else '+ Add Employee' }}
+      {% if not is_edit %}
+      <div class="form-group">
+        <label class="form-label">
+          <i data-lucide="key"></i>
+          <span>Portal Access Password</span>
+        </label>
+        <input type="password" name="password" class="form-control"
+               placeholder="Leave blank for default password (Welcome@123)"/>
+        <small class="form-hint">Default password if omitted: <code>Welcome@123</code></small>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;gap:0.85rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--border);">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i data-lucide="{{ 'check' if is_edit else 'user-plus' }}"></i>
+          <span>{{ 'Save Employee Changes' if is_edit else 'Create Employee Profile' }}</span>
         </button>
-        <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy">Cancel</a>
+        <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-navy btn-lg">
+          <span>Cancel</span>
+        </a>
       </div>
     </form>
   </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function handleDesignationChange() {
-  const sel = document.getElementById('designationSelect');
-  const customRow = document.getElementById('customDesignationRow');
-  const customInput = document.getElementById('customDesignationInput');
-  if (sel.value === 'Other') {
-    customRow.style.display = 'grid';
-    customInput.focus();
-  } else {
-    customRow.style.display = 'none';
-    if (customInput) customInput.value = '';
-  }
-}
-</script>
 {% endblock %}

@@ -1,53 +1,91 @@
 {% extends "base.html" %}
 {% block title %}Review Leave Request{% endblock %}
-{% block topbar_title %}Review Leave Request{% endblock %}
+{% block topbar_title %}Review Leave Application{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div class="page-header-text">
-    <h1>&#128203; Review Leave Request</h1>
-    <p>Approve or reject this leave request.</p>
+    <h1>
+      <i data-lucide="check-square" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Review Leave Application</span>
+    </h1>
+    <p>Inspect employee request details, add notes, and approve or reject.</p>
   </div>
-  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">&larr; Back</a>
+  <a href="{{ url_for('leave.index') }}" class="btn btn-outline-navy">
+    <i data-lucide="arrow-left"></i>
+    <span>Back to Leave Requests</span>
+  </a>
 </div>
 
-<div class="card" style="max-width:600px;">
+<div class="card" style="max-width:640px;margin-bottom:2rem;">
+  <div class="card-header">
+    <h3>
+      <i data-lucide="info"></i>
+      <span>Application Summary</span>
+    </h3>
+    <span class="badge {{ 'badge-warning' if leave.status.value == 'Pending' else ('badge-success' if leave.status.value == 'Approved' else 'badge-danger') }}">
+      {{ leave.status.value }}
+    </span>
+  </div>
   <div class="card-body">
-    <table style="width:100%;border-collapse:collapse;margin-bottom:1.5rem;">
-      <tr><td style="padding:.5rem 0;color:#64748B;width:40%;">Employee</td>
-          <td><strong>{{ leave.employee.full_name }}</strong></td></tr>
-      <tr><td style="padding:.5rem 0;color:#64748B;">Leave Type</td>
-          <td>{{ leave.leave_type.value }}</td></tr>
-      <tr><td style="padding:.5rem 0;color:#64748B;">Date Range</td>
-          <td>{{ leave.start_date }} — {{ leave.end_date }}</td></tr>
-      <tr><td style="padding:.5rem 0;color:#64748B;">Day Type</td>
-          <td>{{ leave.day_type.value }}</td></tr>
-      <tr><td style="padding:.5rem 0;color:#64748B;">Reason</td>
-          <td>{{ leave.reason }}</td></tr>
-      <tr><td style="padding:.5rem 0;color:#64748B;">Current Status</td>
-          <td><span class="badge badge-warning">{{ leave.status.value }}</span></td></tr>
-    </table>
+    <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.75rem;">
+      <div class="info-row">
+        <span class="info-key">Employee Name:</span>
+        <span class="info-val"><strong>{{ leave.employee.full_name }}</strong> ({{ leave.employee.employee_id }})</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Department:</span>
+        <span class="info-val">{{ leave.employee.department.name if leave.employee.department else 'General' }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Leave Classification:</span>
+        <span class="info-val"><span class="badge badge-info">{{ leave.leave_type.value }}</span></span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Requested Dates:</span>
+        <span class="info-val" style="font-weight:700;color:var(--navy);">
+          {{ leave.start_date.strftime('%d %b %Y') if leave.start_date.strftime is defined else leave.start_date }} &mdash;
+          {{ leave.end_date.strftime('%d %b %Y') if leave.end_date.strftime is defined else leave.end_date }}
+        </span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Day Scope:</span>
+        <span class="info-val">{{ leave.day_type.value }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-key">Employee Justification:</span>
+        <span class="info-val" style="color:var(--text-sec);line-height:1.5;">{{ leave.reason }}</span>
+      </div>
+    </div>
 
     {% if leave.status.value == 'Pending' %}
     <form method="POST" action="{{ url_for('leave.review', leave_id=leave.id) }}" data-loading>
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="form-group">
-        <label class="form-label">Admin Notes (optional)</label>
+        <label class="form-label">
+          <i data-lucide="message-circle"></i>
+          <span>Administrator Decision Notes (Optional)</span>
+        </label>
         <textarea name="admin_notes" class="form-control" rows="3"
-                  placeholder="Add any notes for the employee..."></textarea>
+                  placeholder="Include any remarks that will be recorded in the approval history..."></textarea>
       </div>
-      <div style="display:flex;gap:.75rem;">
-        <button type="submit" name="action" value="approve" class="btn btn-success">
-          &#9989; Approve
+      <div style="display:flex;gap:0.85rem;padding-top:1rem;border-top:1px solid var(--border);">
+        <button type="submit" name="action" value="approve" class="btn btn-success btn-lg">
+          <i data-lucide="check-circle-2"></i>
+          <span>Approve Leave</span>
         </button>
-        <button type="submit" name="action" value="reject" class="btn btn-danger"
-                data-confirm="Reject this leave request?">
-          &#10060; Reject
+        <button type="submit" name="action" value="reject" class="btn btn-danger btn-lg"
+                data-confirm="Are you sure you want to reject this employee's leave request?">
+          <i data-lucide="x-circle"></i>
+          <span>Reject Leave</span>
         </button>
       </div>
     </form>
     {% else %}
-    <div class="alert alert-info">This request has already been {{ leave.status.value|lower }}.</div>
+    <div class="alert alert-info">
+      <i data-lucide="info" style="width:18px;height:18px;flex-shrink:0;"></i>
+      <span>This request has already been finalized as <strong>{{ leave.status.value }}</strong>.</span>
+    </div>
     {% endif %}
   </div>
 </div>
