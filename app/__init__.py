@@ -29,44 +29,6 @@ def create_app(config_class=None):
     csrf.init_app(app)
     mail.init_app(app)
 
-    # Lightweight idempotent database table check on first boot
-    # Skips execution entirely if tables already exist (avoids delaying worker boot on Render Free)
-    if not app.config.get("TESTING", False):
-        try:
-            with app.app_context():
-                from sqlalchemy import inspect
-                inspector = inspect(db.engine)
-                existing_tables = inspector.get_table_names()
-                if len(existing_tables) < 5:
-                    app.logger.info("First run: creating missing database tables...")
-                    db.create_all()
-                    try:
-                        import bootstrap
-                        bootstrap.bootstrap_database()
-                    except Exception as bs_err:
-                        app.logger.warning("Startup bootstrap error: %s", bs_err)
-                else:
-                    # Ensure any newly added model tables exist (e.g. holidays)
-                    try:
-                        db.create_all()
-                    except Exception as ca_err:
-                        app.logger.warning("db.create_all() skipped or failed: %s", ca_err)
-
-                    # Safe idempotent column migration for existing tables
-                    if "employees" in existing_tables:
-                        cols = [c["name"] for c in inspector.get_columns("employees")]
-                        if "company_name" not in cols:
-                            try:
-                                from sqlalchemy import text
-                                db.session.execute(text("ALTER TABLE employees ADD COLUMN company_name VARCHAR(150) DEFAULT 'EBT System'"))
-                                db.session.commit()
-                                app.logger.info("Migrated employees table: added company_name column.")
-                            except Exception as mig_err:
-                                db.session.rollback()
-                                app.logger.warning("Column migration skipped or failed: %s", mig_err)
-        except Exception as init_err:
-            app.logger.warning("Auto db table creation skipped on startup: %s", init_err)
-
     # User loader
     from app.models import User
 
@@ -94,6 +56,42 @@ def create_app(config_class=None):
     app.register_blueprint(reports_bp)
     app.register_blueprint(ml_bp)
     app.register_blueprint(holidays_bp)
+
+    # Lightweight idempotent database table check on first boot
+    if not app.config.get("TESTING", False):
+        try:
+            with app.app_context():
+                # Ensure all defined model tables exist (e.g. holidays)
+                import app.models  # Ensure all models are registered with SQLAlchemy
+                from sqlalchemy import inspect
+                inspector = inspect(db.engine)
+                existing_tables = inspector.get_table_names()
+                if "holidays" not in existing_tables or len(existing_tables) < 5:
+                    app.logger.info("Creating any missing database tables (tables found: %s)...", existing_tables)
+                    db.create_all()
+                    if len(existing_tables) < 5:
+                        try:
+                            import bootstrap
+                            bootstrap.bootstrap_database()
+                        except Exception as bs_err:
+                            app.logger.warning("Startup bootstrap error: %s", bs_err)
+
+                # Safe idempotent column migration for existing tables
+                inspector = inspect(db.engine)
+                existing_tables = inspector.get_table_names()
+                if "employees" in existing_tables:
+                    cols = [c["name"] for c in inspector.get_columns("employees")]
+                    if "company_name" not in cols:
+                        try:
+                            from sqlalchemy import text
+                            db.session.execute(text("ALTER TABLE employees ADD COLUMN company_name VARCHAR(150) DEFAULT 'EBT System'"))
+                            db.session.commit()
+                            app.logger.info("Migrated employees table: added company_name column.")
+                        except Exception as mig_err:
+                            db.session.rollback()
+                            app.logger.warning("Column migration skipped or failed: %s", mig_err)
+        except Exception as init_err:
+            app.logger.warning("Auto db table creation skipped on startup: %s", init_err)
 
     # Health check endpoint for cloud deployment (e.g., Render, Railway, K8s)
     @app.route("/health")
