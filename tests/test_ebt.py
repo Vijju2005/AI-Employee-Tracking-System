@@ -112,6 +112,29 @@ class TestAppStartup:
         assert "leave" in blueprint_names
         assert "reports" in blueprint_names
         assert "ml" in blueprint_names
+        assert "holidays" in blueprint_names
+
+    def test_create_app_in_production_mode_handles_database_operational_error_cleanly(self):
+        """
+        Regression test: When create_app() runs in non-testing mode and encounters a database
+        connection failure on startup, it must not raise AttributeError (module 'app' has no attribute 'logger').
+        """
+        from app import create_app
+        from config import Config
+
+        class UnreachableDbConfig(Config):
+            TESTING = False
+            SQLALCHEMY_DATABASE_URI = "mysql+pymysql://invalid_user:invalid_pwd@127.0.0.1:9999/invalid_db?connect_timeout=1"
+            def __init__(self):
+                super().__init__()
+                self.TESTING = False
+                self.SQLALCHEMY_DATABASE_URI = "mysql+pymysql://invalid_user:invalid_pwd@127.0.0.1:9999/invalid_db?connect_timeout=1"
+
+        # Calling create_app should catch DB connection failure and log a warning without crashing
+        app_instance = create_app(UnreachableDbConfig)
+        assert app_instance is not None
+        assert hasattr(app_instance, "logger")
+
 
 
 # ── Database Tests ────────────────────────────────────────────────────────────
