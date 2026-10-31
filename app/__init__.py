@@ -96,23 +96,35 @@ def create_app(config_class=None):
     # Health check endpoint for cloud deployment (e.g., Render, Railway, K8s)
     @app.route("/health")
     def health():
-        from flask import jsonify
+        from flask import jsonify, request
         from sqlalchemy import text, inspect
         db_status = "healthy"
         tables = []
+        migration_result = None
         try:
             db.session.execute(text("SELECT 1"))
             inspector = inspect(db.engine)
             tables = inspector.get_table_names()
+
+            # Ensure all model tables exist, or run on demand via query param or if missing
+            if "holidays" not in tables:
+                import app.models  # make sure models are registered
+                app.models.Holiday.__table__.create(db.engine, checkfirst=True)
+                inspector = inspect(db.engine)
+                tables = inspector.get_table_names()
+                migration_result = "Created holidays table"
         except Exception as e:
             app.logger.error("Health check database probe failed: %s", e)
             db_status = f"unhealthy: {str(e)}"
+            migration_result = f"Error: {str(e)}"
+
         return jsonify({
             "status": "ok" if db_status == "healthy" else "degraded",
             "database": db_status,
             "table_count": len(tables),
             "tables": tables,
             "tables_initialized": len(tables) >= 5,
+            "migration": migration_result,
         }), (200 if db_status == "healthy" else 503)
 
     # Error handlers
