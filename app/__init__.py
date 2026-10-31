@@ -46,6 +46,12 @@ def create_app(config_class=None):
                     except Exception as bs_err:
                         app.logger.warning("Startup bootstrap error: %s", bs_err)
                 else:
+                    # Ensure any newly added model tables exist (e.g. holidays)
+                    try:
+                        db.create_all()
+                    except Exception as ca_err:
+                        app.logger.warning("db.create_all() skipped or failed: %s", ca_err)
+
                     # Safe idempotent column migration for existing tables
                     if "employees" in existing_tables:
                         cols = [c["name"] for c in inspector.get_columns("employees")]
@@ -107,6 +113,7 @@ def create_app(config_class=None):
             "status": "ok" if db_status == "healthy" else "degraded",
             "database": db_status,
             "table_count": len(tables),
+            "tables": tables,
             "tables_initialized": len(tables) >= 5,
         }), (200 if db_status == "healthy" else 503)
 
