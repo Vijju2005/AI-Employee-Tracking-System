@@ -67,6 +67,14 @@ def bootstrap_database():
         db.session.commit()
         logger.info("Standard departments and work schedules verified.")
 
+        # Seed Karnataka 2026 holidays if missing
+        try:
+            from app.holidays.seeder import seed_karnataka_holidays_2026
+            ins, ex = seed_karnataka_holidays_2026()
+            logger.info("Karnataka 2026 holidays verified (%d added, %d existing).", ins, ex)
+        except Exception as h_err:
+            logger.warning("Holiday bootstrap error: %s", h_err)
+
         # Check if demo data should be seeded
         auto_seed = os.environ.get("AUTO_SEED_DEMO", "true").lower() in ("true", "1", "yes")
         user_count = User.query.count()

@@ -1132,4 +1132,62 @@ class TestHolidayManagement:
         assert b"TODAY IS A HOLIDAY!" in resp.data
         assert b"Company Founders Day" in resp.data
 
+    def test_karnataka_holidays_2026_seeder(self, app, db):
+        """
+        Verify that all 20 Karnataka Government holidays for 2026 are seeded idempotently
+        and returned by the holidays API.
+        """
+        with app.app_context():
+            from app.holidays.seeder import seed_karnataka_holidays_2026, KARNATAKA_HOLIDAYS_2026
+            from app.models import Holiday
+
+            assert len(KARNATAKA_HOLIDAYS_2026) == 20
+
+            # First run: seeds all
+            ins, ex = seed_karnataka_holidays_2026(db.session)
+            assert ins >= 1  # at least some newly added
+            
+            # Second run: idempotent, 0 inserted
+            ins2, ex2 = seed_karnataka_holidays_2026(db.session)
+            assert ins2 == 0
+            assert ex2 >= 20
+
+            # Verify specific dates required
+            oct20 = Holiday.query.filter_by(holiday_date=date(2026, 10, 20)).first()
+            assert oct20 is not None
+            assert "Mahanavami" in oct20.holiday_name
+
+            oct21 = Holiday.query.filter_by(holiday_date=date(2026, 10, 21)).first()
+            assert oct21 is not None
+            assert "Vijayadasami" in oct21.holiday_name
+
+            nov10 = Holiday.query.filter_by(holiday_date=date(2026, 11, 10)).first()
+            assert nov10 is not None
+            assert "Deepavali" in nov10.holiday_name
+
+            nov27 = Holiday.query.filter_by(holiday_date=date(2026, 11, 27)).first()
+            assert nov27 is not None
+            assert "Kanakadasa" in nov27.holiday_name
+
+            dec25 = Holiday.query.filter_by(holiday_date=date(2026, 12, 25)).first()
+            assert dec25 is not None
+            assert dec25.holiday_name == "Christmas"
+
+        # Check API endpoint returns them
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "test_admin_h1", "password": "AdminPass@123"})
+
+        api_resp = client.get("/holidays/api/events?year=2026")
+        assert api_resp.status_code == 200
+        events = api_resp.get_json()["holidays"]
+        assert len(events) >= 20
+        event_dates = [e["date"] for e in events]
+        assert "2026-10-20" in event_dates
+        assert "2026-10-21" in event_dates
+        assert "2026-11-10" in event_dates
+        assert "2026-11-27" in event_dates
+        assert "2026-12-25" in event_dates
+
+
 

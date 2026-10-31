@@ -76,6 +76,13 @@ def create_app(config_class=None):
                         except Exception as bs_err:
                             flask_app.logger.warning("Startup bootstrap error: %s", bs_err)
 
+                # Seed Karnataka 2026 holidays idempotently if missing
+                try:
+                    from app.holidays.seeder import seed_karnataka_holidays_2026
+                    seed_karnataka_holidays_2026()
+                except Exception as seed_err:
+                    flask_app.logger.warning("Auto holiday seed error: %s", seed_err)
+
                 # Safe idempotent column migration for existing tables
                 inspector = inspect(db.engine)
                 existing_tables = inspector.get_table_names()
@@ -113,6 +120,12 @@ def create_app(config_class=None):
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()
                 migration_result = "Created holidays table"
+
+            # Ensure 2026 Karnataka holidays are seeded
+            from app.holidays.seeder import seed_karnataka_holidays_2026
+            inserted, existing = seed_karnataka_holidays_2026()
+            if inserted > 0:
+                migration_result = (migration_result or "") + f" Seeded {inserted} holidays."
         except Exception as e:
             flask_app.logger.error("Health check database probe failed: %s", e)
             db_status = f"unhealthy: {str(e)}"
