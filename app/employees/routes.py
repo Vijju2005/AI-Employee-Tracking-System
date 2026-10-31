@@ -244,6 +244,14 @@ def edit_employee(emp_id):
                            departments=departments, schedules=schedules, error=error)
 
 
+@employees_bp.route("/profile")
+@login_required
+def profile():
+    """Employee personal profile view and admin self-view."""
+    employee = current_user.employee
+    return render_template("employees/profile.html", employee=employee, user=current_user)
+
+
 @employees_bp.route("/<int:emp_id>/toggle", methods=["POST"])
 @login_required
 @admin_required

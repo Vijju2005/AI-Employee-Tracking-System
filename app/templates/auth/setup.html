@@ -1,47 +1,64 @@
 {% extends "base_auth.html" %}
-{% block title %}First Admin Setup{% endblock %}
+{% block title %}System Initialization{% endblock %}
 
 {% block auth_content %}
-<div class="login-brand">
-  <span class="brand-logo">&#127970; EBT System</span>
-  <span class="brand-tagline">First-Time Setup</span>
-</div>
-
-<div style="text-align:center;margin-bottom:1.25rem;">
-  <h2 style="font-size:1.1rem;font-weight:700;color:#163A5F;margin:0;">Create Admin Account</h2>
-  <p style="font-size:.8rem;color:#64748B;margin:.25rem 0 0;">This is a one-time setup. Only available before any admin exists.</p>
+<div style="text-align:center;margin-bottom:1.5rem;">
+  <div style="width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:inline-flex;align-items:center;justify-content:center;margin-bottom:0.85rem;box-shadow:var(--shadow-md);">
+    <i data-lucide="shield-check" style="width:28px;height:28px;"></i>
+  </div>
+  <h2 style="font-size:1.35rem;font-weight:800;color:var(--navy);margin:0;letter-spacing:-0.02em;">Primary Admin Setup</h2>
+  <p style="font-size:0.84rem;color:var(--text-sec);margin:0.35rem 0 0;">Provision the root enterprise administrator account</p>
 </div>
 
 {% if error %}
-<div class="alert alert-danger">&#9888; {{ error }}</div>
+<div class="alert alert-danger" style="margin-bottom:1.25rem;">
+  <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
 {% endif %}
 
 <form method="POST" action="{{ url_for('auth.setup') }}" data-loading>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
   <div class="form-group">
-    <label class="form-label" for="username">Username <span class="req">*</span></label>
+    <label class="form-label" for="username">
+      <i data-lucide="user"></i>
+      <span>Admin Username</span> <span class="req">*</span>
+    </label>
     <input type="text" id="username" name="username" class="form-control"
-           placeholder="admin" required autocomplete="username"/>
+           placeholder="e.g. admin" required autocomplete="username"/>
   </div>
+
   <div class="form-group">
-    <label class="form-label" for="email">Email <span class="req">*</span></label>
+    <label class="form-label" for="email">
+      <i data-lucide="mail"></i>
+      <span>Official Email</span> <span class="req">*</span>
+    </label>
     <input type="email" id="email" name="email" class="form-control"
            placeholder="admin@company.com" required/>
   </div>
+
   <div class="form-group">
-    <label class="form-label" for="password">Password <span class="req">*</span></label>
+    <label class="form-label" for="password">
+      <i data-lucide="lock"></i>
+      <span>Master Password</span> <span class="req">*</span>
+    </label>
     <input type="password" id="password" name="password" class="form-control"
-           placeholder="Min. 8 characters" required/>
+           placeholder="Minimum 8 characters" required/>
   </div>
+
   <div class="form-group">
-    <label class="form-label" for="confirm_password">Confirm Password <span class="req">*</span></label>
+    <label class="form-label" for="confirm_password">
+      <i data-lucide="lock"></i>
+      <span>Confirm Password</span> <span class="req">*</span>
+    </label>
     <input type="password" id="confirm_password" name="confirm_password" class="form-control"
            placeholder="Repeat password" required/>
   </div>
 
-  <button type="submit" class="btn btn-primary w-100 btn-lg">
-    &#128737; Create Admin &amp; Login
+  <button type="submit" class="btn btn-primary w-100 btn-lg" style="margin-top:0.75rem;">
+    <i data-lucide="shield-check"></i>
+    <span>Initialize Platform Admin</span>
   </button>
 </form>
 {% endblock %}

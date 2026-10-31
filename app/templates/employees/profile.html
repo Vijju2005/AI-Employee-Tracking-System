@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+{% block topbar_title %}Account &amp; Employee Profile{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>
+      <i data-lucide="user-circle" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>My Corporate Profile</span>
+    </h1>
+    <p>View your employee credentials, department assignment, schedule, and account status.</p>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:320px 1fr;gap:1.5rem;align-items:start;">
+  <!-- Left: Avatar & Quick Info Card -->
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:2rem 1.5rem;">
+      <div style="width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:inline-flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;box-shadow:var(--shadow-md);margin-bottom:1rem;">
+        {{ current_user.username[0].upper() }}
+      </div>
+      <h2 style="font-size:1.25rem;font-weight:800;color:var(--navy);margin:0;">
+        {{ employee.full_name if employee else current_user.username }}
+      </h2>
+      <div style="font-size:0.84rem;color:var(--text-sec);margin-top:0.25rem;">
+        {{ employee.designation if employee and employee.designation else ('Administrator' if current_user.is_admin else 'Team Member') }}
+      </div>
+      <div style="margin-top:0.75rem;">
+        <span class="badge {{ 'badge-success' if current_user.is_active else 'badge-danger' }}">
+          <i data-lucide="{{ 'check-circle-2' if current_user.is_active else 'x-circle' }}" style="width:12px;height:12px;"></i>
+          <span>{{ 'Active Account' if current_user.is_active else 'Disabled' }}</span>
+        </span>
+      </div>
+
+      <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--border);text-align:left;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.6rem;">
+          Quick Contacts
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;color:var(--text);margin-bottom:0.4rem;">
+          <i data-lucide="mail" style="width:15px;height:15px;color:var(--blue);"></i>
+          <span>{{ current_user.email }}</span>
+        </div>
+        {% if employee and employee.phone %}
+        <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.84rem;color:var(--text);">
+          <i data-lucide="phone" style="width:15px;height:15px;color:var(--blue);"></i>
+          <span>{{ employee.phone }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Detailed Profile & Employment Data -->
+  <div class="card">
+    <div class="card-header">
+      <h3>
+        <i data-lucide="briefcase"></i>
+        <span>Employment &amp; System Information</span>
+      </h3>
+      {% if employee %}
+      <span class="badge badge-info">{{ employee.employee_id }}</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <div class="info-row">
+          <span class="info-key">Employee ID:</span>
+          <span class="info-val">
+            <code style="background:var(--bg-subtle);padding:0.2rem 0.5rem;border-radius:6px;font-weight:700;color:var(--navy);border:1px solid var(--border);">
+              {{ employee.employee_id if employee else 'ADMIN-ROOT' }}
+            </code>
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Organization:</span>
+          <span class="info-val"><strong>{{ employee.company_name if employee and employee.company_name else 'EBT System Corporate' }}</strong></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Department:</span>
+          <span class="info-val">{{ employee.department.name if employee and employee.department else 'Operations / Management' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Designation:</span>
+          <span class="info-val">{{ employee.designation if employee and employee.designation else ('Administrator' if current_user.is_admin else 'Standard Employee') }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Assigned Schedule:</span>
+          <span class="info-val">
+            <span class="badge badge-secondary">
+              <i data-lucide="clock" style="width:12px;height:12px;"></i>
+              <span>{{ employee.work_schedule if (employee and employee.work_schedule) else 'General Shift (9:00 AM - 5:00 PM)' }}</span>
+            </span>
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">System Role:</span>
+          <span class="info-val">
+            <span class="badge badge-info">{{ current_user.role.value|title }}</span>
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Account Username:</span>
+          <span class="info-val"><code>{{ current_user.username }}</code></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Date Joined:</span>
+          <span class="info-val">
+            {% if employee and employee.date_joined %}
+              {{ employee.date_joined.strftime('%A, %d %B %Y') }}
+            {% elif employee and employee.date_of_joining %}
+              {{ employee.date_of_joining.strftime('%A, %d %B %Y') }}
+            {% else %}
+              Corporate Record Active
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div style="margin-top:1.75rem;padding:1rem;background:var(--bg-subtle);border-radius:var(--radius-sm);border:1px solid var(--border);display:flex;align-items:center;gap:0.75rem;">
+        <i data-lucide="shield-check" style="width:20px;height:20px;color:var(--blue);flex-shrink:0;"></i>
+        <div style="font-size:0.82rem;color:var(--text-sec);">
+          Need changes to your corporate profile or schedule? Please contact your platform administrator or HR representative.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

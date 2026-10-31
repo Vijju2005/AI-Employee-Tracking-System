@@ -1190,4 +1190,70 @@ class TestHolidayManagement:
         assert "2026-12-25" in event_dates
 
 
+class TestRedesignedUIAndProfile:
+    """Tests for the complete enterprise UI redesign and profile routes."""
+
+    def test_employee_and_admin_profile_route(self, app, db):
+        from werkzeug.security import generate_password_hash
+        with app.app_context():
+            from app.models import User, UserRole, Employee, AccountStatus
+            u = User(
+                username="profile_user",
+                email="profile@company.com",
+                password_hash=generate_password_hash("Profile@123"),
+                role=UserRole.EMPLOYEE,
+                is_active=True
+            )
+            db.session.add(u)
+            db.session.flush()
+
+            emp = Employee(
+                employee_id="EMP999",
+                full_name="Profile Test Employee",
+                email="profile@company.com",
+                company_name="Acme Corp",
+                designation="Software Developer",
+                status=AccountStatus.ACTIVE,
+                user_id=u.id,
+            )
+            db.session.add(emp)
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "profile_user", "password": "Profile@123"})
+
+        resp = client.get("/employees/profile")
+        assert resp.status_code == 200
+        assert b"My Corporate Profile" in resp.data
+        assert b"EMP999" in resp.data
+        assert b"Acme Corp" in resp.data
+        assert b"Software Developer" in resp.data
+
+    def test_admin_dashboard_metrics_and_recent_activity(self, app, db):
+        from werkzeug.security import generate_password_hash
+        with app.app_context():
+            from app.models import User, UserRole
+            adm = User(
+                username="dash_admin",
+                email="dash_admin@company.com",
+                password_hash=generate_password_hash("Admin@123"),
+                role=UserRole.ADMIN,
+                is_active=True
+            )
+            db.session.add(adm)
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "dash_admin", "password": "Admin@123"})
+
+        resp = client.get("/dashboard/admin")
+        assert resp.status_code == 200
+        assert b"Admin Dashboard" in resp.data
+        assert b"Live Workforce Activity" in resp.data
+        assert b"Operational Quick Actions" in resp.data
+
+
+
 

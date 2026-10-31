@@ -63,6 +63,10 @@
           <span class="nav-icon"><i data-lucide="sparkles"></i></span>
           <span class="nav-label">AI Analytics</span>
         </a>
+        <a href="{{ url_for('employees.profile') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="user-circle"></i></span>
+          <span class="nav-label">My Profile</span>
+        </a>
         <a href="{{ url_for('auth.logout') }}" class="nav-item nav-logout">
           <span class="nav-icon"><i data-lucide="log-out"></i></span>
           <span class="nav-label">Sign Out</span>
@@ -95,6 +99,10 @@
         <a href="{{ url_for('ml.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="sparkles"></i></span>
           <span class="nav-label">AI Prediction</span>
+        </a>
+        <a href="{{ url_for('employees.profile') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="user-circle"></i></span>
+          <span class="nav-label">My Profile</span>
         </a>
         <a href="{{ url_for('auth.logout') }}" class="nav-item nav-logout">
           <span class="nav-icon"><i data-lucide="log-out"></i></span>
@@ -147,13 +155,13 @@
           <span class="topbar-bell-dot"></span>
         </button>
         {% if current_user.is_authenticated %}
-        <div class="topbar-user-pill">
+        <a href="{{ url_for('employees.profile') }}" class="topbar-user-pill" style="text-decoration:none;cursor:pointer;" title="View Profile">
           <div class="topbar-avatar">{{ current_user.username[0].upper() }}</div>
           <div class="topbar-user-info">
             <span class="topbar-user-name">{{ current_user.username }}</span>
             <span class="topbar-user-role">{{ current_user.role.value|title }}</span>
           </div>
-        </div>
+        </a>
         {% endif %}
       </div>
     </header>

@@ -23,15 +23,15 @@
   </div>
 </div>
 
-<!-- Stat cards with Linear-style accents -->
-<div class="stats-grid">
+<!-- 6 Stat cards with Linear-style accents -->
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));">
   <div class="stat-card accent-blue">
     <div class="stat-icon blue">
       <i data-lucide="users"></i>
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ total_employees }}</div>
-      <div class="stat-label">Total Employees</div>
+      <div class="stat-label">Total Staff</div>
       <div class="stat-sub">Active in directory</div>
     </div>
   </div>
@@ -47,15 +47,14 @@
     </div>
   </div>
 
-  <div class="stat-card accent-cyan">
-    <div class="stat-icon cyan">
-      <i data-lucide="clock"></i>
+  <div class="stat-card accent-rose">
+    <div class="stat-icon rose">
+      <i data-lucide="user-x"></i>
     </div>
     <div class="stat-info">
-      {% set total_work_h = (present_today * 8) %}
-      <div class="stat-value">{{ total_work_h }}<span style="font-size:1rem;font-weight:600;color:var(--text-sec);"> hrs</span></div>
-      <div class="stat-label">Working Hours</div>
-      <div class="stat-sub">Total shift capacity</div>
+      <div class="stat-value">{{ absent_today }}</div>
+      <div class="stat-label">Absent Today</div>
+      <div class="stat-sub">Not clocked in</div>
     </div>
   </div>
 
@@ -65,8 +64,20 @@
     </div>
     <div class="stat-info">
       <div class="stat-value">{{ active_breaks }}</div>
-      <div class="stat-label">Active Breaks</div>
+      <div class="stat-label">On Active Break</div>
       <div class="stat-sub">Currently on pause</div>
+    </div>
+  </div>
+
+  <div class="stat-card accent-cyan">
+    <div class="stat-icon cyan">
+      <i data-lucide="sparkles"></i>
+    </div>
+    <div class="stat-info">
+      {% set avail_rate = ((present_today - active_breaks) / total_employees * 100)|round(0) if total_employees > 0 else 100 %}
+      <div class="stat-value">{{ avail_rate|int }}%</div>
+      <div class="stat-label">Live Availability</div>
+      <div class="stat-sub">Active capacity</div>
     </div>
   </div>
 
@@ -77,7 +88,7 @@
     <div class="stat-info">
       <div class="stat-value">{{ total_holidays_2026 }}</div>
       <div class="stat-label">2026 Holidays</div>
-      <div class="stat-sub">Karnataka General List</div>
+      <div class="stat-sub">Karnataka List</div>
     </div>
   </div>
 </div>
@@ -112,8 +123,8 @@
   </div>
 </div>
 
-<!-- Bottom row: Pending Leaves & Quick Actions -->
-<div class="charts-grid">
+<!-- Middle row: Pending Leaves & Recent Activity Timeline -->
+<div class="charts-grid" style="margin-bottom:1.5rem;">
   <!-- Pending leaves -->
   <div class="card">
     <div class="card-header">
@@ -176,65 +187,105 @@
     </div>
   </div>
 
-  <!-- Quick actions -->
+  <!-- Recent Activity Timeline -->
   <div class="card">
     <div class="card-header">
       <h3>
-        <i data-lucide="zap"></i>
-        <span>Quick Management Actions</span>
+        <i data-lucide="activity"></i>
+        <span>Live Workforce Activity</span>
       </h3>
+      <span class="badge badge-secondary">Telemetry</span>
     </div>
     <div class="card-body">
-      <div class="quick-actions">
-        <a href="{{ url_for('employees.add_employee') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#EFF6FF;color:#2563EB;">
-            <i data-lucide="user-plus"></i>
-          </div>
-          <span>Add New Employee</span>
-          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
-        </a>
-        <a href="{{ url_for('attendance.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#ECFEFF;color:#0891B2;">
-            <i data-lucide="calendar-check"></i>
-          </div>
-          <span>Review Today's Attendance</span>
-          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
-        </a>
-        <a href="{{ url_for('leave.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#FFFBEB;color:#D97706;">
-            <i data-lucide="calendar-days"></i>
-          </div>
-          <span>Approve / Reject Leaves</span>
-          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
-        </a>
-        <a href="{{ url_for('holidays.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#FEF2F2;color:#DC2626;">
-            <i data-lucide="calendar"></i>
-          </div>
-          <span>2026 Karnataka Calendar</span>
-          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
-        </a>
-        <a href="{{ url_for('ml.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#EEF2FF;color:#4F46E5;">
-            <i data-lucide="sparkles"></i>
-          </div>
-          <span>AI Availability Analytics</span>
-          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
-        </a>
-        <a href="{{ url_for('reports.index') }}" class="quick-action-btn">
-          <div class="qa-icon" style="background:#F1F5F9;color:#475569;">
-            <i data-lucide="file-bar-chart"></i>
-          </div>
-          <span>Generate Audit Reports</span>
-          <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
-        </a>
-      </div>
+      {% if recent_activities %}
+        <div style="display:flex;flex-direction:column;gap:0.85rem;">
+          {% for act in recent_activities %}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.8rem;background:var(--bg-subtle);border-radius:var(--radius-sm);border:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:0.65rem;">
+                <div style="width:32px;height:32px;border-radius:8px;background:var(--blue-light);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;">
+                  {{ act.employee[0].upper() }}
+                </div>
+                <div>
+                  <div style="font-size:0.84rem;font-weight:700;color:var(--navy);">{{ act.employee }}</div>
+                  <div style="font-size:0.72rem;color:var(--text-sec);">{{ act.dept }} &bull; {{ act.action }}</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <span class="badge {{ act.badge }}" style="font-size:0.7rem;">
+                  {{ act.time.strftime('%I:%M %p') if act.time else 'Just now' }}
+                </span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state" style="padding:1.5rem 0;">
+          <i data-lucide="clock" style="width:32px;height:32px;color:var(--text-muted);display:inline-block;margin-bottom:0.5rem;"></i>
+          <p>No recent activity events recorded yet.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Bottom row: Quick Actions -->
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header">
+    <h3>
+      <i data-lucide="zap"></i>
+      <span>Operational Quick Actions</span>
+    </h3>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:0.85rem;">
+      <a href="{{ url_for('employees.add_employee') }}" class="quick-action-btn">
+        <div class="qa-icon" style="background:#EFF6FF;color:#2563EB;">
+          <i data-lucide="user-plus"></i>
+        </div>
+        <span>Add New Employee</span>
+        <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+      </a>
+      <a href="{{ url_for('attendance.index') }}" class="quick-action-btn">
+        <div class="qa-icon" style="background:#ECFEFF;color:#0891B2;">
+          <i data-lucide="calendar-check"></i>
+        </div>
+        <span>Review Today's Attendance</span>
+        <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+      </a>
+      <a href="{{ url_for('leave.index') }}" class="quick-action-btn">
+        <div class="qa-icon" style="background:#FFFBEB;color:#D97706;">
+          <i data-lucide="calendar-days"></i>
+        </div>
+        <span>Approve / Reject Leaves</span>
+        <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+      </a>
+      <a href="{{ url_for('holidays.index') }}" class="quick-action-btn">
+        <div class="qa-icon" style="background:#FEF2F2;color:#DC2626;">
+          <i data-lucide="calendar"></i>
+        </div>
+        <span>2026 Karnataka Calendar</span>
+        <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+      </a>
+      <a href="{{ url_for('ml.index') }}" class="quick-action-btn">
+        <div class="qa-icon" style="background:#EEF2FF;color:#4F46E5;">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <span>AI Availability Analytics</span>
+        <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+      </a>
+      <a href="{{ url_for('reports.index') }}" class="quick-action-btn">
+        <div class="qa-icon" style="background:#F1F5F9;color:#475569;">
+          <i data-lucide="file-bar-chart"></i>
+        </div>
+        <span>Generate Audit Reports</span>
+        <i data-lucide="chevron-right" class="qa-arrow" style="width:16px;height:16px;"></i>
+      </a>
     </div>
   </div>
 </div>
 
 <!-- Upcoming Holidays Row -->
-<div class="card" style="margin-top:1.5rem;">
+<div class="card">
   <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
     <h3 style="margin:0;">
       <i data-lucide="calendar-heart" style="color:var(--danger);"></i>

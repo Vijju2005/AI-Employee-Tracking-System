@@ -1,10 +1,20 @@
 {% extends "base_auth.html" %}
-{% block title %}500 — Server Error{% endblock %}
+{% block title %}System Error (500){% endblock %}
+
 {% block auth_content %}
-<div style="text-align:center;padding:2rem 0;">
-  <div style="font-size:4rem;">&#9889;</div>
-  <h2 style="color:#163A5F;margin:.5rem 0;">500 — Internal Server Error</h2>
-  <p style="color:#64748B;">Something went wrong. Please try again or contact the administrator.</p>
-  <a href="/" class="btn btn-primary mt-2">Go Home</a>
+<div style="text-align:center;padding:2rem 1rem;">
+  <div style="width:68px;height:68px;border-radius:18px;background:#FFFBEB;color:#D97706;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1.25rem;box-shadow:var(--shadow-sm);">
+    <i data-lucide="alert-triangle" style="width:36px;height:36px;"></i>
+  </div>
+  <h2 style="font-size:1.35rem;font-weight:800;color:var(--navy);margin:0;letter-spacing:-0.02em;">500 &mdash; Internal Server Error</h2>
+  <p style="font-size:0.86rem;color:var(--text-sec);margin:0.5rem 0 1.5rem;line-height:1.5;">
+    An internal server exception occurred while processing this operation. Our logging system has notified administrators.
+  </p>
+  <div style="display:flex;justify-content:center;gap:0.75rem;">
+    <a href="/" class="btn btn-primary btn-lg">
+      <i data-lucide="home"></i>
+      <span>Return to Dashboard</span>
+    </a>
+  </div>
 </div>
 {% endblock %}

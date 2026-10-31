@@ -276,7 +276,7 @@
     </div>
 
     <!-- Upcoming Holidays Card -->
-    <div class="card">
+    <div class="card" style="margin-bottom:1.25rem;">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
         <h3 style="margin:0;">
           <i data-lucide="calendar-heart" style="color:var(--danger);"></i>
@@ -312,6 +312,49 @@
         {% else %}
           <div style="text-align:center;color:var(--text-muted);font-size:0.85rem;padding:1.5rem 0;">
             No upcoming holidays scheduled.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- My Leave Requests Card -->
+    <div class="card">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;">
+          <i data-lucide="calendar-days"></i>
+          <span>My Leave Applications</span>
+        </h3>
+        <a href="{{ url_for('leave.apply') }}" class="btn btn-sm btn-primary">
+          <i data-lucide="plus"></i>
+          <span>Apply</span>
+        </a>
+      </div>
+      <div class="card-body" style="padding:0.9rem 1.15rem;">
+        {% if my_leaves %}
+          <div style="display:flex;flex-direction:column;gap:0.65rem;">
+            {% for lr in my_leaves %}
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:0.65rem 0.85rem;background:var(--bg-subtle);border-radius:8px;border:1px solid var(--border);">
+                <div>
+                  <div style="font-weight:700;font-size:0.86rem;color:var(--navy);">{{ lr.leave_type.value }} Leave</div>
+                  <div style="font-size:0.75rem;color:var(--text-sec);margin-top:0.1rem;">
+                    {{ lr.start_date.strftime('%d %b') }} &mdash; {{ lr.end_date.strftime('%d %b %Y') }}
+                  </div>
+                </div>
+                <div>
+                  {% if lr.status.value == 'Approved' %}
+                    <span class="badge badge-success"><i data-lucide="check" style="width:11px;height:11px;"></i> Approved</span>
+                  {% elif lr.status.value == 'Rejected' %}
+                    <span class="badge badge-danger"><i data-lucide="x" style="width:11px;height:11px;"></i> Rejected</span>
+                  {% else %}
+                    <span class="badge badge-warning"><i data-lucide="clock" style="width:11px;height:11px;"></i> Pending</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div style="text-align:center;color:var(--text-muted);font-size:0.84rem;padding:1rem 0;">
+            No recent leave applications.
           </div>
         {% endif %}
       </div>
