@@ -39,21 +39,29 @@
           <span class="nav-icon"><i data-lucide="users"></i></span>
           <span class="nav-label">Employees</span>
         </a>
+        <a href="{{ url_for('payroll.index') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="banknote"></i></span>
+          <span class="nav-label">Payroll</span>
+        </a>
+        <a href="{{ url_for('payroll.components_list') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="layers"></i></span>
+          <span class="nav-label">Pay Components</span>
+        </a>
         <a href="{{ url_for('attendance.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="calendar-check"></i></span>
           <span class="nav-label">Attendance</span>
+        </a>
+        <a href="{{ url_for('leave.index') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="calendar-days"></i></span>
+          <span class="nav-label">Leave</span>
         </a>
         <a href="{{ url_for('breaks.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="coffee"></i></span>
           <span class="nav-label">Breaks</span>
         </a>
-        <a href="{{ url_for('leave.index') }}" class="nav-item">
-          <span class="nav-icon"><i data-lucide="calendar-days"></i></span>
-          <span class="nav-label">Leave Management</span>
-        </a>
         <a href="{{ url_for('holidays.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="calendar"></i></span>
-          <span class="nav-label">Holiday Calendar</span>
+          <span class="nav-label">Compliance / Holidays</span>
         </a>
         <a href="{{ url_for('reports.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="file-bar-chart"></i></span>
@@ -64,8 +72,8 @@
           <span class="nav-label">AI Analytics</span>
         </a>
         <a href="{{ url_for('employees.profile') }}" class="nav-item">
-          <span class="nav-icon"><i data-lucide="user-circle"></i></span>
-          <span class="nav-label">My Profile</span>
+          <span class="nav-icon"><i data-lucide="settings"></i></span>
+          <span class="nav-label">Settings</span>
         </a>
         <a href="{{ url_for('auth.logout') }}" class="nav-item nav-logout">
           <span class="nav-icon"><i data-lucide="log-out"></i></span>
@@ -75,6 +83,10 @@
         <a href="{{ url_for('dashboard.employee_dashboard') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="layout-dashboard"></i></span>
           <span class="nav-label">Dashboard</span>
+        </a>
+        <a href="{{ url_for('payroll.payslips_list') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="banknote"></i></span>
+          <span class="nav-label">My Payslips</span>
         </a>
         <a href="{{ url_for('attendance.history') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="calendar-check"></i></span>
@@ -101,8 +113,8 @@
           <span class="nav-label">AI Prediction</span>
         </a>
         <a href="{{ url_for('employees.profile') }}" class="nav-item">
-          <span class="nav-icon"><i data-lucide="user-circle"></i></span>
-          <span class="nav-label">My Profile</span>
+          <span class="nav-icon"><i data-lucide="settings"></i></span>
+          <span class="nav-label">Settings</span>
         </a>
         <a href="{{ url_for('auth.logout') }}" class="nav-item nav-logout">
           <span class="nav-icon"><i data-lucide="log-out"></i></span>

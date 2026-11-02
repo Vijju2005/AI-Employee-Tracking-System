@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Payslip - {{ payslip.payslip_number }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <a href="{{ url_prefix }}/payroll/payslips" class="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 mb-2">
+            <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Back to Payslips
+        </a>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Payslip: {{ payslip.payslip_number }}</h1>
+        <p class="text-sm text-slate-500">Pay Period: <span class="font-semibold text-slate-700">{{ payslip.payroll_month }}</span></p>
+    </div>
+    <div class="flex items-center gap-3">
+        <a href="{{ url_prefix }}/payroll/payslips/{{ payslip.id }}/pdf" target="_blank"
+           class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition">
+            <i data-lucide="download" class="w-4 h-4 mr-1.5"></i> Download PDF Payslip
+        </a>
+    </div>
+</div>
+
+<!-- Formal Payslip Document Card -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-md p-8 max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="flex items-start justify-between pb-6 border-b border-slate-200">
+        <div>
+            <div class="text-xl font-bold text-slate-900 tracking-tight">EMPLOYEE BREAK TRACKING & AVAILABILITY SYSTEM</div>
+            <div class="text-xs text-slate-500 mt-1">Enterprise HR & Workforce Management Platform</div>
+            <div class="text-xs text-slate-400 mt-0.5">Bangalore, Karnataka, India</div>
+        </div>
+        <div class="text-right">
+            <span class="inline-block px-3 py-1 text-xs font-semibold rounded-full 
+                {% if payslip.status == 'Paid' %}bg-emerald-100 text-emerald-800 border border-emerald-200
+                {% elif payslip.status == 'Generated' %}bg-blue-100 text-blue-800 border border-blue-200
+                {% else %}bg-slate-100 text-slate-800 border border-slate-200{% endif %}">
+                Status: {{ payslip.status }}
+            </span>
+            <div class="text-xs text-slate-400 mt-2">Generated: {{ (payslip.generated_at or payslip.created_at).strftime('%d %b %Y') if (payslip.generated_at or payslip.created_at) else 'Recently' }}</div>
+        </div>
+    </div>
+
+    <!-- Employee Metadata Grid -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-b border-slate-200 text-xs">
+        <div>
+            <span class="text-slate-400 block font-medium">Employee Name</span>
+            <span class="font-bold text-slate-800 text-sm mt-0.5">{{ payslip.employee.name }}</span>
+        </div>
+        <div>
+            <span class="text-slate-400 block font-medium">Employee ID</span>
+            <span class="font-bold text-slate-800 text-sm mt-0.5">{{ payslip.employee.employee_id }}</span>
+        </div>
+        <div>
+            <span class="text-slate-400 block font-medium">Department</span>
+            <span class="font-bold text-slate-800 text-sm mt-0.5">{{ payslip.employee.department }}</span>
+        </div>
+        <div>
+            <span class="text-slate-400 block font-medium">Designation</span>
+            <span class="font-bold text-slate-800 text-sm mt-0.5">{{ payslip.employee.designation or 'N/A' }}</span>
+        </div>
+
+        <div>
+            <span class="text-slate-400 block font-medium">Total Working Days</span>
+            <span class="font-semibold text-slate-800 mt-0.5">{{ payslip.working_days }}</span>
+        </div>
+        <div>
+            <span class="text-slate-400 block font-medium">Days Paid</span>
+            <span class="font-semibold text-slate-800 mt-0.5">{{ payslip.paid_days }}</span>
+        </div>
+        <div>
+            <span class="text-slate-400 block font-medium">LOP Days</span>
+            <span class="font-semibold text-slate-800 mt-0.5">{{ payslip.lop_days }}</span>
+        </div>
+        <div>
+            <span class="text-slate-400 block font-medium">Pay Period</span>
+            <span class="font-semibold text-slate-800 mt-0.5">{{ payslip.payroll_month }}</span>
+        </div>
+    </div>
+
+    <!-- Earnings & Deductions Tables -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-b border-slate-200">
+        <!-- Earnings -->
+        <div>
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center justify-between">
+                <span>Earnings (INR)</span>
+                <span class="text-slate-400 font-normal">Amount</span>
+            </h3>
+            <div class="divide-y divide-slate-50 text-sm">
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Basic Salary</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.basic_salary or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">House Rent Allowance (HRA)</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.hra or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Special Allowance</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.special_allowance or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Other Allowances</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.other_allowances or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Bonus &amp; Incentives</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.bonus or 0.0) }}</span>
+                </div>
+                <div class="py-3 flex justify-between font-bold text-emerald-700 bg-emerald-50/50 px-2 rounded-lg mt-2">
+                    <span>Total Gross Salary</span>
+                    <span>₹ {{ "{:,.2f}".format(payslip.gross_earnings or 0.0) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deductions -->
+        <div>
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider pb-2 border-b border-slate-100 flex items-center justify-between">
+                <span>Deductions (INR)</span>
+                <span class="text-slate-400 font-normal">Amount</span>
+            </h3>
+            <div class="divide-y divide-slate-50 text-sm">
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Provident Fund (PF)</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.pf_deduction or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Tax Deducted at Source (TDS)</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.tds_deduction or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Employee State Insurance (ESI)</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.esi_deduction or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Professional Tax (PT)</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.prof_tax or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Labour Welfare Fund (LWF)</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.lwf_deduction or 0.0) }}</span>
+                </div>
+                <div class="py-2 flex justify-between">
+                    <span class="text-slate-600">Other Deductions / LOP</span>
+                    <span class="font-medium text-slate-800">₹ {{ "{:,.2f}".format(payslip.other_deductions or 0.0) }}</span>
+                </div>
+                <div class="py-3 flex justify-between font-bold text-rose-700 bg-rose-50/50 px-2 rounded-lg mt-2">
+                    <span>Total Deductions</span>
+                    <span>₹ {{ "{:,.2f}".format(payslip.total_deductions or 0.0) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Net Salary Highlight Callout -->
+    <div class="mt-6 p-6 bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="text-xs font-medium text-indigo-200 uppercase tracking-widest">Net Disbursed Take-Home Salary</div>
+            <div class="text-3xl font-extrabold tracking-tight mt-1">₹ {{ "{:,.2f}".format(payslip.net_salary) }}</div>
+        </div>
+        <div class="text-right text-xs text-slate-300">
+            <div>Disbursed via Direct Bank Transfer</div>
+            <div class="font-mono mt-0.5">Reference: {{ payslip.payslip_number }}</div>
+        </div>
+    </div>
+
+    <!-- Footer Notes -->
+    <div class="mt-8 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400">
+        <div>This is a computer-generated payslip and requires no physical signature.</div>
+        <div class="mt-2 sm:mt-0 font-medium text-slate-500">Confidential — For Authorized Employee Only</div>
+    </div>
+</div>
+{% endblock %}

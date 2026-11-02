@@ -46,6 +46,7 @@ def create_app(config_class=None):
     from app.reports.routes import reports_bp
     from app.ml.routes import ml_bp
     from app.holidays.routes import holidays_bp
+    from app.payroll.routes import payroll_bp
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(dashboard_bp)
@@ -56,6 +57,7 @@ def create_app(config_class=None):
     flask_app.register_blueprint(reports_bp)
     flask_app.register_blueprint(ml_bp)
     flask_app.register_blueprint(holidays_bp)
+    flask_app.register_blueprint(payroll_bp)
 
     # Lightweight idempotent database table check on first boot
     if not flask_app.config.get("TESTING", False):
@@ -120,6 +122,21 @@ def create_app(config_class=None):
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()
                 migration_result = "Created holidays table"
+
+            # Ensure payroll tables exist
+            if "payroll_items" not in tables or "employee_salaries" not in tables or "payslips" not in tables:
+                from app.models import PayrollItem, EmployeeSalary, PayrollRun, StatutoryCompliance, Payslip
+                db.create_all()
+                inspector = inspect(db.engine)
+                tables = inspector.get_table_names()
+                migration_result = (migration_result or "") + " Initialized payroll tables."
+
+            # Seed default payroll components
+            try:
+                from app.payroll.seeder import seed_default_payroll_items
+                seed_default_payroll_items(db.session)
+            except Exception as pay_seed_err:
+                flask_app.logger.warning("Payroll seeder warning: %s", pay_seed_err)
 
             # Ensure 2026 Karnataka holidays are seeded
             from app.holidays.seeder import seed_karnataka_holidays_2026

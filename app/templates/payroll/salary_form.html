@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}Configure Salary — {{ employee.full_name }}{% endblock %}
+{% block topbar_title %}Salary Structure Configuration{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>
+      <i data-lucide="edit-3" style="color:#2563EB;width:26px;height:26px;"></i>
+      <span>Salary Structure: {{ employee.full_name }}</span>
+    </h1>
+    <p>Configure earnings, allowances, statutory deductions, bank transfer details, and effective dates.</p>
+  </div>
+  <a href="{{ url_for('payroll.salaries_list') }}" class="btn btn-outline-navy">
+    <i data-lucide="arrow-left"></i>
+    <span>Back to Salaries</span>
+  </a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">
+  <i data-lucide="alert-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<div class="card" style="max-width:880px;border-radius:12px;margin-bottom:2rem;">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">
+      {{ employee.full_name }} ({{ employee.employee_id }})
+    </h3>
+    <span class="badge badge-info">{{ employee.department.name if employee.department else 'General' }} &bull; {{ employee.designation or 'Employee' }}</span>
+  </div>
+  <div class="card-body" style="padding:1.5rem;">
+    <form method="POST" action="{{ url_for('payroll.edit_salary', emp_id=employee.id) }}" data-loading>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <h4 style="font-size:0.92rem;font-weight:700;color:#2563EB;margin-bottom:1rem;display:flex;align-items:center;gap:0.4rem;">
+        <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
+        <span>Monthly Earnings &amp; Allowances (INR)</span>
+      </h4>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Basic Salary <span class="req">*</span></label>
+          <input type="number" step="0.01" name="basic_salary" id="basic_salary" class="form-control"
+                 value="{{ salary.basic_salary or 0.0 }}" required oninput="recalcSalaryTotals()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">House Rent Allowance (HRA)</label>
+          <input type="number" step="0.01" name="hra" id="hra" class="form-control"
+                 value="{{ salary.hra or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Special Allowance</label>
+          <input type="number" step="0.01" name="special_allowance" id="special_allowance" class="form-control"
+                 value="{{ salary.special_allowance or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Other Allowances (Medical, Conveyance)</label>
+          <input type="number" step="0.01" name="other_allowances" id="other_allowances" class="form-control"
+                 value="{{ salary.other_allowances or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Monthly Performance Bonus / Incentive</label>
+          <input type="number" step="0.01" name="bonus" id="bonus" class="form-control"
+                 value="{{ salary.bonus or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Employer PF / Gratuity Contribution</label>
+          <input type="number" step="0.01" name="employer_contributions" id="employer_contributions" class="form-control"
+                 value="{{ salary.employer_contributions or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Other Payments</label>
+        <input type="number" step="0.01" name="other_payments" id="other_payments" class="form-control"
+               value="{{ salary.other_payments or 0.0 }}" oninput="recalcSalaryTotals()"/>
+      </div>
+
+      <div class="section-divider" style="margin:1.5rem 0;"></div>
+
+      <h4 style="font-size:0.92rem;font-weight:700;color:#DC2626;margin-bottom:1rem;display:flex;align-items:center;gap:0.4rem;">
+        <i data-lucide="minus-circle" style="width:16px;height:16px;"></i>
+        <span>Monthly Deductions &amp; Statutory Withholdings (INR)</span>
+      </h4>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Provident Fund (PF - Employee 12%)</label>
+          <input type="number" step="0.01" name="pf_deduction" id="pf_deduction" class="form-control"
+                 value="{{ salary.pf_deduction or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Employee State Insurance (ESI)</label>
+          <input type="number" step="0.01" name="esi_deduction" id="esi_deduction" class="form-control"
+                 value="{{ salary.esi_deduction or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tax Deducted at Source (TDS)</label>
+          <input type="number" step="0.01" name="tds_deduction" id="tds_deduction" class="form-control"
+                 value="{{ salary.tds_deduction or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Professional Tax (PT)</label>
+          <input type="number" step="0.01" name="prof_tax" id="prof_tax" class="form-control"
+                 value="{{ salary.prof_tax or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Labour Welfare Fund (LWF)</label>
+          <input type="number" step="0.01" name="lwf_deduction" id="lwf_deduction" class="form-control"
+                 value="{{ salary.lwf_deduction or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Other Voluntary Deductions</label>
+          <input type="number" step="0.01" name="other_deductions" id="other_deductions" class="form-control"
+                 value="{{ salary.other_deductions or 0.0 }}" oninput="recalcSalaryTotals()"/>
+        </div>
+      </div>
+
+      <!-- Live Calculation Card Preview -->
+      <div style="background:#F8FAFC;border:1px solid #CBD5E1;border-radius:10px;padding:1.25rem;margin:1.5rem 0;">
+        <div style="font-size:0.78rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem;">
+          Real-time Calculation Summary
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:1rem;">
+          <div>
+            <div style="font-size:0.72rem;color:#64748B;">Gross Monthly Pay</div>
+            <div id="liveGross" style="font-size:1.3rem;font-weight:800;color:#0F172A;">&#8377; {{ "{:,.2f}".format(salary.gross_salary or 0.0) }}</div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:#64748B;">Total Deductions</div>
+            <div id="liveDeductions" style="font-size:1.3rem;font-weight:800;color:#DC2626;">&#8377; {{ "{:,.2f}".format(salary.total_deductions or 0.0) }}</div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:#64748B;">Net In-Hand Payout</div>
+            <div id="liveNet" style="font-size:1.3rem;font-weight:800;color:#2563EB;">&#8377; {{ "{:,.2f}".format(salary.net_salary or 0.0) }}</div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;color:#64748B;">Annual CTC</div>
+            <div id="liveCTC" style="font-size:1.3rem;font-weight:800;color:#16A34A;">&#8377; {{ "{:,.2f}".format(salary.ctc or 0.0) }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-divider" style="margin:1.5rem 0;"></div>
+
+      <h4 style="font-size:0.92rem;font-weight:700;color:#0F172A;margin-bottom:1rem;display:flex;align-items:center;gap:0.4rem;">
+        <i data-lucide="credit-card" style="width:16px;height:16px;"></i>
+        <span>Disbursement Banking Details</span>
+      </h4>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Payment Mode</label>
+          <select name="payment_mode" class="form-control">
+            <option value="Bank Transfer" {% if salary.payment_mode == 'Bank Transfer' %}selected{% endif %}>Direct Bank Transfer</option>
+            <option value="Cheque" {% if salary.payment_mode == 'Cheque' %}selected{% endif %}>Cheque</option>
+            <option value="Cash" {% if salary.payment_mode == 'Cash' %}selected{% endif %}>Cash</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Bank Name</label>
+          <input type="text" name="bank_name" class="form-control" placeholder="e.g. HDFC Bank, ICICI Bank, SBI"
+                 value="{{ salary.bank_name or '' }}"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Account Number</label>
+          <input type="text" name="account_number" class="form-control" placeholder="10 to 18 digits"
+                 value="{{ salary.account_number or '' }}"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">IFSC Code</label>
+          <input type="text" name="ifsc_code" class="form-control" placeholder="e.g. HDFC0001234"
+                 value="{{ salary.ifsc_code or '' }}"/>
+        </div>
+      </div>
+
+      <div class="form-group" style="max-width:320px;">
+        <label class="form-label">Effective Date</label>
+        <input type="date" name="effective_date" class="form-control"
+               value="{{ salary.effective_date.strftime('%Y-%m-%d') if salary.effective_date else '' }}"/>
+      </div>
+
+      <div style="display:flex;gap:0.85rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #E2E8F0;">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i data-lucide="check-circle-2"></i>
+          <span>Save Salary Structure</span>
+        </button>
+        <a href="{{ url_for('payroll.salaries_list') }}" class="btn btn-outline-navy btn-lg">
+          <span>Cancel</span>
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getNum(id) {
+  const el = document.getElementById(id);
+  return el ? (parseFloat(el.value) || 0) : 0;
+}
+
+function recalcSalaryTotals() {
+  const basic = getNum('basic_salary');
+  const hra = getNum('hra');
+  const special = getNum('special_allowance');
+  const other_allow = getNum('other_allowances');
+  const bonus = getNum('bonus');
+  const employer_pf = getNum('employer_contributions');
+  const other_pay = getNum('other_payments');
+
+  const pf = getNum('pf_deduction');
+  const esi = getNum('esi_deduction');
+  const tds = getNum('tds_deduction');
+  const pt = getNum('prof_tax');
+  const lwf = getNum('lwf_deduction');
+  const other_ded = getNum('other_deductions');
+
+  const gross = basic + hra + special + other_allow + bonus + other_pay;
+  const ded = pf + esi + tds + pt + lwf + other_ded;
+  const net = Math.max(0, gross - ded);
+  const ctc = (gross + employer_pf) * 12;
+
+  document.getElementById('liveGross').textContent = '₹ ' + gross.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('liveDeductions').textContent = '₹ ' + ded.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('liveNet').textContent = '₹ ' + net.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  document.getElementById('liveCTC').textContent = '₹ ' + ctc.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+</script>
+{% endblock %}

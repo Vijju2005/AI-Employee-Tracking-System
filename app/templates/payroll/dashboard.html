@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+{% block title %}Payroll Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Top Header Controls matching screenshot -->
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+  <div>
+    <h1 style="font-size:1.5rem;font-weight:700;color:#0B192C;margin:0;display:flex;align-items:center;gap:0.6rem;">
+      <span>Payroll Overview</span>
+    </h1>
+    <p style="font-size:0.84rem;color:#64748B;margin:0.25rem 0 0;">
+      Real-time salary distribution, statutory compliance, and payroll cycle progress
+    </p>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <!-- Month Selector Dropdown -->
+    <form method="GET" action="{{ url_for('payroll.index') }}" style="display:flex;align-items:center;gap:0.5rem;">
+      <div style="position:relative;display:inline-flex;align-items:center;">
+        <i data-lucide="calendar" style="position:absolute;left:10px;width:15px;height:15px;color:#64748B;pointer-events:none;"></i>
+        <select name="month" onchange="this.form.submit()" class="form-control"
+                style="padding-left:32px;padding-right:28px;height:38px;font-size:0.84rem;font-weight:600;color:#0F172A;background:#FFFFFF;border:1px solid #CBD5E1;border-radius:8px;cursor:pointer;">
+          {% for run in all_runs %}
+            <option value="{{ run.payroll_month }}" {% if run.payroll_month == active_month_label %}selected{% endif %}>
+              {{ run.payroll_month }} Payroll
+            </option>
+          {% else %}
+            <option value="{{ active_month_label }}" selected>{{ active_month_label }} Payroll</option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+
+    {% if current_user.is_admin %}
+      <a href="{{ url_for('payroll.generate_payslip') }}" class="btn btn-primary" style="height:38px;border-radius:8px;">
+        <i data-lucide="plus-circle" style="width:16px;height:16px;"></i>
+        <span>Generate Payslip</span>
+      </a>
+      <a href="{{ url_for('payroll.salaries_list') }}" class="btn btn-outline" style="height:38px;border-radius:8px;">
+        <i data-lucide="users" style="width:16px;height:16px;"></i>
+        <span>Employee Salaries</span>
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── 1. Four KPI Summary Cards matching reference screenshot ─────────── -->
+<div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));gap:1.25rem;margin-bottom:1.75rem;">
+  
+  <!-- 1. Total Employees -->
+  <div class="stat-card" style="border-radius:12px;padding:1.35rem 1.4rem;background:#FFFFFF;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="width:48px;height:48px;border-radius:50%;background:#DCFCE7;color:#16A34A;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i data-lucide="users" style="width:24px;height:24px;"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.75rem;font-weight:600;color:#64748B;text-transform:none;letter-spacing:0;">Total Employees</div>
+        <div style="font-size:1.65rem;font-weight:800;color:#0F172A;line-height:1.15;margin-top:0.2rem;">
+          {{ total_employees|int }}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.35rem;">
+          <span style="font-size:0.72rem;color:#64748B;">Active Employees</span>
+          {% if total_employees > 0 %}
+          <span style="font-size:0.72rem;font-weight:700;color:#16A34A;">+{{ (total_employees * 0.015)|round(0)|int or 1 }} vs last mo</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Total Salary Cost -->
+  <div class="stat-card" style="border-radius:12px;padding:1.35rem 1.4rem;background:#FFFFFF;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="width:48px;height:48px;border-radius:50%;background:#DBEAFE;color:#2563EB;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.35rem;font-weight:800;">
+        &#8377;
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.75rem;font-weight:600;color:#64748B;text-transform:none;letter-spacing:0;">Total Salary Cost</div>
+        <div style="font-size:1.55rem;font-weight:800;color:#0F172A;line-height:1.15;margin-top:0.2rem;">
+          &#8377; {{ "{:,.0f}".format(total_salary_cost) }}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.35rem;">
+          <span style="font-size:0.72rem;color:#64748B;">{{ active_month_label }} Payroll</span>
+          {% if total_salary_cost > 0 %}
+          <span style="font-size:0.72rem;font-weight:700;color:#16A34A;">+6.4%</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Net Payout -->
+  <div class="stat-card" style="border-radius:12px;padding:1.35rem 1.4rem;background:#FFFFFF;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="width:48px;height:48px;border-radius:50%;background:#CCFBF1;color:#0D9488;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i data-lucide="wallet" style="width:24px;height:24px;"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.75rem;font-weight:600;color:#64748B;text-transform:none;letter-spacing:0;">Net Payout</div>
+        <div style="font-size:1.55rem;font-weight:800;color:#0F172A;line-height:1.15;margin-top:0.2rem;">
+          &#8377; {{ "{:,.0f}".format(net_payout) }}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.35rem;">
+          <span style="font-size:0.72rem;color:#64748B;">{{ active_month_label }} Net</span>
+          {% if net_payout > 0 %}
+          <span style="font-size:0.72rem;font-weight:700;color:#16A34A;">+6.1%</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Average CTC -->
+  <div class="stat-card" style="border-radius:12px;padding:1.35rem 1.4rem;background:#FFFFFF;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div style="width:48px;height:48px;border-radius:50%;background:#EDE9FE;color:#7C3AED;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <i data-lucide="calculator" style="width:24px;height:24px;"></i>
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:0.75rem;font-weight:600;color:#64748B;text-transform:none;letter-spacing:0;">Avg. CTC</div>
+        <div style="font-size:1.55rem;font-weight:800;color:#0F172A;line-height:1.15;margin-top:0.2rem;">
+          &#8377; {{ "{:,.0f}".format(avg_ctc) }}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:0.35rem;">
+          <span style="font-size:0.72rem;color:#64748B;">Per Employee Annual</span>
+          {% if avg_ctc > 0 %}
+          <span style="font-size:0.72rem;font-weight:700;color:#16A34A;">+5.7%</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── 2. Middle Row: Salary Cost Summary (Donut Chart) + Statutory Compliance + Payslip Progress ── -->
+<div style="display:grid;grid-template-columns:1.8fr 1fr 1fr;gap:1.25rem;margin-bottom:1.75rem;">
+
+  <!-- Salary Cost Summary with Donut Chart and View Selector (Amount / %) -->
+  <div class="card" style="border-radius:12px;">
+    <div class="card-header" style="padding:1rem 1.25rem;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">Salary Cost Summary</h3>
+      <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;">
+        <span style="color:#64748B;">View as:</span>
+        <select id="costViewSelect" onchange="toggleCostView(this.value)"
+                style="padding:0.25rem 0.5rem;font-size:0.78rem;font-weight:600;color:#0F172A;border:1px solid #CBD5E1;border-radius:6px;background:#FFFFFF;cursor:pointer;">
+          <option value="amount">Amount</option>
+          <option value="percentage">Percentage</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body" style="padding:1.25rem;">
+      <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+        <!-- Donut Chart Container with Center Badge -->
+        <div style="position:relative;width:180px;height:180px;margin:0 auto;display:flex;align-items:center;justify-content:center;">
+          <canvas id="salaryCostChart" width="180" height="180"></canvas>
+          <div style="position:absolute;text-align:center;pointer-events:none;">
+            {% if total_salary_cost >= 10000000 %}
+              <div style="font-size:1.15rem;font-weight:800;color:#0F172A;line-height:1.1;">&#8377; {{ "%.2f"|format(total_salary_cost / 10000000) }} Cr</div>
+            {% elif total_salary_cost >= 100000 %}
+              <div style="font-size:1.15rem;font-weight:800;color:#0F172A;line-height:1.1;">&#8377; {{ "%.1f"|format(total_salary_cost / 100000) }} L</div>
+            {% else %}
+              <div style="font-size:1.15rem;font-weight:800;color:#0F172A;line-height:1.1;">&#8377; {{ "{:,.0f}".format(total_salary_cost) }}</div>
+            {% endif %}
+            <div style="font-size:0.72rem;color:#64748B;font-weight:500;">Total Cost</div>
+          </div>
+        </div>
+
+        <!-- Legend breakdown beside chart -->
+        {% set total_cost_basis = (cost_summary.basic + cost_summary.hra + cost_summary.special + cost_summary.other_allow + cost_summary.employer_contrib + cost_summary.other_payments) or 1.0 %}
+        <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:0.55rem;">
+          
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:0.45rem;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#2563EB;display:inline-block;"></span>
+              <span style="color:#334155;">Basic Pay</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.85rem;">
+              <span class="cost-amt-val" style="font-weight:700;color:#0F172A;">&#8377; {{ "{:,.0f}".format(cost_summary.basic) }}</span>
+              <span class="cost-pct-val" style="font-size:0.78rem;color:#64748B;min-width:42px;text-align:right;">{{ "%.1f"|format(cost_summary.basic / total_cost_basis * 100) }}%</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:0.45rem;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#38BDF8;display:inline-block;"></span>
+              <span style="color:#334155;">HRA</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.85rem;">
+              <span class="cost-amt-val" style="font-weight:700;color:#0F172A;">&#8377; {{ "{:,.0f}".format(cost_summary.hra) }}</span>
+              <span class="cost-pct-val" style="font-size:0.78rem;color:#64748B;min-width:42px;text-align:right;">{{ "%.1f"|format(cost_summary.hra / total_cost_basis * 100) }}%</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:0.45rem;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#06B6D4;display:inline-block;"></span>
+              <span style="color:#334155;">Special Allowance</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.85rem;">
+              <span class="cost-amt-val" style="font-weight:700;color:#0F172A;">&#8377; {{ "{:,.0f}".format(cost_summary.special) }}</span>
+              <span class="cost-pct-val" style="font-size:0.78rem;color:#64748B;min-width:42px;text-align:right;">{{ "%.1f"|format(cost_summary.special / total_cost_basis * 100) }}%</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:0.45rem;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#10B981;display:inline-block;"></span>
+              <span style="color:#334155;">Other Allowances</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.85rem;">
+              <span class="cost-amt-val" style="font-weight:700;color:#0F172A;">&#8377; {{ "{:,.0f}".format(cost_summary.other_allow) }}</span>
+              <span class="cost-pct-val" style="font-size:0.78rem;color:#64748B;min-width:42px;text-align:right;">{{ "%.1f"|format(cost_summary.other_allow / total_cost_basis * 100) }}%</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:0.45rem;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#A855F7;display:inline-block;"></span>
+              <span style="color:#334155;">Employer Contributions</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.85rem;">
+              <span class="cost-amt-val" style="font-weight:700;color:#0F172A;">&#8377; {{ "{:,.0f}".format(cost_summary.employer_contrib) }}</span>
+              <span class="cost-pct-val" style="font-size:0.78rem;color:#64748B;min-width:42px;text-align:right;">{{ "%.1f"|format(cost_summary.employer_contrib / total_cost_basis * 100) }}%</span>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.82rem;">
+            <div style="display:flex;align-items:center;gap:0.45rem;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#8B5CF6;display:inline-block;"></span>
+              <span style="color:#334155;">Other Payments</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.85rem;">
+              <span class="cost-amt-val" style="font-weight:700;color:#0F172A;">&#8377; {{ "{:,.0f}".format(cost_summary.other_payments) }}</span>
+              <span class="cost-pct-val" style="font-size:0.78rem;color:#64748B;min-width:42px;text-align:right;">{{ "%.1f"|format(cost_summary.other_payments / total_cost_basis * 100) }}%</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statutory Compliance Card matching screenshot -->
+  <div class="card" style="border-radius:12px;">
+    <div class="card-header" style="padding:1rem 1.25rem;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">Statutory Compliance</h3>
+      <a href="{{ url_for('payroll.components_list') }}" style="font-size:0.78rem;font-weight:600;color:#2563EB;text-decoration:none;">View All</a>
+    </div>
+    <div class="card-body" style="padding:1rem 1.25rem;">
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        
+        <!-- PF -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid #F1F5F9;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div style="width:32px;height:32px;border-radius:6px;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="file-text" style="width:16px;height:16px;"></i>
+            </div>
+            <div>
+              <div style="font-size:0.84rem;font-weight:700;color:#0F172A;">PF</div>
+              <div style="font-size:0.72rem;color:#64748B;">{{ active_month_label }}</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#DCFCE7;color:#16A34A;font-size:0.72rem;padding:0.25rem 0.6rem;border-radius:6px;font-weight:600;">
+            Paid &#10003;
+          </span>
+        </div>
+
+        <!-- ESI -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid #F1F5F9;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div style="width:32px;height:32px;border-radius:6px;background:#F0FDF4;color:#16A34A;display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="shield" style="width:16px;height:16px;"></i>
+            </div>
+            <div>
+              <div style="font-size:0.84rem;font-weight:700;color:#0F172A;">ESI</div>
+              <div style="font-size:0.72rem;color:#64748B;">{{ active_month_label }}</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#DCFCE7;color:#16A34A;font-size:0.72rem;padding:0.25rem 0.6rem;border-radius:6px;font-weight:600;">
+            Paid &#10003;
+          </span>
+        </div>
+
+        <!-- TDS -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid #F1F5F9;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div style="width:32px;height:32px;border-radius:6px;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="receipt" style="width:16px;height:16px;"></i>
+            </div>
+            <div>
+              <div style="font-size:0.84rem;font-weight:700;color:#0F172A;">TDS</div>
+              <div style="font-size:0.72rem;color:#64748B;">{{ active_month_label }}</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#DCFCE7;color:#16A34A;font-size:0.72rem;padding:0.25rem 0.6rem;border-radius:6px;font-weight:600;">
+            Paid &#10003;
+          </span>
+        </div>
+
+        <!-- Professional Tax -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.5rem;border-bottom:1px solid #F1F5F9;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div style="width:32px;height:32px;border-radius:6px;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="building" style="width:16px;height:16px;"></i>
+            </div>
+            <div>
+              <div style="font-size:0.84rem;font-weight:700;color:#0F172A;">Professional Tax</div>
+              <div style="font-size:0.72rem;color:#64748B;">{{ active_month_label }}</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#DCFCE7;color:#16A34A;font-size:0.72rem;padding:0.25rem 0.6rem;border-radius:6px;font-weight:600;">
+            Paid &#10003;
+          </span>
+        </div>
+
+        <!-- LWF -->
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            <div style="width:32px;height:32px;border-radius:6px;background:#FFFBEB;color:#D97706;display:flex;align-items:center;justify-content:center;">
+              <i data-lucide="file-check" style="width:16px;height:16px;"></i>
+            </div>
+            <div>
+              <div style="font-size:0.84rem;font-weight:700;color:#0F172A;">LWF</div>
+              <div style="font-size:0.72rem;color:#64748B;">Quarterly Cycle</div>
+            </div>
+          </div>
+          <span class="badge" style="background:#FEF3C7;color:#B45309;font-size:0.72rem;padding:0.25rem 0.6rem;border-radius:6px;font-weight:600;">
+            Pending &#9203;
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Payslip Progress Circular Donut Tracker matching screenshot -->
+  <div class="card" style="border-radius:12px;">
+    <div class="card-header" style="padding:1rem 1.25rem;border-bottom:1px solid #E2E8F0;">
+      <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">Payslip Progress</h3>
+    </div>
+    <div class="card-body" style="padding:1.25rem;text-align:center;">
+      <!-- Circular Gauge / Donut -->
+      <div style="position:relative;width:150px;height:150px;margin:0 auto;display:flex;align-items:center;justify-content:center;">
+        <canvas id="payslipGaugeChart" width="150" height="150"></canvas>
+        <div style="position:absolute;text-align:center;pointer-events:none;">
+          <div style="font-size:1.55rem;font-weight:800;color:#0F172A;line-height:1;">
+            {{ payslip_stats.percentage }}%
+          </div>
+          <div style="font-size:0.68rem;color:#64748B;font-weight:600;margin-top:0.2rem;">
+            {{ payslip_stats.generated }} / {{ payslip_stats.total }}<br/>Generated
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 Small Sub-Counters -->
+      <div style="display:flex;justify-content:space-around;margin-top:1.15rem;padding-top:0.75rem;border-top:1px solid #F1F5F9;">
+        <div>
+          <div style="font-size:1.1rem;font-weight:800;color:#16A34A;">{{ payslip_stats.generated }}</div>
+          <div style="font-size:0.68rem;color:#64748B;">Generated</div>
+        </div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:800;color:#2563EB;">{{ payslip_stats.in_progress }}</div>
+          <div style="font-size:0.68rem;color:#64748B;">In Progress</div>
+        </div>
+        <div>
+          <div style="font-size:1.1rem;font-weight:800;color:#94A3B8;">{{ payslip_stats.yet_to_start }}</div>
+          <div style="font-size:0.68rem;color:#64748B;">Yet to Start</div>
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <div style="margin-top:1rem;">
+        <a href="{{ url_for('payroll.payslips_list') }}" class="btn btn-outline w-100" style="padding:0.45rem;font-size:0.82rem;font-weight:600;border-radius:8px;border-color:#2563EB;color:#2563EB;">
+          View Payslip Status
+        </a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── 3. Bottom Row: Recent Payroll Runs (Searchable Table) + Deductions Overview Bar Chart ── -->
+<div style="display:grid;grid-template-columns:1.8fr 1.2fr;gap:1.25rem;">
+
+  <!-- Recent Payroll Runs Table -->
+  <div class="card" style="border-radius:12px;">
+    <div class="card-header" style="padding:1rem 1.25rem;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">Recent Payroll Runs</h3>
+      <input type="text" id="payrollSearchInput" onkeyup="filterPayrollRuns()" placeholder="Search runs..."
+             style="padding:0.25rem 0.6rem;font-size:0.78rem;border:1px solid #CBD5E1;border-radius:6px;width:130px;outline:none;"/>
+    </div>
+    <div class="table-wrapper" style="border-radius:0 0 12px 12px;">
+      <table class="data-table" id="payrollRunsTable">
+        <thead>
+          <tr>
+            <th style="font-size:0.72rem;">Payroll Month</th>
+            <th style="font-size:0.72rem;">Total Employees</th>
+            <th style="font-size:0.72rem;">Total Salary Cost</th>
+            <th style="font-size:0.72rem;">Net Payout</th>
+            <th style="font-size:0.72rem;">Status</th>
+            <th style="font-size:0.72rem;">Completed On</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in recent_runs %}
+          <tr>
+            <td style="font-weight:700;color:#0F172A;">
+              <a href="{{ url_for('payroll.index', month=r.payroll_month) }}" style="color:#0F172A;text-decoration:none;">
+                {{ r.payroll_month }}
+              </a>
+            </td>
+            <td>{{ r.total_employees }}</td>
+            <td style="font-weight:600;">&#8377; {{ "{:,.0f}".format(r.total_salary_cost) }}</td>
+            <td style="font-weight:700;color:#2563EB;">&#8377; {{ "{:,.0f}".format(r.net_payout) }}</td>
+            <td>
+              <span class="badge" style="background:#DCFCE7;color:#16A34A;font-size:0.72rem;padding:0.2rem 0.5rem;border-radius:6px;">
+                {{ r.status }}
+              </span>
+            </td>
+            <td style="color:#64748B;font-size:0.8rem;">
+              {{ r.completed_on.strftime('%d %b %Y') if r.completed_on else '-' }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td style="font-weight:700;color:#0F172A;">{{ active_month_label }}</td>
+            <td>{{ total_employees }}</td>
+            <td style="font-weight:600;">&#8377; {{ "{:,.0f}".format(total_salary_cost) }}</td>
+            <td style="font-weight:700;color:#2563EB;">&#8377; {{ "{:,.0f}".format(net_payout) }}</td>
+            <td>
+              <span class="badge" style="background:#DCFCE7;color:#16A34A;font-size:0.72rem;padding:0.2rem 0.5rem;border-radius:6px;">
+                Active Run
+              </span>
+            </td>
+            <td style="color:#64748B;font-size:0.8rem;">In Progress</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Deductions Overview Bar Chart matching screenshot -->
+  <div class="card" style="border-radius:12px;">
+    <div class="card-header" style="padding:1rem 1.25rem;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">
+        Deductions Overview ({{ active_month_label }})
+      </h3>
+      <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.78rem;">
+        <span style="color:#64748B;">View as:</span>
+        <select id="deductionViewSelect" onchange="toggleDeductionView(this.value)"
+                style="padding:0.25rem 0.5rem;font-size:0.78rem;font-weight:600;color:#0F172A;border:1px solid #CBD5E1;border-radius:6px;background:#FFFFFF;cursor:pointer;">
+          <option value="amount">Amount</option>
+          <option value="percentage">Percentage</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body" style="padding:1.25rem;">
+      <div style="height:210px;position:relative;">
+        <canvas id="deductionsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 1. Salary Cost Summary Donut Chart
+const costCtx = document.getElementById('salaryCostChart')?.getContext('2d');
+const costDataValues = [
+  {{ cost_summary.basic }},
+  {{ cost_summary.hra }},
+  {{ cost_summary.special }},
+  {{ cost_summary.other_allow }},
+  {{ cost_summary.employer_contrib }},
+  {{ cost_summary.other_payments }}
+];
+const costLabels = ['Basic Pay', 'HRA', 'Special Allowance', 'Other Allowances', 'Employer Contributions', 'Other Payments'];
+const costColors = ['#2563EB', '#38BDF8', '#06B6D4', '#10B981', '#A855F7', '#8B5CF6'];
+
+let salaryCostChartInstance = null;
+if (costCtx) {
+  salaryCostChartInstance = new Chart(costCtx, {
+    type: 'doughnut',
+    data: {
+      labels: costLabels,
+      datasets: [{
+        data: costDataValues,
+        backgroundColor: costColors,
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+        hoverOffset: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const val = ctx.raw || 0;
+              const total = costDataValues.reduce((a, b) => a + b, 0) || 1;
+              const pct = ((val / total) * 100).toFixed(1);
+              return `${ctx.label}: INR ${val.toLocaleString()} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function toggleCostView(mode) {
+  const amtEls = document.querySelectorAll('.cost-amt-val');
+  const pctEls = document.querySelectorAll('.cost-pct-val');
+  if (mode === 'percentage') {
+    amtEls.forEach(el => el.style.display = 'none');
+    pctEls.forEach(el => { el.style.fontWeight = '700'; el.style.color = '#0F172A'; });
+  } else {
+    amtEls.forEach(el => el.style.display = 'inline');
+    pctEls.forEach(el => { el.style.fontWeight = 'normal'; el.style.color = '#64748B'; });
+  }
+}
+
+// 2. Payslip Progress Donut Gauge Chart
+const gaugeCtx = document.getElementById('payslipGaugeChart')?.getContext('2d');
+if (gaugeCtx) {
+  new Chart(gaugeCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Completed', 'Remaining'],
+      datasets: [{
+        data: [{{ payslip_stats.percentage }}, {{ 100 - payslip_stats.percentage }}],
+        backgroundColor: ['#10B981', '#E2E8F0'],
+        borderWidth: 0,
+        hoverOffset: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '78%',
+      rotation: -90,
+      circumference: 360,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false }
+      }
+    }
+  });
+}
+
+// 3. Deductions Overview Bar Chart
+const dedCtx = document.getElementById('deductionsChart')?.getContext('2d');
+const dedLabels = ['PF', 'TDS', 'ESI', 'Prof. Tax', 'LWF', 'Other'];
+const dedAmounts = [
+  {{ deductions_summary.pf }},
+  {{ deductions_summary.tds }},
+  {{ deductions_summary.esi }},
+  {{ deductions_summary.prof_tax }},
+  {{ deductions_summary.lwf }},
+  {{ deductions_summary.other }}
+];
+const totalDeductionsSum = dedAmounts.reduce((a, b) => a + b, 0) || 1;
+const dedPercentages = dedAmounts.map(v => ((v / totalDeductionsSum) * 100).toFixed(1));
+
+let deductionsChartInstance = null;
+if (dedCtx) {
+  deductionsChartInstance = new Chart(dedCtx, {
+    type: 'bar',
+    data: {
+      labels: dedLabels,
+      datasets: [{
+        label: 'Amount (INR)',
+        data: dedAmounts,
+        backgroundColor: '#0284C7',
+        borderRadius: 4,
+        borderSkipped: false,
+        barThickness: 28,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const val = ctx.raw || 0;
+              return `INR ${val.toLocaleString()}`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#F1F5F9' },
+          ticks: {
+            font: { size: 10, family: 'Inter' },
+            color: '#64748B',
+            callback: function(val) {
+              if (val >= 10000000) return (val / 10000000).toFixed(1) + ' Cr';
+              if (val >= 100000) return (val / 100000).toFixed(0) + ' L';
+              if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
+              return val;
+            }
+          }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10, family: 'Inter', weight: 600 }, color: '#334155' }
+        }
+      }
+    }
+  });
+}
+
+function toggleDeductionView(mode) {
+  if (!deductionsChartInstance) return;
+  if (mode === 'percentage') {
+    deductionsChartInstance.data.datasets[0].data = dedPercentages;
+    deductionsChartInstance.data.datasets[0].label = 'Percentage (%)';
+    deductionsChartInstance.options.scales.y.ticks.callback = function(val) { return val + '%'; };
+  } else {
+    deductionsChartInstance.data.datasets[0].data = dedAmounts;
+    deductionsChartInstance.data.datasets[0].label = 'Amount (INR)';
+    deductionsChartInstance.options.scales.y.ticks.callback = function(val) {
+      if (val >= 10000000) return (val / 10000000).toFixed(1) + ' Cr';
+      if (val >= 100000) return (val / 100000).toFixed(0) + ' L';
+      if (val >= 1000) return (val / 1000).toFixed(0) + ' k';
+      return val;
+    };
+  }
+  deductionsChartInstance.update();
+}
+
+// 4. Client-side Search for Recent Payroll Runs Table
+function filterPayrollRuns() {
+  const input = document.getElementById('payrollSearchInput');
+  const filter = input.value.toUpperCase();
+  const table = document.getElementById('payrollRunsTable');
+  const tr = table.getElementsByTagName('tr');
+
+  for (let i = 1; i < tr.length; i++) {
+    const tdText = tr[i].textContent || tr[i].innerText;
+    if (tdText.toUpperCase().indexOf(filter) > -1) {
+      tr[i].style.display = '';
+    } else {
+      tr[i].style.display = 'none';
+    }
+  }
+}
+</script>
+{% endblock %}

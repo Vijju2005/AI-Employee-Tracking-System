@@ -1257,3 +1257,238 @@ class TestRedesignedUIAndProfile:
 
 
 
+
+
+class TestPayrollSystem:
+    """Test enterprise payroll module including dashboard, employee salary, payslips, and components."""
+
+    def test_payroll_dashboard_admin_access(self, app, db):
+        from werkzeug.security import generate_password_hash
+        from app.models import User, UserRole, Employee, AccountStatus, EmployeeSalary
+        with app.app_context():
+            admin_u = User(
+                username="payroll_admin_user",
+                email="payroll_admin@test.com",
+                password_hash=generate_password_hash("AdminPass123!"),
+                role=UserRole.ADMIN,
+                is_active=True
+            )
+            db.session.add(admin_u)
+            db.session.flush()
+
+            emp = Employee(
+                employee_id="PAY001",
+                full_name="Payroll Test Employee",
+                email="payemp@test.com",
+                designation="Backend Dev",
+                status=AccountStatus.ACTIVE,
+                user_id=admin_u.id
+            )
+            db.session.add(emp)
+            db.session.flush()
+
+            sal = EmployeeSalary(
+                employee_id=emp.id,
+                basic_salary=50000.0,
+                hra=25000.0,
+                special_allowance=15000.0,
+                pf_deduction=1800.0,
+                prof_tax=200.0,
+                tds_deduction=3000.0
+            )
+            sal.compute_totals()
+            db.session.add(sal)
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "payroll_admin_user", "password": "AdminPass123!"})
+
+        # Test Executive Dashboard
+        resp = client.get("/payroll/")
+        assert resp.status_code == 200
+        assert b"Payroll Dashboard" in resp.data
+        assert b"Salary Cost Summary" in resp.data
+        assert b"Statutory Compliance" in resp.data
+        assert b"Payslip Progress" in resp.data
+        assert b"Deductions Overview" in resp.data
+
+    def test_employee_salary_structure_configuration(self, app, db):
+        from app.models import Employee, EmployeeSalary
+        with app.app_context():
+            emp = Employee.query.filter_by(employee_id="PAY001").first()
+            emp_id = emp.id
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "payroll_admin_user", "password": "AdminPass123!"})
+
+        # View salaries list
+        resp = client.get("/payroll/salaries")
+        assert resp.status_code == 200
+        assert b"Employee Salary Directory" in resp.data
+        assert b"PAY001" in resp.data
+
+        # Update salary structure
+        post_data = {
+            "basic_salary": "60000.00",
+            "hra": "30000.00",
+            "special_allowance": "10000.00",
+            "other_allowances": "5000.00",
+            "bonus": "0.00",
+            "employer_pf": "1800.00",
+            "other_payments": "0.00",
+            "pf_employee": "1800.00",
+            "tds": "4000.00",
+            "esi_employee": "0.00",
+            "professional_tax": "200.00",
+            "lwf": "20.00",
+            "other_deductions": "0.00",
+            "bank_name": "HDFC Bank",
+            "account_number": "987654321012",
+            "ifsc_code": "HDFC0001234",
+            "pan_number": "ABCDE1234F"
+        }
+        update_resp = client.post(f"/payroll/salaries/{emp_id}/edit", data=post_data, follow_redirects=True)
+        assert update_resp.status_code == 200
+
+        with app.app_context():
+            sal = EmployeeSalary.query.filter_by(employee_id=emp_id).first()
+            assert sal is not None
+            assert sal.basic_salary == 60000.0
+            assert sal.gross_salary == 105000.0
+            assert sal.total_deductions == 6020.0
+            assert sal.net_salary == 98980.0
+            assert sal.bank_name == "HDFC Bank"
+
+    def test_payslip_generation_and_pdf_download(self, app, db):
+        from app.models import Employee, Payslip
+        with app.app_context():
+            emp = Employee.query.filter_by(employee_id="PAY001").first()
+            emp_id = emp.id
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "payroll_admin_user", "password": "AdminPass123!"})
+
+        # Generate payslip
+        gen_data = {
+            "employee_id": str(emp_id),
+            "payroll_month": "2026-05",
+            "working_days": "30",
+            "paid_days": "30",
+            "lop_days": "0",
+            "status": "Generated",
+            "basic_pay": "60000.00",
+            "hra": "30000.00",
+            "special_allowance": "10000.00",
+            "other_allowances": "5000.00",
+            "bonus": "2000.00",
+            "other_payments": "0.00",
+            "pf_employee": "1800.00",
+            "tds": "4000.00",
+            "esi_employee": "0.00",
+            "professional_tax": "200.00",
+            "lwf": "20.00",
+            "other_deductions": "0.00"
+        }
+        gen_resp = client.post("/payroll/payslips/generate", data=gen_data, follow_redirects=True)
+        assert gen_resp.status_code == 200
+
+        with app.app_context():
+            ps = Payslip.query.filter_by(employee_id=emp_id, payroll_month="2026-05").first()
+            assert ps is not None
+            assert ps.gross_earnings == 107000.0
+            assert ps.net_salary == (107000.0 - 6020.0)
+            ps_id = ps.id
+
+        # View payslip details
+        view_resp = client.get(f"/payroll/payslips/{ps_id}")
+        assert view_resp.status_code == 200
+        assert b"Payslip:" in view_resp.data
+
+        # Download ReportLab PDF
+        pdf_resp = client.get(f"/payroll/payslips/{ps_id}/pdf")
+        assert pdf_resp.status_code == 200
+        assert pdf_resp.content_type == "application/pdf"
+        assert len(pdf_resp.data) > 500  # valid generated PDF bytes
+
+    def test_payslip_privacy_boundary(self, app, db):
+        from werkzeug.security import generate_password_hash
+        from app.models import User, UserRole, Employee, AccountStatus, Payslip
+        with app.app_context():
+            # Create another user and employee
+            other_user = User(
+                username="other_worker",
+                email="other@test.com",
+                password_hash=generate_password_hash("WorkerPass123!"),
+                role=UserRole.EMPLOYEE,
+                is_active=True
+            )
+            db.session.add(other_user)
+            db.session.flush()
+
+            other_emp = Employee(
+                employee_id="PAY002",
+                full_name="Other Employee",
+                email="other@test.com",
+                status=AccountStatus.ACTIVE,
+                user_id=other_user.id
+            )
+            db.session.add(other_emp)
+            db.session.flush()
+
+            ps_emp1 = Payslip.query.filter_by(payroll_month="2026-05").first()
+            ps_id_1 = ps_emp1.id
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "other_worker", "password": "WorkerPass123!"})
+
+        # Regular employee should not be able to view or download someone else's payslip
+        denied_view = client.get(f"/payroll/payslips/{ps_id_1}", follow_redirects=True)
+        assert b"Access denied" in denied_view.data or denied_view.status_code in [403, 302]
+
+        denied_pdf = client.get(f"/payroll/payslips/{ps_id_1}/pdf", follow_redirects=True)
+        assert b"Access denied" in denied_pdf.data or denied_pdf.status_code in [403, 302]
+
+    def test_pay_components_management(self, app, db):
+        from werkzeug.security import generate_password_hash
+        from app.models import User, UserRole, PayrollItem
+        with app.app_context():
+            admin = User.query.filter_by(username="payroll_admin_user").first()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "payroll_admin_user", "password": "AdminPass123!"})
+
+        # List components
+        list_resp = client.get("/payroll/components")
+        assert list_resp.status_code == 200
+        assert b"Pay Components" in list_resp.data
+
+        # Create new component
+        create_resp = client.post("/payroll/components", data={
+            "name": "Mobile Internet Allowance",
+            "code": "INTERNET_ALLOW",
+            "type": "EARNING",
+            "calculation_type": "fixed",
+            "default_value": "1500.00",
+            "description": "Monthly reimbursement for work communication"
+        }, follow_redirects=True)
+        assert create_resp.status_code == 200
+
+        with app.app_context():
+            item = PayrollItem.query.filter_by(code="INTERNET_ALLOW").first()
+            assert item is not None
+            assert item.is_active is True
+            item_id = item.id
+
+        # Toggle component
+        toggle_resp = client.post(f"/payroll/components/{item_id}/toggle", follow_redirects=True)
+        assert toggle_resp.status_code == 200
+
+        with app.app_context():
+            item_after = PayrollItem.query.get(item_id)
+            assert item_after.is_active is False

@@ -455,3 +455,250 @@ class Holiday(db.Model):
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
+
+# ── Payroll Models ─────────────────────────────────────────────────────────────
+
+class PayrollItemType(str, PyEnum):
+    EARNING = "earning"
+    DEDUCTION = "deduction"
+
+
+class PayrollItem(db.Model):
+    """
+    Configurable components for earnings and deductions
+    (e.g., Basic Pay, HRA, Special Allowance, PF, ESI, TDS, Professional Tax, LWF).
+    """
+    __tablename__ = "payroll_items"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    code = Column(String(50), nullable=False, unique=True, index=True)
+    item_type = Column(Enum(PayrollItemType), nullable=False)
+    description = Column(String(255), nullable=True)
+    is_statutory = Column(Boolean, default=False, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<PayrollItem {self.code} ({self.item_type.value})>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "code": self.code,
+            "item_type": self.item_type.value,
+            "description": self.description,
+            "is_statutory": self.is_statutory,
+            "is_active": self.is_active,
+        }
+
+
+class EmployeeSalary(db.Model):
+    """
+    Salary structure for an employee:
+    Basic, HRA, Special Allowance, Other Allowances, Bonus,
+    Employer Contributions, PF, ESI, TDS, Professional Tax, LWF, Other Deductions.
+    """
+    __tablename__ = "employee_salaries"
+
+    id = Column(Integer, primary_key=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, unique=True, index=True)
+
+    # Earnings
+    basic_salary = Column(Float, default=0.0, nullable=False)
+    hra = Column(Float, default=0.0, nullable=False)
+    special_allowance = Column(Float, default=0.0, nullable=False)
+    other_allowances = Column(Float, default=0.0, nullable=False)
+    bonus = Column(Float, default=0.0, nullable=False)
+    employer_contributions = Column(Float, default=0.0, nullable=False)
+    other_payments = Column(Float, default=0.0, nullable=False)
+
+    # Deductions
+    pf_deduction = Column(Float, default=0.0, nullable=False)
+    esi_deduction = Column(Float, default=0.0, nullable=False)
+    tds_deduction = Column(Float, default=0.0, nullable=False)
+    prof_tax = Column(Float, default=0.0, nullable=False)
+    lwf_deduction = Column(Float, default=0.0, nullable=False)
+    other_deductions = Column(Float, default=0.0, nullable=False)
+
+    # Computed figures cached for fast reporting
+    gross_salary = Column(Float, default=0.0, nullable=False)
+    total_deductions = Column(Float, default=0.0, nullable=False)
+    net_salary = Column(Float, default=0.0, nullable=False)
+    ctc = Column(Float, default=0.0, nullable=False)
+
+    effective_date = Column(db.Date, nullable=True)
+    payment_mode = Column(String(50), default="Bank Transfer", nullable=False)
+    bank_name = Column(String(100), nullable=True)
+    account_number = Column(String(50), nullable=True)
+    ifsc_code = Column(String(20), nullable=True)
+
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    employee = relationship("Employee", backref=db.backref("salary_structure", uselist=False))
+
+    def compute_totals(self):
+        """Recalculate gross, total deductions, net salary and annual CTC."""
+        self.gross_salary = round(
+            (self.basic_salary or 0.0) +
+            (self.hra or 0.0) +
+            (self.special_allowance or 0.0) +
+            (self.other_allowances or 0.0) +
+            (self.bonus or 0.0) +
+            (self.other_payments or 0.0), 2
+        )
+        self.total_deductions = round(
+            (self.pf_deduction or 0.0) +
+            (self.esi_deduction or 0.0) +
+            (self.tds_deduction or 0.0) +
+            (self.prof_tax or 0.0) +
+            (self.lwf_deduction or 0.0) +
+            (self.other_deductions or 0.0), 2
+        )
+        self.net_salary = max(0.0, round(self.gross_salary - self.total_deductions, 2))
+        monthly_ctc = self.gross_salary + (self.employer_contributions or 0.0)
+        self.ctc = round(monthly_ctc * 12.0, 2)
+        return self.net_salary
+
+    def __repr__(self):
+        return f"<EmployeeSalary emp={self.employee_id} Net={self.net_salary}>"
+
+
+class PayrollRun(db.Model):
+    """
+    A payroll run cycle for a given month (e.g. 'May 2025' or '2025-05').
+    Stores aggregate metrics and status.
+    """
+    __tablename__ = "payroll_runs"
+
+    id = Column(Integer, primary_key=True)
+    payroll_month = Column(String(20), nullable=False, unique=True, index=True)  # e.g., "May 2025"
+    month_code = Column(String(10), nullable=False, unique=True, index=True)     # e.g., "2025-05"
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+
+    total_employees = Column(Integer, default=0, nullable=False)
+    total_salary_cost = Column(Float, default=0.0, nullable=False)  # CTC / Total cost
+    gross_payout = Column(Float, default=0.0, nullable=False)
+    total_deductions = Column(Float, default=0.0, nullable=False)
+    net_payout = Column(Float, default=0.0, nullable=False)
+    average_ctc = Column(Float, default=0.0, nullable=False)
+
+    # Component aggregates
+    total_basic = Column(Float, default=0.0, nullable=False)
+    total_hra = Column(Float, default=0.0, nullable=False)
+    total_special = Column(Float, default=0.0, nullable=False)
+    total_other_allowances = Column(Float, default=0.0, nullable=False)
+    total_employer_contributions = Column(Float, default=0.0, nullable=False)
+    total_other_payments = Column(Float, default=0.0, nullable=False)
+
+    # Deductions breakdown
+    total_pf = Column(Float, default=0.0, nullable=False)
+    total_tds = Column(Float, default=0.0, nullable=False)
+    total_esi = Column(Float, default=0.0, nullable=False)
+    total_prof_tax = Column(Float, default=0.0, nullable=False)
+    total_lwf = Column(Float, default=0.0, nullable=False)
+    total_other_deductions = Column(Float, default=0.0, nullable=False)
+
+    status = Column(String(30), default="Completed", nullable=False)  # "Completed", "Processing", "Draft"
+    completed_on = Column(db.Date, nullable=True)
+
+    # Payslip progress counters
+    payslips_generated = Column(Integer, default=0, nullable=False)
+    payslips_in_progress = Column(Integer, default=0, nullable=False)
+    payslips_yet_to_start = Column(Integer, default=0, nullable=False)
+
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    creator = relationship("User")
+    payslips = relationship("Payslip", back_populates="payroll_run", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<PayrollRun {self.payroll_month} Net={self.net_payout}>"
+
+
+class StatutoryCompliance(db.Model):
+    """
+    Statutory compliance tracking for PF, ESI, TDS, Professional Tax, LWF.
+    Displays actual recorded status (Paid, Pending, Not Applicable).
+    """
+    __tablename__ = "statutory_compliances"
+
+    id = Column(Integer, primary_key=True)
+    component_name = Column(String(50), nullable=False)   # PF, ESI, TDS, Professional Tax, LWF
+    period = Column(String(50), nullable=False)           # "May 2025" or "Apr - Jun 2025"
+    amount = Column(Float, default=0.0, nullable=False)
+    status = Column(String(30), default="Pending", nullable=False)  # "Paid", "Pending", "Not Applicable"
+    due_date = Column(db.Date, nullable=True)
+    paid_date = Column(db.Date, nullable=True)
+    challan_number = Column(String(100), nullable=True)
+    notes = Column(String(255), nullable=True)
+
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("component_name", "period", name="uq_statutory_component_period"),
+    )
+
+    def __repr__(self):
+        return f"<StatutoryCompliance {self.component_name} {self.period} [{self.status}]>"
+
+
+class Payslip(db.Model):
+    """
+    Payslip record for an employee for a specific payroll cycle.
+    """
+    __tablename__ = "payslips"
+
+    id = Column(Integer, primary_key=True)
+    payslip_number = Column(String(50), nullable=False, unique=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    payroll_run_id = Column(Integer, ForeignKey("payroll_runs.id"), nullable=True, index=True)
+
+    payroll_month = Column(String(20), nullable=False)  # e.g., "May 2025"
+    month_code = Column(String(10), nullable=False)     # e.g., "2025-05"
+
+    # Attendance/work days summary
+    working_days = Column(Integer, default=30, nullable=False)
+    days_present = Column(Float, default=30.0, nullable=False)
+    days_absent = Column(Float, default=0.0, nullable=False)
+
+    # Earnings breakdown
+    basic_salary = Column(Float, default=0.0, nullable=False)
+    hra = Column(Float, default=0.0, nullable=False)
+    special_allowance = Column(Float, default=0.0, nullable=False)
+    other_allowances = Column(Float, default=0.0, nullable=False)
+    bonus = Column(Float, default=0.0, nullable=False)
+    gross_earnings = Column(Float, default=0.0, nullable=False)
+
+    # Deductions breakdown
+    pf_deduction = Column(Float, default=0.0, nullable=False)
+    esi_deduction = Column(Float, default=0.0, nullable=False)
+    tds_deduction = Column(Float, default=0.0, nullable=False)
+    prof_tax = Column(Float, default=0.0, nullable=False)
+    lwf_deduction = Column(Float, default=0.0, nullable=False)
+    other_deductions = Column(Float, default=0.0, nullable=False)
+    total_deductions = Column(Float, default=0.0, nullable=False)
+
+    net_salary = Column(Float, default=0.0, nullable=False)
+
+    status = Column(String(30), default="Generated", nullable=False)  # "Generated", "In Progress", "Draft"
+    generated_at = Column(DateTime, default=utcnow, nullable=False)
+
+    employee = relationship("Employee", backref=db.backref("payslips", lazy="dynamic"))
+    payroll_run = relationship("PayrollRun", back_populates="payslips")
+
+    __table_args__ = (
+        UniqueConstraint("employee_id", "month_code", name="uq_emp_month_payslip"),
+    )
+
+    def __repr__(self):
+        return f"<Payslip {self.payslip_number} emp={self.employee_id} {self.payroll_month}>"
+
+

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Employee Salaries{% endblock %}
+{% block topbar_title %}Employee Salary Directory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>
+      <i data-lucide="wallet" style="color:#2563EB;width:26px;height:26px;"></i>
+      <span>Employee Salary Management</span>
+    </h1>
+    <p>Manage structured monthly compensation, statutory PF/ESI/TDS deductions, and annual CTC.</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <a href="{{ url_for('payroll.index') }}" class="btn btn-outline-navy">
+      <i data-lucide="arrow-left"></i>
+      <span>Payroll Dashboard</span>
+    </a>
+  </div>
+</div>
+
+<!-- Filters bar -->
+<form method="GET" class="filters-bar" style="margin-bottom:1.5rem;">
+  <div class="filter-group">
+    <span class="filter-label">Search Employee</span>
+    <input type="text" name="q" class="form-control" placeholder="Search by name, ID or email..."
+           value="{{ request.args.get('q','') }}" style="min-width:240px;"/>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">Department</span>
+    <select name="dept" class="form-control">
+      <option value="">All Departments</option>
+      {% for d in departments %}
+      <option value="{{ d.id }}" {% if request.args.get('dept')|string == d.id|string %}selected{% endif %}>
+        {{ d.name }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">
+    <i data-lucide="search"></i>
+    <span>Apply Filter</span>
+  </button>
+  <a href="{{ url_for('payroll.salaries_list') }}" class="btn btn-outline-navy">
+    <i data-lucide="rotate-ccw"></i>
+    <span>Reset</span>
+  </a>
+</form>
+
+<div class="card" style="border-radius:12px;">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">
+      <i data-lucide="list"></i>
+      <span>Salaried Staff ({{ employees|length }})</span>
+    </h3>
+  </div>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Department</th>
+          <th>Basic Salary</th>
+          <th>Gross Salary</th>
+          <th>Deductions</th>
+          <th>Net Payout</th>
+          <th>Annual CTC</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for emp in employees %}
+        {% set sal = emp.salary_structure %}
+        <tr>
+          <td>
+            <div style="font-weight:700;color:#0F172A;">{{ emp.full_name }}</div>
+            <div style="font-size:0.75rem;color:#64748B;"><code>{{ emp.employee_id }}</code> &bull; {{ emp.designation or 'Employee' }}</div>
+          </td>
+          <td>
+            <span class="badge badge-info">{{ emp.department.name if emp.department else 'General' }}</span>
+          </td>
+          <td>
+            {% if sal %}
+              &#8377; {{ "{:,.0f}".format(sal.basic_salary) }}
+            {% else %}
+              <span style="color:#94A3B8;">Not Configured</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if sal %}
+              &#8377; {{ "{:,.0f}".format(sal.gross_salary) }}
+            {% else %}
+              &mdash;
+            {% endif %}
+          </td>
+          <td>
+            {% if sal %}
+              <span style="color:#DC2626;font-weight:600;">&#8377; {{ "{:,.0f}".format(sal.total_deductions) }}</span>
+            {% else %}
+              &mdash;
+            {% endif %}
+          </td>
+          <td>
+            {% if sal %}
+              <strong style="color:#2563EB;font-size:0.95rem;">&#8377; {{ "{:,.0f}".format(sal.net_salary) }}</strong>
+            {% else %}
+              <span class="badge badge-warning">Pending Setup</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if sal %}
+              &#8377; {{ "{:,.0f}".format(sal.ctc) }}
+            {% else %}
+              &mdash;
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('payroll.edit_salary', emp_id=emp.id) }}" class="btn btn-sm btn-outline">
+              <i data-lucide="edit-3"></i>
+              <span>{{ 'Edit Structure' if sal else 'Configure Salary' }}</span>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center;padding:3rem 1.5rem;color:#94A3B8;">
+            <i data-lucide="users" style="width:36px;height:36px;margin-bottom:0.5rem;display:inline-block;"></i>
+            <div style="font-weight:700;color:#0F172A;">No employees found</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

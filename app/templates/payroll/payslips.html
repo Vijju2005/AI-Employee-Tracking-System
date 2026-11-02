@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Payslips &amp; History{% endblock %}
+{% block topbar_title %}Payslip Directory{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div class="page-header-text">
+    <h1>
+      <i data-lucide="receipt" style="color:#2563EB;width:26px;height:26px;"></i>
+      <span>{{ 'Employee Payslips' if current_user.is_admin else 'My Payslip History' }}</span>
+    </h1>
+    <p>{{ 'View, search, generate and download certified monthly PDF payslips across the enterprise.' if current_user.is_admin else 'View and download your monthly compensation slips and statutory deduction breakdown.' }}</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    {% if current_user.is_admin %}
+      <a href="{{ url_for('payroll.generate_payslip') }}" class="btn btn-primary">
+        <i data-lucide="plus-circle"></i>
+        <span>Generate Payslip</span>
+      </a>
+    {% endif %}
+    <a href="{{ url_for('payroll.index') }}" class="btn btn-outline-navy">
+      <i data-lucide="arrow-left"></i>
+      <span>Payroll Dashboard</span>
+    </a>
+  </div>
+</div>
+
+<!-- Filters Bar -->
+<form method="GET" class="filters-bar" style="margin-bottom:1.5rem;">
+  {% if current_user.is_admin %}
+  <div class="filter-group">
+    <span class="filter-label">Search Employee / Slip Ref</span>
+    <input type="text" name="q" class="form-control" placeholder="Search by name, ID or slip ref..."
+           value="{{ request.args.get('q','') }}" style="min-width:240px;"/>
+  </div>
+  {% endif %}
+  <div class="filter-group">
+    <span class="filter-label">Payroll Month</span>
+    <select name="month" class="form-control">
+      <option value="">All Months</option>
+      {% for m in distinct_months %}
+      <option value="{{ m }}" {% if request.args.get('month') == m %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">
+    <i data-lucide="search"></i>
+    <span>Filter</span>
+  </button>
+  <a href="{{ url_for('payroll.payslips_list') }}" class="btn btn-outline-navy">
+    <i data-lucide="rotate-ccw"></i>
+    <span>Reset</span>
+  </a>
+</form>
+
+<div class="card" style="border-radius:12px;">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <h3 style="font-size:0.95rem;font-weight:700;color:#0F172A;margin:0;">
+      <i data-lucide="list"></i>
+      <span>Payslips ({{ payslips|length }})</span>
+    </h3>
+  </div>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Slip Reference</th>
+          <th>Employee</th>
+          <th>Payroll Month</th>
+          <th>Gross Earnings</th>
+          <th>Total Deductions</th>
+          <th>Net Salary</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for slip in payslips %}
+        <tr>
+          <td>
+            <code style="background:#F1F5F9;padding:0.2rem 0.5rem;border-radius:6px;font-weight:700;color:#0B192C;border:1px solid #E2E8F0;">
+              {{ slip.payslip_number }}
+            </code>
+          </td>
+          <td>
+            <div style="font-weight:700;color:#0F172A;">{{ slip.employee.full_name }}</div>
+            <div style="font-size:0.75rem;color:#64748B;">{{ slip.employee.employee_id }} &bull; {{ slip.employee.department.name if slip.employee.department else 'General' }}</div>
+          </td>
+          <td>
+            <span style="font-weight:600;color:#334155;">{{ slip.payroll_month }}</span>
+          </td>
+          <td>&#8377; {{ "{:,.2f}".format(slip.gross_earnings) }}</td>
+          <td>
+            <span style="color:#DC2626;font-weight:600;">&#8377; {{ "{:,.2f}".format(slip.total_deductions) }}</span>
+          </td>
+          <td>
+            <strong style="color:#2563EB;font-size:0.95rem;">&#8377; {{ "{:,.2f}".format(slip.net_salary) }}</strong>
+          </td>
+          <td>
+            <span class="badge badge-success">
+              <i data-lucide="check-circle" style="width:12px;height:12px;"></i>
+              <span>{{ slip.status }}</span>
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:0.4rem;">
+              <a href="{{ url_for('payroll.view_payslip', payslip_id=slip.id) }}" class="btn btn-sm btn-outline" title="View breakdown">
+                <i data-lucide="eye"></i>
+                <span>View</span>
+              </a>
+              <a href="{{ url_for('payroll.download_payslip_pdf', payslip_id=slip.id) }}" class="btn btn-sm btn-primary" title="Download PDF">
+                <i data-lucide="download"></i>
+                <span>PDF</span>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center;padding:3rem 1.5rem;color:#94A3B8;">
+            <i data-lucide="receipt" style="width:36px;height:36px;margin-bottom:0.5rem;display:inline-block;"></i>
+            <div style="font-weight:700;color:#0F172A;">No payslips found</div>
+            <div style="font-size:0.84rem;">Generated payslips for monthly cycles will appear here.</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
