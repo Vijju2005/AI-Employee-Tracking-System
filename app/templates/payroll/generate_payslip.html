@@ -1,259 +1,431 @@
 {% extends "base.html" %}
-
-{% block title %}Generate Payslip - Enterprise Payroll{% endblock %}
+{% block title %}Generate Employee Payslip - Enterprise Payroll{% endblock %}
+{% block topbar_title %}Generate Employee Payslip{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-    <a href="{{ url_prefix }}/payroll/payslips" class="inline-flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 mb-3">
-        <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Back to Payslips
+<!-- Page Header -->
+<div class="page-header" style="margin-bottom:1.5rem;">
+  <div class="page-header-text">
+    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
+      <a href="{{ url_for('payroll.payslips_list') }}" class="btn btn-sm btn-outline-navy" style="padding:0.25rem 0.6rem;">
+        <i data-lucide="arrow-left" style="width:14px;height:14px;"></i>
+        <span>Back to Payslips</span>
+      </a>
+      <span style="font-size:0.78rem;color:var(--text-muted);">&bull;</span>
+      <span style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">Payroll Cycle Management</span>
+    </div>
+    <h1 style="display:flex;align-items:center;gap:0.6rem;font-size:1.45rem;font-weight:800;color:var(--navy);margin:0;">
+      <i data-lucide="file-plus" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Generate Employee Payslip</span>
+    </h1>
+    <p style="font-size:0.84rem;color:var(--text-sec);margin:0.25rem 0 0;">
+      Select an employee and pay cycle. Base earnings and statutory deductions are auto-populated from their configured salary structure with live calculation.
+    </p>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <a href="{{ url_for('payroll.index') }}" class="btn btn-outline-navy">
+      <i data-lucide="layout-dashboard"></i>
+      <span>Payroll Dashboard</span>
     </a>
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Generate Employee Payslip</h1>
-            <p class="text-sm text-slate-500 mt-1">Select an employee and period to auto-calculate gross, deductions, and net payout.</p>
-        </div>
-    </div>
+  </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2">
-        <form method="POST" action="{{ url_prefix }}/payroll/payslips/generate" id="payslipForm" class="space-y-6">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{% if error %}
+<div class="alert alert-danger" style="border-radius:10px;margin-bottom:1.5rem;">
+  <i data-lucide="alert-circle" style="width:18px;height:18px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
 
-            <!-- Basic Period & Employee Selection -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h2 class="text-base font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-100 flex items-center">
-                    <i data-lucide="user-check" class="w-5 h-5 text-indigo-600 mr-2"></i> Employee & Period Information
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Employee *</label>
-                        <select name="employee_id" id="employee_id" required class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                            <option value="">-- Choose Employee --</option>
-                            {% for emp in employees %}
-                            <option value="{{ emp.id }}" {% if selected_employee and selected_employee.id == emp.id %}selected{% endif %}>
-                                {{ emp.name }} ({{ emp.employee_id }}) — {{ emp.department }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <span id="salaryNotice" class="text-xs text-amber-600 mt-1 hidden">Note: This employee doesn't have a configured salary structure yet. Standard template applied.</span>
-                    </div>
+<!-- Main Form & Live Preview Grid Layout -->
+<form method="POST" action="{{ url_for('payroll.generate_payslip') }}" id="payslipForm" data-loading>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Payroll Month *</label>
-                        <input type="month" name="payroll_month" id="payroll_month" value="{{ default_month }}" required
-                               class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Total Working Days</label>
-                        <input type="number" step="0.5" min="1" max="31" name="working_days" id="working_days" value="30"
-                               class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Paid / Present Days</label>
-                        <input type="number" step="0.5" min="0" max="31" name="paid_days" id="paid_days" value="30"
-                               class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Loss of Pay (LOP) Days</label>
-                        <input type="number" step="0.5" min="0" max="31" name="lop_days" id="lop_days" value="0"
-                               class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Disbursement Status</label>
-                        <select name="status" id="status" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
-                            <option value="Generated" selected>Generated</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Draft">Draft</option>
-                        </select>
-                    </div>
-                </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;align-items:start;">
+    
+    <!-- Left Column: Form Sections -->
+    <div style="display:flex;flex-direction:column;gap:1.5rem;">
+      
+      <!-- Section 1: Employee & Period Information -->
+      <div class="card" style="border-radius:12px;overflow:hidden;box-shadow:var(--shadow-xs);">
+        <div class="card-header" style="background:#FFFFFF;border-bottom:1px solid var(--border);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="font-size:0.95rem;font-weight:700;color:var(--navy);margin:0;display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="user-check" style="width:18px;height:18px;color:var(--blue);"></i>
+            <span>Employee &amp; Period Information</span>
+          </h3>
+          <span class="badge badge-info">Required Fields *</span>
+        </div>
+        <div class="card-body" style="padding:1.5rem;">
+          <div class="form-row">
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="form-label" for="employee_id">
+                <i data-lucide="user"></i>
+                <span>Select Employee <span class="req">*</span></span>
+              </label>
+              <select name="employee_id" id="employee_id" required class="form-control" style="font-weight:600;color:var(--navy);">
+                <option value="">-- Choose Employee --</option>
+                {% for emp in employees %}
+                <option value="{{ emp.id }}" {% if selected_employee and selected_employee.id == emp.id %}selected{% endif %}>
+                  {{ emp.full_name }} ({{ emp.employee_id }}) — {{ emp.department.name if emp.department else 'General' }}
+                </option>
+                {% endfor %}
+              </select>
+              <div id="salaryNotice" class="form-hint" style="color:#D97706;display:none;font-weight:500;">
+                <i data-lucide="info" style="width:13px;height:13px;display:inline-block;vertical-align:middle;"></i>
+                No custom salary structure configured. Standard template values applied.
+              </div>
             </div>
 
-            <!-- Earnings Breakdown -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h2 class="text-base font-semibold text-emerald-800 mb-4 pb-2 border-b border-emerald-100 flex items-center">
-                    <i data-lucide="plus-circle" class="w-5 h-5 text-emerald-600 mr-2"></i> Earnings Components (₹)
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Basic Pay</label>
-                        <input type="number" step="0.01" min="0" name="basic_pay" id="basic_pay" value="0.00" class="earning-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">House Rent Allowance (HRA)</label>
-                        <input type="number" step="0.01" min="0" name="hra" id="hra" value="0.00" class="earning-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Special Allowance</label>
-                        <input type="number" step="0.01" min="0" name="special_allowance" id="special_allowance" value="0.00" class="earning-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Other Allowances</label>
-                        <input type="number" step="0.01" min="0" name="other_allowances" id="other_allowances" value="0.00" class="earning-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Bonus / Performance Pay</label>
-                        <input type="number" step="0.01" min="0" name="bonus" id="bonus" value="0.00" class="earning-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Other Payments</label>
-                        <input type="number" step="0.01" min="0" name="other_payments" id="other_payments" value="0.00" class="earning-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label class="form-label" for="payroll_month">
+                <i data-lucide="calendar"></i>
+                <span>Payroll Month <span class="req">*</span></span>
+              </label>
+              <input type="month" name="payroll_month" id="payroll_month" value="{{ default_month or '' }}" required class="form-control" style="font-weight:600;"/>
+            </div>
+          </div>
+
+          <div class="form-row" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));gap:1rem;margin-top:0.5rem;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="working_days">
+                <span>Working Days</span>
+              </label>
+              <input type="number" step="0.5" min="1" max="31" name="working_days" id="working_days" value="30" class="form-control" oninput="recalculate()"/>
             </div>
 
-            <!-- Deductions Breakdown -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <h2 class="text-base font-semibold text-rose-800 mb-4 pb-2 border-b border-rose-100 flex items-center">
-                    <i data-lucide="minus-circle" class="w-5 h-5 text-rose-600 mr-2"></i> Deductions (₹)
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Provident Fund (PF Employee)</label>
-                        <input type="number" step="0.01" min="0" name="pf_employee" id="pf_employee" value="0.00" class="deduction-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Tax Deducted at Source (TDS)</label>
-                        <input type="number" step="0.01" min="0" name="tds" id="tds" value="0.00" class="deduction-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Employee State Insurance (ESI)</label>
-                        <input type="number" step="0.01" min="0" name="esi_employee" id="esi_employee" value="0.00" class="deduction-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Professional Tax (PT)</label>
-                        <input type="number" step="0.01" min="0" name="professional_tax" id="professional_tax" value="0.00" class="deduction-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Labour Welfare Fund (LWF)</label>
-                        <input type="number" step="0.01" min="0" name="lwf" id="lwf" value="0.00" class="deduction-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Other Deductions / LOP</label>
-                        <input type="number" step="0.01" min="0" name="other_deductions" id="other_deductions" value="0.00" class="deduction-input w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
-                    </div>
-                </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="paid_days">
+                <span>Paid / Present</span>
+              </label>
+              <input type="number" step="0.5" min="0" max="31" name="paid_days" id="paid_days" value="30" class="form-control" oninput="recalculate()"/>
             </div>
 
-            <!-- Notes -->
-            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Remarks / Notes</label>
-                <textarea name="remarks" id="remarks" rows="2" placeholder="Optional comments regarding payroll adjustments, incentives or deductions..." class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2"></textarea>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="lop_days">
+                <span>Loss of Pay (LOP)</span>
+              </label>
+              <input type="number" step="0.5" min="0" max="31" name="lop_days" id="lop_days" value="0" class="form-control" oninput="recalculate()"/>
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-4">
-                <a href="{{ url_prefix }}/payroll/payslips" class="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition">Cancel</a>
-                <button type="submit" class="px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-sm transition flex items-center">
-                    <i data-lucide="check" class="w-4 h-4 mr-1.5"></i> Save & Generate Payslip
-                </button>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label" for="status">
+                <span>Payout Status</span>
+              </label>
+              <select name="status" id="status" class="form-control" style="font-weight:600;">
+                <option value="Generated" selected>Generated</option>
+                <option value="Paid">Paid</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Draft">Draft</option>
+              </select>
             </div>
-        </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Earnings Components -->
+      <div class="card" style="border-radius:12px;overflow:hidden;box-shadow:var(--shadow-xs);">
+        <div class="card-header" style="background:#FFFFFF;border-bottom:1px solid var(--border);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="font-size:0.95rem;font-weight:700;color:#047857;margin:0;display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="plus-circle" style="width:18px;height:18px;color:#10B981;"></i>
+            <span>Monthly Earnings Components (₹ INR)</span>
+          </h3>
+          <span class="badge badge-success">Additions to Gross</span>
+        </div>
+        <div class="card-body" style="padding:1.5rem;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="basic_pay">
+                <span>Basic Salary <span class="req">*</span></span>
+              </label>
+              <input type="number" step="0.01" min="0" name="basic_pay" id="basic_pay" value="0.00" class="form-control earning-input" style="font-weight:600;color:var(--navy);"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hra">
+                <span>House Rent Allowance (HRA)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="hra" id="hra" value="0.00" class="form-control earning-input"/>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="special_allowance">
+                <span>Special Allowance</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="special_allowance" id="special_allowance" value="0.00" class="form-control earning-input"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="other_allowances">
+                <span>Other Allowances (Medical/Conveyance)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="other_allowances" id="other_allowances" value="0.00" class="form-control earning-input"/>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="bonus">
+                <span>Performance Bonus / Incentives</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="bonus" id="bonus" value="0.00" class="form-control earning-input"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="other_payments">
+                <span>Other Payments / Arrears</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="other_payments" id="other_payments" value="0.00" class="form-control earning-input"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Deductions & Statutory Withholdings -->
+      <div class="card" style="border-radius:12px;overflow:hidden;box-shadow:var(--shadow-xs);">
+        <div class="card-header" style="background:#FFFFFF;border-bottom:1px solid var(--border);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;">
+          <h3 style="font-size:0.95rem;font-weight:700;color:#B91C1C;margin:0;display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="minus-circle" style="width:18px;height:18px;color:#EF4444;"></i>
+            <span>Deductions &amp; Statutory Withholdings (₹ INR)</span>
+          </h3>
+          <span class="badge badge-danger">Subtractions from Gross</span>
+        </div>
+        <div class="card-body" style="padding:1.5rem;">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="pf_employee">
+                <span>Provident Fund (PF - Employee)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="pf_employee" id="pf_employee" value="0.00" class="form-control deduction-input"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="tds">
+                <span>Tax Deducted at Source (TDS)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="tds" id="tds" value="0.00" class="form-control deduction-input"/>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="esi_employee">
+                <span>Employee State Insurance (ESI)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="esi_employee" id="esi_employee" value="0.00" class="form-control deduction-input"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="professional_tax">
+                <span>Professional Tax (PT)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="professional_tax" id="professional_tax" value="0.00" class="form-control deduction-input"/>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="lwf">
+                <span>Labour Welfare Fund (LWF)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="lwf" id="lwf" value="0.00" class="form-control deduction-input"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="other_deductions">
+                <span>Other Deductions (LOP / Penalty)</span>
+              </label>
+              <input type="number" step="0.01" min="0" name="other_deductions" id="other_deductions" value="0.00" class="form-control deduction-input"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Remarks / Notes -->
+      <div class="card" style="border-radius:12px;overflow:hidden;box-shadow:var(--shadow-xs);">
+        <div class="card-header" style="background:#FFFFFF;border-bottom:1px solid var(--border);padding:0.9rem 1.25rem;">
+          <h3 style="font-size:0.92rem;font-weight:700;color:var(--navy);margin:0;display:flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="message-square" style="width:16px;height:16px;color:var(--text-sec);"></i>
+            <span>Remarks &amp; Payroll Notes</span>
+          </h3>
+        </div>
+        <div class="card-body" style="padding:1.25rem;">
+          <textarea name="remarks" id="remarks" rows="2" class="form-control" placeholder="Optional comments regarding overtime, special adjustments, reimbursements or leave adjustments..." style="resize:vertical;min-height:75px;font-size:0.85rem;"></textarea>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:1rem;padding:0.5rem 0 1.5rem;">
+        <a href="{{ url_for('payroll.payslips_list') }}" class="btn btn-outline-navy" style="min-width:110px;">
+          <i data-lucide="x"></i>
+          <span>Cancel</span>
+        </a>
+        <button type="submit" class="btn btn-primary" style="min-width:180px;height:42px;font-size:0.92rem;font-weight:700;box-shadow:var(--shadow-md);">
+          <i data-lucide="check-circle" style="width:17px;height:17px;"></i>
+          <span>Generate Payslip</span>
+        </button>
+      </div>
+
     </div>
 
-    <!-- Live Preview Sidebar Card -->
-    <div class="lg:col-span-1">
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 sticky top-24">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Calculation Summary</h3>
+    <!-- Right Column: Sticky Professional Salary Summary Panel -->
+    <div style="position:sticky;top:84px;display:flex;flex-direction:column;gap:1.25rem;">
+      <div class="card" style="border-radius:14px;overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-md);background:#FFFFFF;">
+        <div class="card-header" style="background:linear-gradient(135deg, #0B192C 0%, #1E3A8A 100%);color:#FFFFFF;padding:1.1rem 1.25rem;border:none;">
+          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#93C5FD;">Live Computation</div>
+          <h3 style="font-size:1.1rem;font-weight:800;color:#FFFFFF;margin:0.25rem 0 0;display:flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="calculator" style="width:18px;height:18px;color:#60A5FA;"></i>
+            <span>Salary Summary</span>
+          </h3>
+        </div>
+
+        <div class="card-body" style="padding:1.35rem;">
+          <!-- 4 Summary Metrics -->
+          <div style="display:flex;flex-direction:column;gap:1rem;">
             
-            <div class="space-y-4">
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <span class="text-sm text-slate-600">Total Gross Earnings</span>
-                    <span id="previewGross" class="text-base font-semibold text-emerald-600">₹ 0.00</span>
-                </div>
-                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
-                    <span class="text-sm text-slate-600">Total Deductions</span>
-                    <span id="previewDeductions" class="text-base font-semibold text-rose-600">₹ 0.00</span>
-                </div>
-                <div class="p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
-                    <div class="text-xs font-medium text-indigo-700 uppercase tracking-wide">Net Take-Home Payout</div>
-                    <div id="previewNet" class="text-2xl font-bold text-indigo-900 mt-1">₹ 0.00</div>
-                </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.75rem;border-bottom:1px solid var(--border);">
+              <div>
+                <div style="font-size:0.78rem;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:0.03em;">Total Earnings</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">Gross Salary Before Tax</div>
+              </div>
+              <span id="previewGross" style="font-size:1.05rem;font-weight:700;color:#059669;font-variant-numeric:tabular-nums;">₹ 0.00</span>
             </div>
 
-            <div class="mt-6 pt-5 border-t border-slate-100 text-xs text-slate-500 space-y-2">
-                <div class="flex items-center">
-                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-500 mr-2 shrink-0"></i>
-                    <span>Taxes & statutory rules are validated automatically.</span>
-                </div>
-                <div class="flex items-center">
-                    <i data-lucide="file-text" class="w-4 h-4 text-indigo-500 mr-2 shrink-0"></i>
-                    <span>A formal PDF payslip will be available immediately after generation.</span>
-                </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.75rem;border-bottom:1px solid var(--border);">
+              <div>
+                <div style="font-size:0.78rem;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:0.03em;">Total Deductions</div>
+                <div style="font-size:0.72rem;color:var(--text-muted);">PF, TDS, ESI, PT, LWF</div>
+              </div>
+              <span id="previewDeductions" style="font-size:1.05rem;font-weight:700;color:#DC2626;font-variant-numeric:tabular-nums;">₹ 0.00</span>
             </div>
+
+            <!-- Net Disbursed Payout Callout Box -->
+            <div style="background:linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);border:1px solid #BFDBFE;border-radius:10px;padding:1.15rem;margin-top:0.25rem;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#1E40AF;">Net Salary</span>
+                <span class="badge badge-success" style="font-size:0.7rem;padding:0.2rem 0.5rem;">Take-Home</span>
+              </div>
+              <div id="previewNet" style="font-size:1.65rem;font-weight:800;color:#1E3A8A;margin-top:0.4rem;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;">
+                ₹ 0.00
+              </div>
+              <div style="font-size:0.72rem;color:#3B82F6;margin-top:0.2rem;display:flex;align-items:center;gap:0.3rem;">
+                <i data-lucide="check-circle-2" style="width:13px;height:13px;"></i>
+                <span>Direct Bank Transfer Amount</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Feature badges & validation note -->
+          <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:0.6rem;">
+            <div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.76rem;color:var(--text-sec);">
+              <i data-lucide="shield-check" style="width:15px;height:15px;color:#10B981;flex-shrink:0;margin-top:2px;"></i>
+              <span>Statutory PF (12%) and PT limits checked against state compliance.</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.76rem;color:var(--text-sec);">
+              <i data-lucide="file-check" style="width:15px;height:15px;color:var(--blue);flex-shrink:0;margin-top:2px;"></i>
+              <span>Instant certified PDF download generated upon submission.</span>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.76rem;color:var(--text-sec);">
+              <i data-lucide="lock" style="width:15px;height:15px;color:var(--navy);flex-shrink:0;margin-top:2px;"></i>
+              <span>Protected by role-based privacy isolation (Admin &amp; Employee).</span>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
-</div>
+
+  </div>
+</form>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const empSelect = document.getElementById('employee_id');
-        const earningInputs = document.querySelectorAll('.earning-input');
-        const deductionInputs = document.querySelectorAll('.deduction-input');
+document.addEventListener('DOMContentLoaded', function() {
+  const empSelect = document.getElementById('employee_id');
+  const earningInputs = document.querySelectorAll('.earning-input');
+  const deductionInputs = document.querySelectorAll('.deduction-input');
 
-        function formatINR(val) {
-            return '₹ ' + Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function recalculate() {
-            let gross = 0;
-            earningInputs.forEach(i => gross += parseFloat(i.value) || 0);
-
-            let deductions = 0;
-            deductionInputs.forEach(i => deductions += parseFloat(i.value) || 0);
-
-            let net = Math.max(0, gross - deductions);
-
-            document.getElementById('previewGross').textContent = formatINR(gross);
-            document.getElementById('previewDeductions').textContent = formatINR(deductions);
-            document.getElementById('previewNet').textContent = formatINR(net);
-        }
-
-        earningInputs.forEach(i => i.addEventListener('input', recalculate));
-        deductionInputs.forEach(i => i.addEventListener('input', recalculate));
-
-        empSelect.addEventListener('change', async function() {
-            const empId = this.value;
-            if (!empId) return;
-
-            try {
-                const res = await fetch(`{{ url_prefix }}/payroll/api/employee-salary/${empId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    document.getElementById('basic_pay').value = data.basic_salary || 0;
-                    document.getElementById('hra').value = data.hra || 0;
-                    document.getElementById('special_allowance').value = data.special_allowance || 0;
-                    document.getElementById('other_allowances').value = data.other_allowances || 0;
-                    document.getElementById('bonus').value = data.bonus || 0;
-                    document.getElementById('other_payments').value = data.other_payments || 0;
-
-                    document.getElementById('pf_employee').value = data.pf_employee || 0;
-                    document.getElementById('tds').value = data.tds || 0;
-                    document.getElementById('esi_employee').value = data.esi_employee || 0;
-                    document.getElementById('professional_tax').value = data.professional_tax || 0;
-                    document.getElementById('lwf').value = data.lwf || 0;
-                    document.getElementById('other_deductions').value = data.other_deductions || 0;
-
-                    document.getElementById('salaryNotice').classList.add('hidden');
-                    recalculate();
-                } else {
-                    document.getElementById('salaryNotice').classList.remove('hidden');
-                }
-            } catch (err) {
-                console.error("Failed to load salary structure", err);
-            }
-        });
-
-        // Trigger on load if pre-selected
-        if (empSelect.value) {
-            empSelect.dispatchEvent(new Event('change'));
-        } else {
-            recalculate();
-        }
+  function formatINR(val) {
+    return '₹ ' + Number(val || 0).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
+  }
+
+  window.recalculate = function() {
+    let gross = 0;
+    earningInputs.forEach(function(i) { gross += parseFloat(i.value) || 0; });
+
+    let deductions = 0;
+    deductionInputs.forEach(function(i) { deductions += parseFloat(i.value) || 0; });
+
+    let net = Math.max(0, gross - deductions);
+
+    const grossEl = document.getElementById('previewGross');
+    const dedEl = document.getElementById('previewDeductions');
+    const netEl = document.getElementById('previewNet');
+
+    if (grossEl) grossEl.textContent = formatINR(gross);
+    if (dedEl) dedEl.textContent = formatINR(deductions);
+    if (netEl) netEl.textContent = formatINR(net);
+  };
+
+  earningInputs.forEach(function(i) { i.addEventListener('input', recalculate); });
+  deductionInputs.forEach(function(i) { i.addEventListener('input', recalculate); });
+
+  if (empSelect) {
+    empSelect.addEventListener('change', async function() {
+      const empId = this.value;
+      const notice = document.getElementById('salaryNotice');
+      if (!empId) {
+        if (notice) notice.style.display = 'none';
+        return;
+      }
+
+      try {
+        const res = await fetch(`{{ url_for('payroll.index') }}api/employee-salary/${empId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.has_salary) {
+            document.getElementById('basic_pay').value = data.basic_salary || 0;
+            document.getElementById('hra').value = data.hra || 0;
+            document.getElementById('special_allowance').value = data.special_allowance || 0;
+            document.getElementById('other_allowances').value = data.other_allowances || 0;
+            document.getElementById('bonus').value = data.bonus || 0;
+            document.getElementById('other_payments').value = 0;
+
+            document.getElementById('pf_employee').value = data.pf_deduction || 0;
+            document.getElementById('tds').value = data.tds_deduction || 0;
+            document.getElementById('esi_employee').value = data.esi_deduction || 0;
+            document.getElementById('professional_tax').value = data.prof_tax || 0;
+            document.getElementById('lwf').value = data.lwf_deduction || 0;
+            document.getElementById('other_deductions').value = data.other_deductions || 0;
+
+            if (notice) notice.style.display = 'none';
+          } else {
+            if (notice) notice.style.display = 'block';
+          }
+          recalculate();
+        }
+      } catch (err) {
+        console.error("Failed to load employee salary:", err);
+      }
+    });
+
+    if (empSelect.value) {
+      empSelect.dispatchEvent(new Event('change'));
+    } else {
+      recalculate();
+    }
+  }
+
+  // Set default current month in payroll_month input if empty
+  const monthInput = document.getElementById('payroll_month');
+  if (monthInput && !monthInput.value) {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    monthInput.value = `${yyyy}-${mm}`;
+  }
+
+  // Initialize Lucide icons if available
+  if (typeof lucide !== 'undefined' && lucide.createIcons) {
+    lucide.createIcons();
+  }
+});
 </script>
 {% endblock %}
