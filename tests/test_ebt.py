@@ -1312,6 +1312,31 @@ class TestPayrollSystem:
         assert b"Statutory Compliance" in resp.data
         assert b"Payslip Progress" in resp.data
         assert b"Deductions Overview" in resp.data
+        assert b"Dashboard View" in resp.data
+        assert b"List View" in resp.data
+
+        # Test List View toggle & filters
+        list_resp = client.get("/payroll/?view=list")
+        assert list_resp.status_code == 200
+        assert b"Employee Payroll Breakdown" in list_resp.data
+        assert b"PAY001" in list_resp.data
+        assert b"Payroll Month" in list_resp.data
+        assert b"Employee ID" in list_resp.data
+        assert b"Employee Name" in list_resp.data
+        assert b"Department" in list_resp.data
+        assert b"Gross Salary" in list_resp.data
+        assert b"Total Deductions" in list_resp.data
+        assert b"Net Salary" in list_resp.data
+        assert b"Payroll Status" in list_resp.data
+
+        # Test Search & Filter on List View
+        search_resp = client.get("/payroll/?view=list&q=Payroll+Test")
+        assert search_resp.status_code == 200
+        assert b"Payroll Test Employee" in search_resp.data
+
+        empty_search = client.get("/payroll/?view=list&q=NonExistentPersonXYZ")
+        assert empty_search.status_code == 200
+        assert b"No payroll records match the selected filters" in empty_search.data
 
     def test_employee_salary_structure_configuration(self, app, db):
         from app.models import Employee, EmployeeSalary

@@ -3,27 +3,52 @@
 {% block topbar_title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Top Header Controls matching screenshot -->
+<!-- Top Header Controls matching screenshot & View Mode Toggle -->
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
   <div>
     <h1 style="font-size:1.5rem;font-weight:700;color:#0B192C;margin:0;display:flex;align-items:center;gap:0.6rem;">
+      <i data-lucide="banknote" style="width:26px;height:26px;color:#2563EB;"></i>
       <span>Payroll Overview</span>
     </h1>
     <p style="font-size:0.84rem;color:#64748B;margin:0.25rem 0 0;">
-      Real-time salary distribution, statutory compliance, and payroll cycle progress
+      Real-time salary distribution, statutory compliance, employee compensation list, and cycle progress
     </p>
   </div>
 
-  <div style="display:flex;align-items:center;gap:0.75rem;">
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+    <!-- View Mode Toggle: Dashboard View / List View -->
+    <div style="display:inline-flex;align-items:center;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:8px;padding:3px;">
+      <a href="{{ url_for('payroll.index', view='dashboard', month=selected_month, employee=selected_emp, dept=selected_dept, status=selected_status, q=search_q) }}"
+         id="btnViewDashboard"
+         class="btn btn-sm"
+         style="border:none;border-radius:6px;font-size:0.82rem;font-weight:700;padding:0.4rem 0.85rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;{% if view_mode == 'dashboard' %}background:#FFFFFF;color:#0F172A;box-shadow:0 1px 3px rgba(0,0,0,0.08);{% else %}background:transparent;color:#64748B;{% endif %}">
+        <i data-lucide="layout-dashboard" style="width:15px;height:15px;"></i>
+        <span>Dashboard View</span>
+      </a>
+      <a href="{{ url_for('payroll.index', view='list', month=selected_month, employee=selected_emp, dept=selected_dept, status=selected_status, q=search_q) }}"
+         id="btnViewList"
+         class="btn btn-sm"
+         style="border:none;border-radius:6px;font-size:0.82rem;font-weight:700;padding:0.4rem 0.85rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;{% if view_mode == 'list' %}background:#FFFFFF;color:#0F172A;box-shadow:0 1px 3px rgba(0,0,0,0.08);{% else %}background:transparent;color:#64748B;{% endif %}">
+        <i data-lucide="list" style="width:15px;height:15px;"></i>
+        <span>List View</span>
+      </a>
+    </div>
+
     <!-- Month Selector Dropdown -->
-    <form method="GET" action="{{ url_for('payroll.index') }}" style="display:flex;align-items:center;gap:0.5rem;">
+    <form method="GET" action="{{ url_for('payroll.index') }}" style="display:flex;align-items:center;gap:0.5rem;margin:0;">
+      <input type="hidden" name="view" value="{{ view_mode }}"/>
+      {% if selected_emp %}<input type="hidden" name="employee" value="{{ selected_emp }}"/>{% endif %}
+      {% if selected_dept %}<input type="hidden" name="dept" value="{{ selected_dept }}"/>{% endif %}
+      {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}"/>{% endif %}
+      {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}"/>{% endif %}
+
       <div style="position:relative;display:inline-flex;align-items:center;">
         <i data-lucide="calendar" style="position:absolute;left:10px;width:15px;height:15px;color:#64748B;pointer-events:none;"></i>
         <select name="month" onchange="this.form.submit()" class="form-control"
                 style="padding-left:32px;padding-right:28px;height:38px;font-size:0.84rem;font-weight:600;color:#0F172A;background:#FFFFFF;border:1px solid #CBD5E1;border-radius:8px;cursor:pointer;">
-          {% for run in all_runs %}
-            <option value="{{ run.payroll_month }}" {% if run.payroll_month == active_month_label %}selected{% endif %}>
-              {{ run.payroll_month }} Payroll
+          {% for m in distinct_months %}
+            <option value="{{ m }}" {% if m == active_month_label %}selected{% endif %}>
+              {{ m }} Payroll
             </option>
           {% else %}
             <option value="{{ active_month_label }}" selected>{{ active_month_label }} Payroll</option>
@@ -44,6 +69,232 @@
     {% endif %}
   </div>
 </div>
+
+<!-- ── Filter Bar for both Dashboard & List Views ── -->
+<div class="filters-bar" style="margin-bottom:1.5rem;display:flex;align-items:flex-end;flex-wrap:wrap;gap:0.85rem;background:#FFFFFF;padding:1rem 1.25rem;border-radius:12px;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+  <form method="GET" action="{{ url_for('payroll.index') }}" style="display:contents;">
+    <input type="hidden" name="view" value="{{ view_mode }}"/>
+
+    <!-- Search Input -->
+    <div class="filter-group" style="flex:1;min-width:200px;">
+      <span class="filter-label" style="font-size:0.72rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;display:block;">Search</span>
+      <div style="position:relative;display:flex;align-items:center;">
+        <i data-lucide="search" style="position:absolute;left:10px;width:15px;height:15px;color:#94A3B8;pointer-events:none;"></i>
+        <input type="text" name="q" value="{{ search_q }}" placeholder="Search employee name, ID or email..." class="form-control"
+               style="padding-left:32px;height:38px;font-size:0.84rem;border-radius:8px;"/>
+      </div>
+    </div>
+
+    <!-- Payroll Month Filter -->
+    <div class="filter-group" style="min-width:150px;">
+      <span class="filter-label" style="font-size:0.72rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;display:block;">Payroll Month</span>
+      <select name="month" class="form-control" style="height:38px;font-size:0.84rem;border-radius:8px;font-weight:600;">
+        <option value="">All Months</option>
+        {% for m in distinct_months %}
+          <option value="{{ m }}" {% if m == selected_month or (not selected_month and m == active_month_label) %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Department Filter -->
+    <div class="filter-group" style="min-width:150px;">
+      <span class="filter-label" style="font-size:0.72rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;display:block;">Department</span>
+      <select name="dept" class="form-control" style="height:38px;font-size:0.84rem;border-radius:8px;">
+        <option value="">All Departments</option>
+        {% for d in all_departments %}
+          <option value="{{ d.id }}" {% if selected_dept|string == d.id|string %}selected{% endif %}>{{ d.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Employee Filter -->
+    <div class="filter-group" style="min-width:160px;">
+      <span class="filter-label" style="font-size:0.72rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;display:block;">Employee</span>
+      <select name="employee" class="form-control" style="height:38px;font-size:0.84rem;border-radius:8px;">
+        <option value="">All Employees</option>
+        {% for e in filter_employees %}
+          <option value="{{ e.id }}" {% if selected_emp|string == e.id|string or selected_emp == e.employee_id %}selected{% endif %}>{{ e.full_name }} ({{ e.employee_id }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Status Filter -->
+    <div class="filter-group" style="min-width:140px;">
+      <span class="filter-label" style="font-size:0.72rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.35rem;display:block;">Payroll Status</span>
+      <select name="status" class="form-control" style="height:38px;font-size:0.84rem;border-radius:8px;">
+        <option value="">All Statuses</option>
+        <option value="Paid" {% if selected_status|lower == 'paid' %}selected{% endif %}>Paid</option>
+        <option value="Generated" {% if selected_status|lower == 'generated' %}selected{% endif %}>Generated</option>
+        <option value="In Progress" {% if selected_status|lower == 'in progress' %}selected{% endif %}>In Progress</option>
+        <option value="Ready to Generate" {% if selected_status|lower == 'ready to generate' %}selected{% endif %}>Ready to Generate</option>
+        <option value="Structure Pending" {% if selected_status|lower == 'structure pending' %}selected{% endif %}>Structure Pending</option>
+      </select>
+    </div>
+
+    <!-- Buttons -->
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      <button type="submit" class="btn btn-primary" style="height:38px;border-radius:8px;padding:0 1rem;">
+        <i data-lucide="filter" style="width:14px;height:14px;"></i>
+        <span>Apply Filters</span>
+      </button>
+      <a href="{{ url_for('payroll.index', view=view_mode) }}" class="btn btn-outline-navy" style="height:38px;border-radius:8px;padding:0 0.9rem;" title="Reset filters">
+        <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>
+        <span>Clear Filters</span>
+      </a>
+    </div>
+  </form>
+</div>
+
+{% if view_mode == 'list' %}
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     2. LIST VIEW: Professional Employee Payroll Breakdown Table
+     ══════════════════════════════════════════════════════════════════════════════ -->
+<div class="card" style="border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);border:1px solid #E2E8F0;background:#FFFFFF;margin-bottom:2rem;">
+  <div class="card-header" style="padding:1rem 1.25rem;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+    <div>
+      <h3 style="font-size:0.98rem;font-weight:700;color:#0F172A;margin:0;display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="table" style="width:18px;height:18px;color:#2563EB;"></i>
+        <span>Employee Payroll Breakdown ({{ list_items|length }} Records)</span>
+      </h3>
+      <div style="font-size:0.76rem;color:#64748B;margin-top:0.15rem;">
+        Cycle: <strong style="color:#0F172A;">{{ selected_month or active_month_label }}</strong> &bull; Department and compensation summary
+      </div>
+    </div>
+    
+    <div style="display:flex;align-items:center;gap:0.5rem;">
+      {% if current_user.is_admin %}
+      <a href="{{ url_for('payroll.generate_payslip') }}" class="btn btn-sm btn-primary">
+        <i data-lucide="plus" style="width:14px;height:14px;"></i>
+        <span>New Payslip</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="table-wrapper" style="overflow-x:auto;">
+    <table class="data-table" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#F8FAFC;border-bottom:1px solid #E2E8F0;">
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Payroll Month</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Employee ID</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Employee Name</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;">Department</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;text-align:right;">Gross Salary</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;text-align:right;">Total Deductions</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;text-align:right;">Net Salary</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;text-align:center;">Payroll Status</th>
+          <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:0.04em;text-align:center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in list_items %}
+        <tr style="border-bottom:1px solid #F1F5F9;transition:background 0.15s ease;">
+          <td style="padding:0.85rem 1rem;font-weight:600;color:#334155;white-space:nowrap;">
+            <div style="display:flex;align-items:center;gap:0.4rem;">
+              <i data-lucide="calendar" style="width:13px;height:13px;color:#94A3B8;"></i>
+              <span>{{ item.payroll_month }}</span>
+            </div>
+          </td>
+          <td style="padding:0.85rem 1rem;white-space:nowrap;">
+            <code style="background:#F1F5F9;padding:0.2rem 0.5rem;border-radius:6px;font-weight:700;color:#0B192C;border:1px solid #E2E8F0;font-size:0.8rem;">
+              {{ item.employee_id }}
+            </code>
+          </td>
+          <td style="padding:0.85rem 1rem;">
+            <div style="font-weight:700;color:#0F172A;font-size:0.88rem;">{{ item.employee_name }}</div>
+            <div style="font-size:0.74rem;color:#64748B;">{{ item.employee.designation or 'Staff' }}</div>
+          </td>
+          <td style="padding:0.85rem 1rem;color:#475569;font-size:0.84rem;">
+            <span class="badge badge-secondary" style="font-weight:600;">{{ item.department }}</span>
+          </td>
+          <td style="padding:0.85rem 1rem;text-align:right;font-weight:600;color:#0F172A;font-variant-numeric:tabular-nums;">
+            &#8377; {{ "{:,.2f}".format(item.gross_salary) }}
+          </td>
+          <td style="padding:0.85rem 1rem;text-align:right;font-weight:600;color:#DC2626;font-variant-numeric:tabular-nums;">
+            &#8377; {{ "{:,.2f}".format(item.total_deductions) }}
+          </td>
+          <td style="padding:0.85rem 1rem;text-align:right;font-weight:800;color:#2563EB;font-variant-numeric:tabular-nums;font-size:0.92rem;">
+            &#8377; {{ "{:,.2f}".format(item.net_salary) }}
+          </td>
+          <td style="padding:0.85rem 1rem;text-align:center;white-space:nowrap;">
+            {% if item.status == 'Paid' %}
+              <span class="badge" style="background:#DCFCE7;color:#16A34A;border:1px solid #BBF7D0;font-weight:700;">
+                <i data-lucide="check" style="width:11px;height:11px;"></i>
+                <span>Paid</span>
+              </span>
+            {% elif item.status == 'Generated' %}
+              <span class="badge" style="background:#DBEAFE;color:#1D4ED8;border:1px solid #BFDBFE;font-weight:700;">
+                <i data-lucide="check-circle" style="width:11px;height:11px;"></i>
+                <span>Generated</span>
+              </span>
+            {% elif item.status == 'In Progress' %}
+              <span class="badge" style="background:#FEF3C7;color:#B45309;border:1px solid #FDE68A;font-weight:700;">
+                <i data-lucide="clock" style="width:11px;height:11px;"></i>
+                <span>In Progress</span>
+              </span>
+            {% elif item.status == 'Ready to Generate' %}
+              <span class="badge" style="background:#F1F5F9;color:#475569;border:1px solid #E2E8F0;font-weight:600;">
+                <i data-lucide="file-plus" style="width:11px;height:11px;"></i>
+                <span>Ready to Generate</span>
+              </span>
+            {% else %}
+              <span class="badge" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;font-weight:600;">
+                <i data-lucide="alert-circle" style="width:11px;height:11px;"></i>
+                <span>Structure Pending</span>
+              </span>
+            {% endif %}
+          </td>
+          <td style="padding:0.85rem 1rem;text-align:center;white-space:nowrap;">
+            <div style="display:inline-flex;align-items:center;gap:0.35rem;">
+              {% if item.payslip_id %}
+                <a href="{{ url_for('payroll.view_payslip', payslip_id=item.payslip_id) }}" class="btn btn-sm btn-outline" title="View breakdown">
+                  <i data-lucide="eye" style="width:13px;height:13px;"></i>
+                  <span>View</span>
+                </a>
+                <a href="{{ url_for('payroll.download_payslip_pdf', payslip_id=item.payslip_id) }}" class="btn btn-sm btn-primary" title="Download PDF">
+                  <i data-lucide="download" style="width:13px;height:13px;"></i>
+                  <span>PDF</span>
+                </a>
+              {% else %}
+                {% if current_user.is_admin %}
+                  <a href="{{ url_for('payroll.generate_payslip') }}" class="btn btn-sm btn-primary" title="Generate payslip for this cycle">
+                    <i data-lucide="plus" style="width:13px;height:13px;"></i>
+                    <span>Generate</span>
+                  </a>
+                  <a href="{{ url_for('payroll.edit_salary', emp_id=item.employee.id) }}" class="btn btn-sm btn-outline-navy" title="Edit salary structure">
+                    <i data-lucide="edit" style="width:13px;height:13px;"></i>
+                    <span>Structure</span>
+                  </a>
+                {% else %}
+                  <span style="font-size:0.75rem;color:#94A3B8;">Pending</span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="text-align:center;padding:3rem 1.5rem;color:#94A3B8;">
+            <i data-lucide="users" style="width:36px;height:36px;margin-bottom:0.5rem;display:inline-block;color:#CBD5E1;"></i>
+            <div style="font-weight:700;color:#0F172A;font-size:0.95rem;">No payroll records match the selected filters</div>
+            <div style="font-size:0.82rem;color:#64748B;margin-top:0.25rem;">Try adjusting the month, department, status, or search query.</div>
+            <a href="{{ url_for('payroll.index', view='list') }}" class="btn btn-sm btn-outline-navy" style="margin-top:0.75rem;display:inline-flex;">
+              <i data-lucide="rotate-ccw"></i>
+              <span>Reset All Filters</span>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if view_mode == 'dashboard' %}
+<!-- ══════════════════════════════════════════════════════════════════════════════
+     1. DASHBOARD VIEW: Executive View matching reference screenshot
+     ══════════════════════════════════════════════════════════════════════════════ -->
 
 <!-- ── 1. Four KPI Summary Cards matching reference screenshot ─────────── -->
 <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));gap:1.25rem;margin-bottom:1.75rem;">
@@ -465,6 +716,7 @@
   </div>
 
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

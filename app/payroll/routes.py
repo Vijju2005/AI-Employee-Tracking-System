@@ -56,8 +56,17 @@ def index():
     # Auto-seed items if table is freshly created
     seed_default_payroll_items(db.session)
 
-    # Ensure tables exist
+    # Active view mode: 'dashboard' (default) or 'list'
+    view_mode = request.args.get("view", "dashboard").strip().lower()
+    if view_mode not in ["dashboard", "list"]:
+        view_mode = "dashboard"
+
+    # Filter parameters
     selected_month = request.args.get("month", "").strip()
+    selected_emp = request.args.get("employee", "").strip()
+    selected_dept = request.args.get("dept", "").strip()
+    selected_status = request.args.get("status", "").strip()
+    search_q = request.args.get("q", "").strip()
 
     # Available payroll runs
     all_runs = PayrollRun.query.order_by(PayrollRun.year.desc(), PayrollRun.month.desc()).all()
@@ -174,8 +183,112 @@ def index():
     # Recent runs table (top 5)
     recent_runs = all_runs[:6]
 
+    # Distinct payroll months from payslips and payroll runs for filters
+    payslip_months = [m[0] for m in db.session.query(Payslip.payroll_month).distinct().all() if m[0]]
+    run_months = [r.payroll_month for r in all_runs]
+    distinct_months = sorted(list(set(run_months + payslip_months + [active_month_label])), reverse=True)
+
+    # Departments list for filter dropdown
+    from app.models import Department
+    all_departments = Department.query.order_by(Department.name).all()
+
+    # Active employees list for filter dropdown
+    filter_employees = Employee.query.order_by(Employee.full_name).all()
+
+    # Build List View dataset from actual database records (Payslips prioritized, fallback to Salary Structure)
+    list_query = db.session.query(
+        Employee,
+        EmployeeSalary,
+        Payslip
+    ).outerjoin(EmployeeSalary, Employee.id == EmployeeSalary.employee_id)\
+     .outerjoin(Payslip, db.and_(
+         Employee.id == Payslip.employee_id,
+         db.or_(Payslip.payroll_month == active_month_label, Payslip.month_code == active_month_code)
+     ))
+
+    # Apply filters
+    if selected_emp:
+        if selected_emp.isdigit():
+            list_query = list_query.filter(Employee.id == int(selected_emp))
+        else:
+            list_query = list_query.filter(
+                db.or_(
+                    Employee.full_name.ilike(f"%{selected_emp}%"),
+                    Employee.employee_id.ilike(f"%{selected_emp}%")
+                )
+            )
+
+    if selected_dept and selected_dept.isdigit():
+        list_query = list_query.filter(Employee.department_id == int(selected_dept))
+
+    if search_q:
+        list_query = list_query.filter(
+            db.or_(
+                Employee.full_name.ilike(f"%{search_q}%"),
+                Employee.employee_id.ilike(f"%{search_q}%"),
+                Employee.email.ilike(f"%{search_q}%")
+            )
+        )
+
+    employee_rows = list_query.order_by(Employee.full_name).all()
+
+    list_items = []
+    for emp, sal, slip in employee_rows:
+        # Determine gross, deductions, net, and status
+        if slip:
+            gross = slip.gross_earnings
+            deductions = slip.total_deductions
+            net = slip.net_salary
+            status = slip.status or "Generated"
+            payslip_id = slip.id
+            month_label = slip.payroll_month
+        elif sal:
+            gross = sal.gross_salary
+            deductions = sal.total_deductions
+            net = sal.net_salary
+            status = "Ready to Generate"
+            payslip_id = None
+            month_label = active_month_label
+        else:
+            gross = 0.0
+            deductions = 0.0
+            net = 0.0
+            status = "Structure Pending"
+            payslip_id = None
+            month_label = active_month_label
+
+        # Filter by status if selected
+        if selected_status and selected_status.lower() != status.lower():
+            continue
+
+        dept_name = emp.department.name if emp.department else (emp.department_id and f"Dept {emp.department_id}" or "General")
+
+        list_items.append({
+            "employee": emp,
+            "employee_id": emp.employee_id,
+            "employee_name": emp.full_name,
+            "department": dept_name,
+            "payroll_month": month_label,
+            "gross_salary": gross,
+            "total_deductions": deductions,
+            "net_salary": net,
+            "status": status,
+            "payslip_id": payslip_id,
+            "has_salary_structure": sal is not None,
+        })
+
     return render_template(
         "payroll/dashboard.html",
+        view_mode=view_mode,
+        selected_month=selected_month or active_month_label,
+        selected_emp=selected_emp,
+        selected_dept=selected_dept,
+        selected_status=selected_status,
+        search_q=search_q,
+        distinct_months=distinct_months,
+        all_departments=all_departments,
+        filter_employees=filter_employees,
+        list_items=list_items,
         active_month_label=active_month_label,
         active_month_code=active_month_code,
         all_runs=all_runs,
