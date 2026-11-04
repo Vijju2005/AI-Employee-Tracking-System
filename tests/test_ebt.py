@@ -1517,3 +1517,144 @@ class TestPayrollSystem:
         with app.app_context():
             item_after = PayrollItem.query.get(item_id)
             assert item_after.is_active is False
+
+
+class TestReportsModule:
+    """Test the complete 7-report suite in the Reports module."""
+
+    def test_all_seven_reports_rendering_for_admin(self, app, db):
+        from werkzeug.security import generate_password_hash
+        from app.models import User, UserRole, Employee, AccountStatus, Expense, ExpenseCategory, ExpenseStatus
+        with app.app_context():
+            admin_u = User.query.filter_by(username="reports_admin").first()
+            if not admin_u:
+                admin_u = User(
+                    username="reports_admin",
+                    email="rep_admin@test.com",
+                    password_hash=generate_password_hash("RepAdmin123!"),
+                    role=UserRole.ADMIN,
+                    is_active=True
+                )
+                db.session.add(admin_u)
+                db.session.flush()
+
+            emp = Employee.query.filter_by(employee_id="REP001").first()
+            if not emp:
+                emp = Employee(
+                    employee_id="REP001",
+                    full_name="Report Employee One",
+                    email="rep_emp1@test.com",
+                    designation="Senior Analyst",
+                    status=AccountStatus.ACTIVE,
+                    user_id=admin_u.id
+                )
+                db.session.add(emp)
+                db.session.flush()
+
+            # Add sample expense record
+            exp = Expense(
+                expense_number="EXP-2026-0001",
+                employee_id=emp.id,
+                category=ExpenseCategory.TRAVEL,
+                amount=2450.00,
+                expense_date=date.today(),
+                merchant="Uber Corporate",
+                description="Client onsite travel",
+                status=ExpenseStatus.APPROVED
+            )
+            db.session.add(exp)
+            db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "reports_admin", "password": "RepAdmin123!"})
+
+        # Test each of the 7 report views
+        report_types = ["expense", "user", "employee", "payslip", "attendance", "leave", "daily"]
+        for r_type in report_types:
+            resp = client.get(f"/reports/{r_type}")
+            assert resp.status_code == 200
+            assert b"Enterprise Reports" in resp.data or b"Enterprise Audit Reports" in resp.data
+
+        # Verify Expense report content
+        exp_resp = client.get("/reports/expense")
+        assert exp_resp.status_code == 200
+        assert b"EXP-2026-0001" in exp_resp.data
+        assert b"Uber Corporate" in exp_resp.data
+
+        # Verify User report content
+        usr_resp = client.get("/reports/user")
+        assert usr_resp.status_code == 200
+        assert b"reports_admin" in usr_resp.data
+
+        # Verify Employee report content with search
+        emp_resp = client.get("/reports/employee?q=REP001")
+        assert emp_resp.status_code == 200
+        assert b"REP001" in emp_resp.data
+        assert b"Report Employee One" in emp_resp.data
+
+    def test_report_export_pdf_and_excel(self, app, db):
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "reports_admin", "password": "RepAdmin123!"})
+
+        # Export Expense report as PDF
+        pdf_resp = client.get("/reports/export/expense?format=pdf")
+        assert pdf_resp.status_code == 200
+        assert pdf_resp.content_type == "application/pdf"
+        assert len(pdf_resp.data) > 500
+
+        # Export Expense report as Excel
+        xlsx_resp = client.get("/reports/export/expense?format=excel")
+        assert xlsx_resp.status_code == 200
+        assert "spreadsheetml" in xlsx_resp.content_type
+        assert len(xlsx_resp.data) > 500
+
+        # Export Daily report as PDF
+        daily_pdf = client.get("/reports/export/daily?format=pdf")
+        assert daily_pdf.status_code == 200
+        assert daily_pdf.content_type == "application/pdf"
+
+    def test_reports_role_based_access(self, app, db):
+        from werkzeug.security import generate_password_hash
+        from app.models import User, UserRole, Employee, AccountStatus
+        with app.app_context():
+            worker_u = User.query.filter_by(username="reports_worker").first()
+            if not worker_u:
+                worker_u = User(
+                    username="reports_worker",
+                    email="rep_worker@test.com",
+                    password_hash=generate_password_hash("WorkerPass123!"),
+                    role=UserRole.EMPLOYEE,
+                    is_active=True
+                )
+                db.session.add(worker_u)
+                db.session.flush()
+
+                w_emp = Employee(
+                    employee_id="REP002",
+                    full_name="Worker Employee Two",
+                    email="rep_worker@test.com",
+                    status=AccountStatus.ACTIVE,
+                    user_id=worker_u.id
+                )
+                db.session.add(w_emp)
+                db.session.commit()
+
+        client = app.test_client()
+        client.get("/auth/logout")
+        client.post("/auth/login", data={"identifier": "reports_worker", "password": "WorkerPass123!"})
+
+        # Admin-only reports should restrict standard employees
+        usr_resp = client.get("/reports/user", follow_redirects=True)
+        assert b"Access restricted to administrators" in usr_resp.data
+
+        emp_resp = client.get("/reports/employee", follow_redirects=True)
+        assert b"Access restricted to administrators" in emp_resp.data
+
+        # Standard employee can access allowed reports
+        att_resp = client.get("/reports/attendance")
+        assert att_resp.status_code == 200
+
+        exp_resp = client.get("/reports/expense")
+        assert exp_resp.status_code == 200

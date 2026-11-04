@@ -9,7 +9,10 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.models import Employee, Attendance, Break, AttendanceStatus, UserRole, Department
-from app.time_utils import utc_now, local_today, local_now, format_hours_mins
+from app.time_utils import (
+    utc_now, local_today, local_now, format_hours_mins,
+    parse_iso_date,
+)
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendance")
 
@@ -22,8 +25,8 @@ def _utcnow():
 @login_required
 def index():
     today = date.today()
-    from_date = request.args.get("from_date")
-    to_date = request.args.get("to_date")
+    from_date = parse_iso_date(request.args.get("from_date"))
+    to_date = parse_iso_date(request.args.get("to_date"))
     dept_filter = request.args.get("dept")
 
     query = Attendance.query.join(Employee)

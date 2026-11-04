@@ -124,12 +124,12 @@ def create_app(config_class=None):
                 migration_result = "Created holidays table"
 
             # Ensure payroll tables exist
-            if "payroll_items" not in tables or "employee_salaries" not in tables or "payslips" not in tables:
-                from app.models import PayrollItem, EmployeeSalary, PayrollRun, StatutoryCompliance, Payslip
+            if "payroll_items" not in tables or "employee_salaries" not in tables or "payslips" not in tables or "expenses" not in tables:
+                from app.models import PayrollItem, EmployeeSalary, PayrollRun, StatutoryCompliance, Payslip, Expense
                 db.create_all()
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()
-                migration_result = (migration_result or "") + " Initialized payroll tables."
+                migration_result = (migration_result or "") + " Initialized payroll and expense tables."
 
             # Seed default payroll components
             try:

@@ -1,162 +1,294 @@
 {% extends "base.html" %}
-{% block title %}Reports &amp; Analytics Export{% endblock %}
+{% block title %}{{ report_configs[active_report].title }} | Enterprise Reports{% endblock %}
 {% block topbar_title %}Enterprise Audit Reports{% endblock %}
 
 {% block content %}
-<div class="page-header">
+<!-- Top Header -->
+<div class="page-header" style="margin-bottom:1.25rem;">
   <div class="page-header-text">
-    <h1>
-      <i data-lucide="file-bar-chart" style="color:var(--blue);width:26px;height:26px;"></i>
-      <span>Enterprise Reports &amp; Exports</span>
+    <h1 style="display:flex;align-items:center;gap:0.6rem;font-size:1.45rem;font-weight:800;color:var(--navy);margin:0;">
+      <i data-lucide="{{ report_configs[active_report].icon }}" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>{{ report_configs[active_report].title }}</span>
     </h1>
-    <p>Generate on-demand corporate audits, attendance sheets, break distributions, and net working hour statements in PDF or Excel.</p>
+    <p style="font-size:0.84rem;color:var(--text-sec);margin:0.25rem 0 0;">
+      {{ report_configs[active_report].description }}
+    </p>
+  </div>
+  
+  <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+    <!-- PDF Export Button -->
+    <a href="{{ url_for('reports.export_report', report_type=active_report, format='pdf', from_date=from_date, to_date=to_date, target_date=target_date, employee_id=selected_emp_id, dept_id=selected_dept_id, status=status_filter, category=category_filter, q=search_q) }}"
+       class="btn btn-outline-navy" title="Download certified PDF report">
+      <i data-lucide="file-text" style="color:#DC2626;width:15px;height:15px;"></i>
+      <span>Export PDF</span>
+    </a>
+    
+    <!-- Excel Export Button -->
+    <a href="{{ url_for('reports.export_report', report_type=active_report, format='excel', from_date=from_date, to_date=to_date, target_date=target_date, employee_id=selected_emp_id, dept_id=selected_dept_id, status=status_filter, category=category_filter, q=search_q) }}"
+       class="btn btn-primary" title="Export raw data to Excel (.xlsx)">
+      <i data-lucide="file-spreadsheet" style="width:15px;height:15px;"></i>
+      <span>Export Excel</span>
+    </a>
   </div>
 </div>
 
-<div class="reports-layout">
+<!-- Report Navigation Tabs (All 7 Reports) -->
+<div style="display:flex;align-items:center;gap:0.4rem;overflow-x:auto;padding-bottom:0.75rem;margin-bottom:1.25rem;border-bottom:1px solid var(--border);">
+  {% for key, cfg in report_configs.items() %}
+    {% if not cfg.admin_only or current_user.is_admin %}
+      <a href="{{ url_for('reports.index', report_type=key) }}"
+         style="display:inline-flex;align-items:center;gap:0.45rem;padding:0.45rem 0.9rem;border-radius:8px;font-size:0.83rem;font-weight:700;white-space:nowrap;text-decoration:none;transition:all var(--transition-fast);
+                {% if active_report == key %}background:var(--navy);color:#FFFFFF;box-shadow:var(--shadow-xs);
+                {% else %}background:var(--white);color:var(--text-sec);border:1px solid var(--border);{% endif %}">
+        <i data-lucide="{{ cfg.icon }}" style="width:14px;height:14px;{% if active_report == key %}color:#60A5FA;{% endif %}"></i>
+        <span>{{ cfg.title }}</span>
+      </a>
+    {% endif %}
+  {% endfor %}
+</div>
 
-  <!-- Left: Export Builder Form -->
-  <div class="card">
-    <div class="card-header">
-      <h3>
-        <i data-lucide="download"></i>
-        <span>Report Generator</span>
-      </h3>
+<!-- Summary Metric Badges Strip -->
+{% if summary_stats %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;margin-bottom:1.25rem;">
+  {% for label, val in summary_stats.items() %}
+  <div class="card" style="padding:0.9rem 1.15rem;border-radius:10px;background:#FFFFFF;border:1px solid var(--border);box-shadow:var(--shadow-xs);display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);">{{ label }}</div>
+      <div style="font-size:1.25rem;font-weight:800;color:var(--navy);margin-top:0.15rem;">{{ val }}</div>
     </div>
-    <div class="card-body">
-      <form method="POST" action="{{ url_for('reports.generate') }}" data-loading>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-        <div class="form-group">
-          <label class="form-label">
-            <i data-lucide="layers"></i>
-            <span>Report Category</span> <span class="req">*</span>
-          </label>
-          <select name="report_type" class="form-control" required>
-            <option value="attendance">Daily Attendance Audit</option>
-            <option value="breaks">Break Duration &amp; Category Report</option>
-            <option value="leave">Time-off &amp; Leave Log</option>
-            <option value="working_hours">Net Working Hours Summary</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">
-            <i data-lucide="file-text"></i>
-            <span>Export Format</span> <span class="req">*</span>
-          </label>
-          <div style="display:flex;gap:1.25rem;padding:0.4rem 0;">
-            <label style="display:flex;align-items:center;gap:0.45rem;cursor:pointer;font-size:0.86rem;font-weight:600;color:var(--navy);">
-              <input type="radio" name="format" value="pdf" checked style="accent-color:var(--blue);width:16px;height:16px;"/>
-              <i data-lucide="file-text" style="width:16px;height:16px;color:#DC2626;"></i>
-              <span>PDF Document</span>
-            </label>
-            <label style="display:flex;align-items:center;gap:0.45rem;cursor:pointer;font-size:0.86rem;font-weight:600;color:var(--navy);">
-              <input type="radio" name="format" value="excel" style="accent-color:var(--blue);width:16px;height:16px;"/>
-              <i data-lucide="file-spreadsheet" style="width:16px;height:16px;color:#10B981;"></i>
-              <span>Excel Spreadsheet</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-row" style="margin-bottom:1.15rem;">
-          <div class="form-group" style="margin:0;">
-            <label class="form-label">
-              <i data-lucide="calendar"></i>
-              <span>From Date</span>
-            </label>
-            <input type="date" name="from_date" class="form-control"/>
-          </div>
-          <div class="form-group" style="margin:0;">
-            <label class="form-label">
-              <i data-lucide="calendar"></i>
-              <span>To Date</span>
-            </label>
-            <input type="date" name="to_date" class="form-control"/>
-          </div>
-        </div>
-
-        {% if current_user.is_admin %}
-        <div class="form-group">
-          <label class="form-label">
-            <i data-lucide="user"></i>
-            <span>Target Employee (Optional)</span>
-          </label>
-          <select name="employee_id" class="form-control">
-            <option value="">All Employees (Enterprise Wide)</option>
-            {% for emp in employees %}
-            <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.employee_id }})</option>
-            {% endfor %}
-          </select>
-        </div>
-        {% endif %}
-
-        <button type="submit" class="btn btn-primary btn-lg w-100" style="margin-top:0.75rem;">
-          <i data-lucide="download-cloud"></i>
-          <span>Compile &amp; Download Report</span>
-        </button>
-      </form>
+    <div style="width:36px;height:36px;border-radius:8px;background:var(--blue-light);color:var(--blue);display:flex;align-items:center;justify-content:center;">
+      <i data-lucide="bar-chart-2" style="width:18px;height:18px;"></i>
     </div>
   </div>
+  {% endfor %}
+</div>
+{% endif %}
 
-  <!-- Right: Report Directory Info -->
-  <div class="card">
-    <div class="card-header">
-      <h3>
-        <i data-lucide="book-open"></i>
-        <span>Available Audit Modules</span>
-      </h3>
-      <span class="badge badge-info">Real-time DB Sync</span>
-    </div>
-    <div class="card-body">
-      <div class="quick-actions">
-        <div class="quick-action-btn" style="cursor:default;">
-          <div class="qa-icon" style="background:#EFF6FF;color:#2563EB;">
-            <i data-lucide="calendar-check"></i>
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:0.88rem;color:var(--navy);">Attendance Audit</div>
-            <div style="font-size:0.76rem;color:var(--text-sec);">Daily check-in / check-out timestamps and status markers.</div>
-          </div>
-        </div>
+<!-- Unified Comprehensive Filter Bar -->
+<div class="filters-bar" style="margin-bottom:1.5rem;display:flex;align-items:flex-end;flex-wrap:wrap;gap:0.85rem;background:#FFFFFF;padding:1rem 1.25rem;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-xs);">
+  <form method="GET" action="{{ url_for('reports.index', report_type=active_report) }}" style="display:contents;">
 
-        <div class="quick-action-btn" style="cursor:default;">
-          <div class="qa-icon" style="background:#FFFBEB;color:#D97706;">
-            <i data-lucide="coffee"></i>
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:0.88rem;color:var(--navy);">Break Distribution Log</div>
-            <div style="font-size:0.76rem;color:var(--text-sec);">Categorized break minutes (Lunch, Tea, Coffee, Personal).</div>
-          </div>
-        </div>
-
-        <div class="quick-action-btn" style="cursor:default;">
-          <div class="qa-icon" style="background:#ECFDF5;color:#059669;">
-            <i data-lucide="calendar-days"></i>
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:0.88rem;color:var(--navy);">Time-off &amp; Leave Ledger</div>
-            <div style="font-size:0.76rem;color:var(--text-sec);">Approved leaves, pending reviews, and historical absences.</div>
-          </div>
-        </div>
-
-        <div class="quick-action-btn" style="cursor:default;">
-          <div class="qa-icon" style="background:#EEF2FF;color:#4F46E5;">
-            <i data-lucide="clock"></i>
-          </div>
-          <div>
-            <div style="font-weight:700;font-size:0.88rem;color:var(--navy);">Net Working Hours Summary</div>
-            <div style="font-size:0.76rem;color:var(--text-sec);">Net productive shift capacity after subtracting break intervals.</div>
-          </div>
-        </div>
-      </div>
-
-      <div style="font-size:0.78rem;color:var(--text-sec);margin-top:1.25rem;padding:0.75rem 1rem;background:var(--bg-subtle);border-radius:var(--radius-sm);border:1px solid var(--border);display:flex;align-items:center;gap:0.6rem;">
-        <i data-lucide="info" style="color:var(--blue);width:18px;height:18px;flex-shrink:0;"></i>
-        <span>Exports run directly against real-time relational records with zero caching lag.</span>
+    <!-- General Search Input -->
+    <div class="filter-group" style="flex:1;min-width:180px;">
+      <span class="filter-label">Search Query</span>
+      <div style="position:relative;display:flex;align-items:center;">
+        <i data-lucide="search" style="position:absolute;left:10px;width:14px;height:14px;color:var(--text-muted);pointer-events:none;"></i>
+        <input type="text" name="q" value="{{ search_q }}" placeholder="Search ID, name, keywords..." class="form-control" style="padding-left:30px;height:38px;font-size:0.84rem;"/>
       </div>
     </div>
+
+    <!-- Date Filters (Specific to Daily Report vs. Range Reports) -->
+    {% if active_report == 'daily' %}
+      <div class="filter-group" style="min-width:150px;">
+        <span class="filter-label">Report Date</span>
+        <input type="date" name="target_date" value="{{ target_date }}" class="form-control" style="height:38px;font-size:0.84rem;font-weight:600;"/>
+      </div>
+    {% elif active_report != 'user' and active_report != 'employee' %}
+      <div class="filter-group" style="min-width:140px;">
+        <span class="filter-label">From Date</span>
+        <input type="date" name="from_date" value="{{ from_date }}" class="form-control" style="height:38px;font-size:0.84rem;"/>
+      </div>
+      <div class="filter-group" style="min-width:140px;">
+        <span class="filter-label">To Date</span>
+        <input type="date" name="to_date" value="{{ to_date }}" class="form-control" style="height:38px;font-size:0.84rem;"/>
+      </div>
+    {% endif %}
+
+    <!-- Department Filter -->
+    {% if current_user.is_admin and active_report != 'user' %}
+      <div class="filter-group" style="min-width:140px;">
+        <span class="filter-label">Department</span>
+        <select name="dept_id" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Departments</option>
+          {% for d in departments %}
+            <option value="{{ d.id }}" {% if selected_dept_id == d.id|string %}selected{% endif %}>{{ d.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
+
+    <!-- Employee Filter -->
+    {% if current_user.is_admin and active_report not in ['user', 'employee', 'daily'] %}
+      <div class="filter-group" style="min-width:150px;">
+        <span class="filter-label">Employee</span>
+        <select name="employee_id" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Staff</option>
+          {% for emp in employees %}
+            <option value="{{ emp.id }}" {% if selected_emp_id == emp.id|string %}selected{% endif %}>{{ emp.full_name }} ({{ emp.employee_id }})</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
+
+    <!-- Status Filter (Dynamic based on Report Type) -->
+    {% if active_report == 'expense' %}
+      <div class="filter-group" style="min-width:130px;">
+        <span class="filter-label">Approval Status</span>
+        <select name="status" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Statuses</option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+          <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+          <option value="reimbursed" {% if status_filter == 'reimbursed' %}selected{% endif %}>Reimbursed</option>
+        </select>
+      </div>
+      <div class="filter-group" style="min-width:130px;">
+        <span class="filter-label">Category</span>
+        <select name="category" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Categories</option>
+          <option value="travel" {% if category_filter == 'travel' %}selected{% endif %}>Travel</option>
+          <option value="meals" {% if category_filter == 'meals' %}selected{% endif %}>Meals</option>
+          <option value="equipment" {% if category_filter == 'equipment' %}selected{% endif %}>Equipment</option>
+          <option value="office_supplies" {% if category_filter == 'office_supplies' %}selected{% endif %}>Office Supplies</option>
+          <option value="internet_phone" {% if category_filter == 'internet_phone' %}selected{% endif %}>Internet &amp; Phone</option>
+          <option value="training" {% if category_filter == 'training' %}selected{% endif %}>Training</option>
+        </select>
+      </div>
+    {% elif active_report == 'user' or active_report == 'employee' %}
+      <div class="filter-group" style="min-width:130px;">
+        <span class="filter-label">Account Status</span>
+        <select name="status" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Statuses</option>
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+          <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+      </div>
+    {% elif active_report == 'leave' %}
+      <div class="filter-group" style="min-width:130px;">
+        <span class="filter-label">Leave Status</span>
+        <select name="status" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Statuses</option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+          <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+        </select>
+      </div>
+      <div class="filter-group" style="min-width:130px;">
+        <span class="filter-label">Leave Type</span>
+        <select name="category" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Types</option>
+          <option value="sick" {% if category_filter == 'sick' %}selected{% endif %}>Sick</option>
+          <option value="casual" {% if category_filter == 'casual' %}selected{% endif %}>Casual</option>
+          <option value="earned" {% if category_filter == 'earned' %}selected{% endif %}>Earned</option>
+        </select>
+      </div>
+    {% elif active_report == 'payslip' %}
+      <div class="filter-group" style="min-width:130px;">
+        <span class="filter-label">Disbursement Status</span>
+        <select name="status" class="form-control" style="height:38px;font-size:0.84rem;">
+          <option value="">All Statuses</option>
+          <option value="Paid" {% if status_filter == 'Paid' %}selected{% endif %}>Paid</option>
+          <option value="Generated" {% if status_filter == 'Generated' %}selected{% endif %}>Generated</option>
+          <option value="In Progress" {% if status_filter == 'In Progress' %}selected{% endif %}>In Progress</option>
+        </select>
+      </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div style="display:flex;align-items:center;gap:0.4rem;">
+      <button type="submit" class="btn btn-primary" style="height:38px;border-radius:8px;">
+        <i data-lucide="filter"></i>
+        <span>Filter</span>
+      </button>
+      <a href="{{ url_for('reports.index', report_type=active_report) }}" class="btn btn-outline-navy" style="height:38px;border-radius:8px;" title="Reset filters">
+        <i data-lucide="rotate-ccw"></i>
+        <span>Clear</span>
+      </a>
+    </div>
+
+  </form>
+</div>
+
+<!-- Main Report Data Table Card -->
+<div class="card" style="border-radius:12px;overflow:hidden;box-shadow:var(--shadow-xs);border:1px solid var(--border);background:#FFFFFF;margin-bottom:1.5rem;">
+  <div class="card-header" style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;">
+    <h3 style="font-size:0.95rem;font-weight:700;color:var(--navy);margin:0;display:flex;align-items:center;gap:0.5rem;">
+      <i data-lucide="table" style="width:17px;height:17px;color:var(--blue);"></i>
+      <span>{{ report_configs[active_report].title }} Records ({{ total_count }})</span>
+    </h3>
+    <span style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">
+      Showing page {{ page }} of {{ total_pages }}
+    </span>
   </div>
 
+  <div class="table-wrapper" style="overflow-x:auto;">
+    <table class="data-table" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#F8FAFC;border-bottom:1px solid var(--border);">
+          {% for h in headers %}
+            <th style="padding:0.75rem 1rem;font-size:0.74rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;letter-spacing:0.04em;">
+              {{ h }}
+            </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr style="border-bottom:1px solid #F1F5F9;transition:background var(--transition-fast);">
+          {% for val in r.cols %}
+            <td style="padding:0.8rem 1rem;font-size:0.85rem;color:var(--text);white-space:nowrap;">
+              {% if loop.last and r.status %}
+                {% if r.status in ['Active', 'Approved', 'Paid', 'Available / Working', 'Present'] %}
+                  <span class="badge badge-success">{{ val }}</span>
+                {% elif r.status in ['Pending', 'In Progress', 'Ready to Generate'] %}
+                  <span class="badge badge-warning">{{ val }}</span>
+                {% elif r.status in ['Rejected', 'Inactive', 'Off Duty', 'Absent'] %}
+                  <span class="badge badge-danger">{{ val }}</span>
+                {% else %}
+                  <span class="badge badge-secondary">{{ val }}</span>
+                {% endif %}
+              {% elif loop.first %}
+                <code style="background:#F1F5F9;padding:0.2rem 0.5rem;border-radius:6px;font-weight:700;color:var(--navy);border:1px solid var(--border);font-size:0.8rem;">
+                  {{ val }}
+                </code>
+              {% else %}
+                {{ val }}
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{{ headers|length if headers else 7 }}" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
+            <i data-lucide="file-question" style="width:40px;height:40px;margin-bottom:0.5rem;display:inline-block;color:#CBD5E1;"></i>
+            <div style="font-weight:700;color:var(--navy);font-size:0.95rem;">No records found for {{ report_configs[active_report].title }}</div>
+            <div style="font-size:0.82rem;color:var(--text-sec);margin-top:0.25rem;">Try adjusting the date range, status, or search keywords.</div>
+            <a href="{{ url_for('reports.index', report_type=active_report) }}" class="btn btn-sm btn-outline-navy" style="margin-top:0.75rem;display:inline-flex;">
+              <i data-lucide="rotate-ccw"></i>
+              <span>Clear Filter</span>
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination Controls -->
+  {% if total_pages > 1 %}
+  <div style="padding:0.85rem 1.25rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#FFFFFF;">
+    <div style="font-size:0.8rem;color:var(--text-sec);">
+      Page <strong style="color:var(--navy);">{{ page }}</strong> of <strong style="color:var(--navy);">{{ total_pages }}</strong>
+    </div>
+    
+    <div style="display:flex;align-items:center;gap:0.4rem;">
+      {% if has_prev %}
+        <a href="{{ url_for('reports.index', report_type=active_report, page=page-1, from_date=from_date, to_date=to_date, target_date=target_date, employee_id=selected_emp_id, dept_id=selected_dept_id, status=status_filter, category=category_filter, q=search_q) }}"
+           class="btn btn-sm btn-outline-navy">
+          <i data-lucide="chevron-left"></i>
+          <span>Previous</span>
+        </a>
+      {% endif %}
+
+      {% if has_next %}
+        <a href="{{ url_for('reports.index', report_type=active_report, page=page+1, from_date=from_date, to_date=to_date, target_date=target_date, employee_id=selected_emp_id, dept_id=selected_dept_id, status=status_filter, category=category_filter, q=search_q) }}"
+           class="btn btn-sm btn-outline-navy">
+          <span>Next</span>
+          <i data-lucide="chevron-right"></i>
+        </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

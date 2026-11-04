@@ -4,7 +4,7 @@ Handles consistent UTC storage with Asia/Kolkata (IST) display,
 and active duration calculations.
 """
 
-from datetime import datetime, timezone, date, timedelta
+from datetime import datetime, timezone, date, timedelta, time
 import zoneinfo
 from flask import current_app
 
@@ -18,6 +18,32 @@ def get_app_timezone():
         return zoneinfo.ZoneInfo(tz_name)
     except Exception:
         return IST
+
+
+def parse_iso_date(value: str | None) -> date | None:
+    """Parse an ISO date string into a date object, ignoring invalid values."""
+    if value in (None, ""):
+        return None
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def parse_iso_datetime_start(value: str | None) -> datetime | None:
+    """Convert ISO date input to the start of that day as a naive datetime."""
+    parsed = parse_iso_date(value)
+    if parsed is None:
+        return None
+    return datetime.combine(parsed, time.min)
+
+
+def parse_iso_datetime_end(value: str | None) -> datetime | None:
+    """Convert ISO date input to the end of that day as a naive datetime."""
+    parsed = parse_iso_date(value)
+    if parsed is None:
+        return None
+    return datetime.combine(parsed, time.max)
 
 
 def utc_now() -> datetime:

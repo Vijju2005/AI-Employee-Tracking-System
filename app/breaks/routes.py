@@ -8,7 +8,10 @@ from flask_login import login_required, current_user
 
 from app.extensions import db
 from app.models import Attendance, Break, BreakCategory, Employee, UserRole
-from app.time_utils import utc_now, local_today, format_mins
+from app.time_utils import (
+    utc_now, local_today, format_mins,
+    parse_iso_datetime_start, parse_iso_datetime_end,
+)
 
 breaks_bp = Blueprint("breaks", __name__, url_prefix="/breaks")
 
@@ -20,8 +23,8 @@ def _utcnow():
 @breaks_bp.route("/")
 @login_required
 def index():
-    from_date = request.args.get("from_date")
-    to_date = request.args.get("to_date")
+    from_date = parse_iso_datetime_start(request.args.get("from_date"))
+    to_date = parse_iso_datetime_end(request.args.get("to_date"))
     category_filter = request.args.get("category")
 
     query = Break.query
@@ -35,7 +38,7 @@ def index():
     if from_date:
         query = query.filter(Break.start_time >= from_date)
     if to_date:
-        query = query.filter(Break.start_time <= (to_date + " 23:59:59"))
+        query = query.filter(Break.start_time <= to_date)
     if category_filter:
         query = query.filter(Break.category == category_filter)
 

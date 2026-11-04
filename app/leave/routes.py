@@ -9,6 +9,7 @@ from flask_login import login_required, current_user
 from app.extensions import db
 from app.models import LeaveRequest, LeaveType, LeaveDayType, LeaveStatus, Employee, UserRole
 from app.email import send_leave_status_email
+from app.time_utils import parse_iso_date
 
 leave_bp = Blueprint("leave", __name__, url_prefix="/leave")
 
@@ -21,8 +22,8 @@ def _utcnow():
 @login_required
 def index():
     status_filter = request.args.get("status")
-    from_date = request.args.get("from_date")
-    to_date = request.args.get("to_date")
+    from_date = parse_iso_date(request.args.get("from_date"))
+    to_date = parse_iso_date(request.args.get("to_date"))
 
     query = LeaveRequest.query
 

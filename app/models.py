@@ -702,3 +702,54 @@ class Payslip(db.Model):
         return f"<Payslip {self.payslip_number} emp={self.employee_id} {self.payroll_month}>"
 
 
+class ExpenseStatus(str, PyEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    REIMBURSED = "reimbursed"
+
+
+class ExpenseCategory(str, PyEnum):
+    TRAVEL = "travel"
+    MEALS = "meals"
+    EQUIPMENT = "equipment"
+    OFFICE_SUPPLIES = "office_supplies"
+    INTERNET_PHONE = "internet_phone"
+    TRAINING = "training"
+    CLIENT_ENTERTAINMENT = "client_entertainment"
+    OTHER = "other"
+
+
+class Expense(db.Model):
+    """
+    Employee Expense and Reimbursement records.
+    Tracks expenses, category, amounts, receipts, approval status, and dates.
+    """
+    __tablename__ = "expenses"
+
+    id = Column(Integer, primary_key=True)
+    expense_number = Column(String(50), nullable=False, unique=True, index=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+
+    category = Column(Enum(ExpenseCategory), default=ExpenseCategory.TRAVEL, nullable=False)
+    amount = Column(Float, default=0.0, nullable=False)
+    expense_date = Column(db.Date, nullable=False)
+    merchant = Column(String(150), nullable=True)
+    description = Column(String(500), nullable=True)
+    status = Column(Enum(ExpenseStatus), default=ExpenseStatus.PENDING, nullable=False)
+
+    approved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    reimbursed_at = Column(DateTime, nullable=True)
+
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    employee = relationship("Employee", backref=db.backref("expenses", lazy="dynamic"))
+    approver = relationship("User", foreign_keys=[approved_by_id])
+
+    def __repr__(self):
+        return f"<Expense {self.expense_number} emp={self.employee_id} amount={self.amount}>"
+
+
+
