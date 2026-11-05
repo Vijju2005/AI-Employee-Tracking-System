@@ -69,7 +69,7 @@
     <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.82rem;color:var(--text-sec);cursor:pointer;">
       <input type="checkbox" name="remember" style="accent-color:var(--blue);width:15px;height:15px;border-radius:4px;"/> Keep me signed in
     </label>
-    <a href="#" style="font-size:0.82rem;color:var(--blue);font-weight:600;">Forgot password?</a>
+    <a href="{{ url_for('auth.forgot_password') }}" style="font-size:0.82rem;color:var(--blue);font-weight:600;">Forgot password?</a>
   </div>
 
   <button type="submit" class="btn btn-primary w-100 btn-lg">
@@ -78,7 +78,14 @@
   </button>
 </form>
 
-<div style="text-align:center;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+<div style="text-align:center;margin-top:1.25rem;">
+  <span style="font-size:0.82rem;color:var(--text-sec);">
+    Don't have an account?
+    <a href="{{ url_for('auth.register') }}" style="color:var(--blue);font-weight:700;margin-left:0.25rem;">Create Account</a>
+  </span>
+</div>
+
+<div style="text-align:center;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);">
   <span style="font-size:0.78rem;color:var(--text-muted);">
     Protected by Enterprise Multi-factor &amp; Session Guard
   </span>

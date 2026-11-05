@@ -1,0 +1,63 @@
+{% extends "base_auth.html" %}
+{% block title %}Verify Login Code{% endblock %}
+
+{% block auth_content %}
+<div style="text-align:center;margin-bottom:1.5rem;">
+  <div style="width:48px;height:48px;border-radius:12px;background:var(--blue-light);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;margin-bottom:0.75rem;">
+    <i data-lucide="shield-alert" style="width:24px;height:24px;"></i>
+  </div>
+  <h2 style="font-size:1.3rem;font-weight:800;color:var(--navy);margin:0;letter-spacing:-0.02em;">Two-Step Verification</h2>
+  <p style="font-size:0.84rem;color:var(--text-sec);margin:0.35rem 0 0;">
+    Enter the 6-digit verification code sent to <strong style="color:var(--navy);">{{ user.email }}</strong>
+  </p>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category if category != 'message' else 'info' }}" style="margin-bottom:1.25rem;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+{% if error %}
+<div class="alert alert-danger" style="margin-bottom:1.25rem;">
+  <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('auth.verify_otp') }}" data-loading>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+  <div class="form-group">
+    <label class="form-label" for="otp" style="text-align:center;display:block;">
+      <span>6-Digit Verification Code</span>
+    </label>
+    <input type="text" id="otp" name="otp" class="form-control"
+           placeholder="000000" maxlength="6" pattern="[0-9]{6}" required
+           style="text-align:center;font-size:1.5rem;letter-spacing:0.4em;font-weight:700;font-family:monospace;height:52px;"
+           autofocus autocomplete="one-time-code"/>
+    <p style="font-size:0.75rem;color:var(--text-muted);text-align:center;margin-top:0.35rem;">
+      Passcode expires in 10 minutes
+    </p>
+  </div>
+
+  <button type="submit" class="btn btn-primary w-100 btn-lg">
+    <span>Verify &amp; Continue</span>
+    <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
+  </button>
+</form>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);font-size:0.82rem;">
+  <a href="{{ url_for('auth.resend_otp') }}" style="color:var(--blue);font-weight:600;display:inline-flex;align-items:center;gap:0.3rem;">
+    <i data-lucide="rotate-cw" style="width:14px;height:14px;"></i>
+    <span>Resend Code</span>
+  </a>
+  <a href="{{ url_for('auth.login') }}" style="color:var(--text-sec);">
+    Back to Sign In
+  </a>
+</div>
+{% endblock %}

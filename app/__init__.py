@@ -47,6 +47,8 @@ def create_app(config_class=None):
     from app.ml.routes import ml_bp
     from app.holidays.routes import holidays_bp
     from app.payroll.routes import payroll_bp
+    from app.superadmin.routes import superadmin_bp
+    from app.roles.routes import roles_bp
 
     flask_app.register_blueprint(auth_bp)
     flask_app.register_blueprint(dashboard_bp)
@@ -58,6 +60,8 @@ def create_app(config_class=None):
     flask_app.register_blueprint(ml_bp)
     flask_app.register_blueprint(holidays_bp)
     flask_app.register_blueprint(payroll_bp)
+    flask_app.register_blueprint(superadmin_bp)
+    flask_app.register_blueprint(roles_bp)
 
     # Lightweight idempotent database table check on first boot
     if not flask_app.config.get("TESTING", False):
@@ -123,13 +127,19 @@ def create_app(config_class=None):
                 tables = inspector.get_table_names()
                 migration_result = "Created holidays table"
 
-            # Ensure payroll tables exist
-            if "payroll_items" not in tables or "employee_salaries" not in tables or "payslips" not in tables or "expenses" not in tables:
-                from app.models import PayrollItem, EmployeeSalary, PayrollRun, StatutoryCompliance, Payslip, Expense
+            # Ensure payroll, superadmin, and RBAC tables exist
+            if any(t not in tables for t in ["payroll_items", "expenses", "companies", "packages", "subscriptions", "roles", "permissions"]):
                 db.create_all()
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()
-                migration_result = (migration_result or "") + " Initialized payroll and expense tables."
+                migration_result = (migration_result or "") + " Initialized enterprise models."
+
+            # Seed default RBAC permissions, roles, and SaaS packages
+            try:
+                from app.roles.seeder import seed_rbac_and_packages
+                seed_rbac_and_packages(db.session)
+            except Exception as rbac_err:
+                flask_app.logger.warning("RBAC seeder warning: %s", rbac_err)
 
             # Seed default payroll components
             try:

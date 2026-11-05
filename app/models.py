@@ -25,6 +25,7 @@ def utcnow():
 # ── Enumerations ──────────────────────────────────────────────────────────────
 
 class UserRole(str, PyEnum):
+    SUPERADMIN = "superadmin"
     ADMIN = "admin"
     EMPLOYEE = "employee"
 
@@ -128,14 +129,50 @@ class User(UserMixin, db.Model):
     created_at = Column(DateTime, default=utcnow, nullable=False)
     last_login = Column(DateTime)
 
+    # Core authentication & security extensions
+    is_verified = Column(Boolean, default=True, nullable=False)
+    two_factor_enabled = Column(Boolean, default=False, nullable=False)
+    otp_code = Column(String(6), nullable=True)
+    otp_expires_at = Column(DateTime, nullable=True)
+
+    # Multi-tenant Company linkage (optional for Super Admin)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+
     employee = relationship("Employee", back_populates="user", uselist=False)
+    company = relationship("Company", back_populates="users", foreign_keys=[company_id])
+    roles = relationship("Role", secondary="user_roles", back_populates="users")
 
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"
 
     @property
+    def is_superadmin(self):
+        return self.role == UserRole.SUPERADMIN
+
+    @property
     def is_admin(self):
-        return self.role == UserRole.ADMIN
+        return self.role in [UserRole.ADMIN, UserRole.SUPERADMIN]
+
+    def has_role(self, role_name: str) -> bool:
+        if self.is_superadmin:
+            return True
+        role_lower = role_name.lower()
+        if self.role.value.lower() == role_lower:
+            return True
+        return any(r.name.lower() == role_lower for r in self.roles)
+
+    def has_permission(self, permission_slug: str) -> bool:
+        if self.is_superadmin:
+            return True
+        perm_lower = permission_slug.lower()
+        for r in self.roles:
+            for p in r.permissions:
+                if p.slug.lower() == perm_lower:
+                    return True
+        # Admins by default have access to enterprise management modules
+        if self.role == UserRole.ADMIN:
+            return True
+        return False
 
     def to_dict(self):
         return {
@@ -750,6 +787,134 @@ class Expense(db.Model):
 
     def __repr__(self):
         return f"<Expense {self.expense_number} emp={self.employee_id} amount={self.amount}>"
+
+
+# ── RBAC & Super Admin Enterprise Models ────────────────────────────────────
+
+# Association table for User <-> Role (Many-to-Many)
+user_roles = db.Table(
+    "user_roles",
+    Column("user_id", Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+)
+
+# Association table for Role <-> Permission (Many-to-Many)
+role_permissions = db.Table(
+    "role_permissions",
+    Column("role_id", Integer, ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+    Column("permission_id", Integer, ForeignKey("permissions.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class Permission(db.Model):
+    """
+    Granular permission items (e.g. view_employees, manage_payroll, review_leaves, view_reports)
+    """
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    slug = Column(String(100), nullable=False, unique=True, index=True)
+    module = Column(String(50), nullable=False, default="general")
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    roles = relationship("Role", secondary=role_permissions, back_populates="permissions")
+
+    def __repr__(self):
+        return f"<Permission {self.slug}>"
+
+
+class Role(db.Model):
+    """
+    Dynamic enterprise roles (e.g. Super Admin, HR Manager, Team Lead, Accountant, Employee)
+    """
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(80), nullable=False, unique=True)
+    description = Column(String(255), nullable=True)
+    is_system = Column(Boolean, default=False, nullable=False)  # System roles cannot be deleted
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    users = relationship("User", secondary=user_roles, back_populates="roles")
+    permissions = relationship("Permission", secondary=role_permissions, back_populates="roles")
+
+    def __repr__(self):
+        return f"<Role {self.name}>"
+
+
+class Package(db.Model):
+    """
+    SaaS Subscription Packages (e.g. Starter, Professional, Enterprise)
+    """
+    __tablename__ = "packages"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    code = Column(String(50), nullable=False, unique=True, index=True)
+    price_per_month = Column(Float, nullable=False, default=0.0)
+    price_per_year = Column(Float, nullable=False, default=0.0)
+    max_employees = Column(Integer, nullable=False, default=25)
+    max_storage_mb = Column(Integer, nullable=False, default=500)
+    features_json = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    subscriptions = relationship("Subscription", back_populates="package", lazy="dynamic")
+
+    def __repr__(self):
+        return f"<Package {self.name} (${self.price_per_month}/mo)>"
+
+
+class Company(db.Model):
+    """
+    Multi-tenant enterprise company entity.
+    """
+    __tablename__ = "companies"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(150), nullable=False, unique=True)
+    code = Column(String(50), nullable=False, unique=True, index=True)
+    email = Column(String(255), nullable=False)
+    phone = Column(String(30), nullable=True)
+    address = Column(String(255), nullable=True)
+    website = Column(String(200), nullable=True)
+    package_id = Column(Integer, ForeignKey("packages.id"), nullable=True)
+    status = Column(String(30), default="active", nullable=False)  # active, suspended, pending
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    package = relationship("Package", foreign_keys=[package_id])
+    users = relationship("User", back_populates="company", foreign_keys="User.company_id", lazy="dynamic")
+    subscriptions = relationship("Subscription", back_populates="company", lazy="dynamic")
+
+    def __repr__(self):
+        return f"<Company {self.name} ({self.code})>"
+
+
+class Subscription(db.Model):
+    """
+    Company SaaS Subscriptions tracking billing cycle, status, and renewals.
+    """
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    package_id = Column(Integer, ForeignKey("packages.id"), nullable=False)
+    billing_cycle = Column(String(20), default="monthly", nullable=False)  # monthly, yearly
+    amount = Column(Float, default=0.0, nullable=False)
+    status = Column(String(30), default="active", nullable=False)  # active, expired, cancelled, trial
+    starts_at = Column(DateTime, default=utcnow, nullable=False)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    company = relationship("Company", back_populates="subscriptions")
+    package = relationship("Package", back_populates="subscriptions")
+
+    def __repr__(self):
+        return f"<Subscription company={self.company_id} pkg={self.package_id} status={self.status}>"
+
 
 
 

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}System Permissions Registry | Enterprise RBAC{% endblock %}
+{% block topbar_title %}Granular Permission Registry{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="key"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">System Permissions Registry</h1>
+        <p class="reports-header-sub">Module-based security capabilities, actions, and audit permission slugs</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('roles.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
+        <i data-lucide="arrow-left"></i>
+        <span>Back to Roles</span>
+      </a>
+      <button class="btn btn-primary" onclick="document.getElementById('addPermModal').style.display='flex'">
+        <i data-lucide="plus"></i>
+        <span>Register Permission</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Permissions grouped by Module -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.25rem;">
+    {% for mod_name, perms in modules.items() %}
+    <div class="reports-table-card" style="padding:1.25rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.75rem;margin-bottom:0.75rem;border-bottom:1px solid var(--border);">
+        <h3 style="margin:0;font-size:0.95rem;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:0.45rem;">
+          <i data-lucide="folder" style="color:var(--blue);width:16px;height:16px;"></i>
+          <span>{{ mod_name }} Module</span>
+        </h3>
+        <span class="report-code-badge">{{ perms|length }}</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.6rem;">
+        {% for p in perms %}
+        <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.85rem;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <strong style="font-size:0.83rem;color:var(--navy);">{{ p.name }}</strong>
+            <code style="font-size:0.72rem;background:#E2E8F0;padding:0.15rem 0.4rem;border-radius:4px;color:var(--text-sec);">{{ p.slug }}</code>
+          </div>
+          {% if p.description %}
+          <p style="margin:0.25rem 0 0;font-size:0.75rem;color:var(--text-sec);">{{ p.description }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- Add Permission Modal -->
+<div id="addPermModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Add Custom Permission</h3>
+      <button onclick="document.getElementById('addPermModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('roles.add_permission') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group">
+        <label class="form-label">Permission Name *</label>
+        <input type="text" name="name" class="form-control" required placeholder="e.g. Audit Employee Break Histories"/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Identifier (Slug) *</label>
+          <input type="text" name="slug" class="form-control" required placeholder="audit_breaks" style="font-family:monospace;"/>
+        </div>
+        <div>
+          <label class="form-label">Module Category *</label>
+          <input type="text" name="module" class="form-control" required placeholder="breaks"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Scope Description</label>
+        <input type="text" name="description" class="form-control" placeholder="What capability does this grant?"/>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('addPermModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Register</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

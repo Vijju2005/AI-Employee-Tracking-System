@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}User Role & Security Assignments | Enterprise RBAC{% endblock %}
+{% block topbar_title %}User Roles &amp; Security Controls{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="user-check"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">User Roles &amp; Security Assignments</h1>
+        <p class="reports-header-sub">Assign enterprise roles, configure multi-role permissions, and manage 2-Step OTP security</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('roles.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
+        <i data-lucide="shield"></i>
+        <span>Manage Roles</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Search Filter -->
+  <div class="reports-filter-panel">
+    <form method="GET" action="{{ url_for('roles.user_roles_list') }}">
+      <div class="reports-filter-grid">
+        <div class="reports-field-group" style="grid-column: span 3;">
+          <label class="reports-field-label">Search Users</label>
+          <div class="reports-input-wrap">
+            <i data-lucide="search"></i>
+            <input type="text" name="q" value="{{ search_q }}" placeholder="Search username or email..." class="form-control" style="height:38px;font-size:0.84rem;"/>
+          </div>
+        </div>
+        <div class="reports-filter-actions">
+          <button type="submit" class="btn btn-primary" style="height:38px;padding:0 1.25rem;">Search</button>
+          <a href="{{ url_for('roles.user_roles_list') }}" class="btn btn-outline-navy" style="height:38px;">Clear</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- User Assignments Table -->
+  <div class="reports-table-card">
+    <div class="reports-table-header">
+      <div class="reports-table-heading">
+        <i data-lucide="users"></i>
+        <span>System Users ({{ pagination.total }})</span>
+      </div>
+    </div>
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Base Role</th>
+            <th>Assigned RBAC Roles</th>
+            <th>Two-Factor (2FA)</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td>
+              <div style="font-weight:700;color:var(--navy);">{{ u.username }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ u.email }}</div>
+            </td>
+            <td>
+              <span class="report-code-badge">{{ u.role.value|upper }}</span>
+            </td>
+            <td>
+              {% for r in u.roles %}
+              <span style="display:inline-block;background:var(--blue-light);color:var(--blue);border:1px solid rgba(37,99,235,0.2);padding:0.15rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:600;margin:0.1rem;">
+                {{ r.name }}
+              </span>
+              {% else %}
+              <span style="font-size:0.78rem;color:var(--text-muted);font-style:italic;">None</span>
+              {% endfor %}
+            </td>
+            <td>
+              {% if u.two_factor_enabled %}
+              <span class="badge badge-success">Enabled</span>
+              {% else %}
+              <span class="badge badge-secondary">Disabled</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.is_active %}
+              <span class="badge badge-success">Active</span>
+              {% else %}
+              <span class="badge badge-danger">Disabled</span>
+              {% endif %}
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-navy" onclick="openAssignModal({{ u.id }}, '{{ u.username }}', {{ u.two_factor_enabled|tojson }}, [{% for r in u.roles %}{{ r.id }},{% endfor %}])">
+                <i data-lucide="sliders"></i>
+                <span>Configure</span>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Configure User Modal -->
+<div id="assignModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Configure User: <span id="assignUsername"></span></h3>
+      <button onclick="document.getElementById('assignModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form id="assignForm" method="POST" action="" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <label class="form-label">Assign Enterprise Roles</label>
+      <div style="display:flex;flex-direction:column;gap:0.5rem;max-height:180px;overflow-y:auto;border:1px solid var(--border);padding:0.75rem;border-radius:8px;margin-bottom:1.25rem;">
+        {% for r in roles %}
+        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.82rem;color:var(--text);cursor:pointer;">
+          <input type="checkbox" name="role_ids" value="{{ r.id }}" class="role-check" style="accent-color:var(--blue);"/>
+          <span><strong>{{ r.name }}</strong> &mdash; <small style="color:var(--text-sec);">{{ r.description or '' }}</small></span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;background:#F8FAFC;padding:0.75rem;border-radius:8px;border:1px solid var(--border);">
+        <label style="display:flex;align-items:center;gap:0.6rem;font-size:0.85rem;color:var(--navy);font-weight:700;cursor:pointer;">
+          <input type="checkbox" name="two_factor_enabled" id="twoFaToggle" style="accent-color:var(--blue);width:16px;height:16px;"/>
+          <span>Require Two-Step Verification (Email OTP)</span>
+        </label>
+        <p style="margin:0.25rem 0 0 1.6rem;font-size:0.75rem;color:var(--text-sec);">Forces a 6-digit OTP confirmation upon sign-in.</p>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('assignModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Configuration</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAssignModal(userId, username, twoFaEnabled, assignedRoleIds) {
+  document.getElementById('assignUsername').textContent = username;
+  document.getElementById('assignForm').action = `/roles/users/${userId}/assign`;
+  document.getElementById('twoFaToggle').checked = !!twoFaEnabled;
+
+  document.querySelectorAll('.role-check').forEach(cb => {
+    cb.checked = assignedRoleIds.includes(parseInt(cb.value));
+  });
+
+  document.getElementById('assignModal').style.display = 'flex';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base_auth.html" %}
+{% block title %}Screen Locked{% endblock %}
+
+{% block auth_content %}
+<div style="text-align:center;margin-bottom:1.5rem;">
+  <div style="width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);color:#FFFFFF;display:inline-flex;align-items:center;justify-content:center;margin-bottom:0.75rem;font-size:1.6rem;font-weight:800;border:3px solid #FFFFFF;box-shadow:var(--shadow-md);">
+    {{ user.username[0].upper() }}
+  </div>
+  <h2 style="font-size:1.25rem;font-weight:800;color:var(--navy);margin:0;">{{ user.username }}</h2>
+  <span style="font-size:0.75rem;font-weight:700;color:var(--blue);background:var(--blue-light);padding:0.2rem 0.65rem;border-radius:999px;display:inline-block;margin-top:0.35rem;">
+    {{ user.role.value|title }} &bull; Session Locked
+  </span>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category if category != 'message' else 'info' }}" style="margin-bottom:1.25rem;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+{% if error %}
+<div class="alert alert-danger" style="margin-bottom:1.25rem;">
+  <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<form method="POST" action="{{ url_for('auth.lock_screen') }}" data-loading>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+  <div class="form-group">
+    <label class="form-label" for="lock_password">
+      <i data-lucide="lock"></i>
+      <span>Enter Password to Unlock</span>
+    </label>
+    <div style="position:relative;">
+      <input type="password" id="lock_password" name="password" class="form-control"
+             placeholder="Password" required autofocus autocomplete="current-password"
+             style="padding-right:2.75rem;"/>
+      <button type="button" onclick="toggleLockPwd()" title="Show/hide"
+              style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;">
+        <i data-lucide="eye" id="lockEye" style="width:18px;height:18px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary w-100 btn-lg">
+    <i data-lucide="unlock" style="width:16px;height:16px;"></i>
+    <span>Unlock Session</span>
+  </button>
+</form>
+
+<div style="text-align:center;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+  <a href="{{ url_for('auth.logout') }}" style="font-size:0.82rem;color:var(--text-sec);display:inline-flex;align-items:center;gap:0.35rem;">
+    <i data-lucide="log-out" style="width:14px;height:14px;"></i>
+    <span>Sign in with a different account</span>
+  </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleLockPwd() {
+  const p = document.getElementById('lock_password');
+  p.type = p.type === 'password' ? 'text' : 'password';
+}
+</script>
+{% endblock %}

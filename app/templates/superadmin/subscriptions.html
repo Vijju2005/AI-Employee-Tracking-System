@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Subscriptions Management | Super Admin{% endblock %}
+{% block topbar_title %}Global Tenant Subscriptions{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="credit-card"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Subscriptions Management</h1>
+        <p class="reports-header-sub">Track active licenses, billing frequencies, renewal dates, and invoice statuses</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <button class="btn btn-primary" onclick="document.getElementById('newSubModal').style.display='flex'">
+        <i data-lucide="plus"></i>
+        <span>Create Subscription</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Subscriptions Table -->
+  <div class="reports-table-card">
+    <div class="reports-table-header">
+      <div class="reports-table-heading">
+        <i data-lucide="list"></i>
+        <span>Active &amp; Historical Subscriptions ({{ pagination.total }})</span>
+      </div>
+    </div>
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Package</th>
+            <th>Billing Cycle</th>
+            <th>Amount</th>
+            <th>Start Date</th>
+            <th>Expiration</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subscriptions %}
+          <tr>
+            <td>
+              <strong style="color:var(--navy);">{{ s.company.name if s.company else '—' }}</strong>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ s.company.code if s.company else '' }}</div>
+            </td>
+            <td>{{ s.package.name if s.package else '—' }}</td>
+            <td><span class="report-code-badge">{{ s.billing_cycle|upper }}</span></td>
+            <td class="report-amount">₹ {{ "{:,.2f}".format(s.amount) }}</td>
+            <td>{{ s.starts_at.strftime('%Y-%m-%d') if s.starts_at else '—' }}</td>
+            <td>{{ s.expires_at.strftime('%Y-%m-%d') if s.expires_at else 'No Expiry' }}</td>
+            <td>
+              <span class="badge {% if s.status == 'active' %}badge-success{% else %}badge-warning{% endif %}">
+                {{ s.status|title }}
+              </span>
+            </td>
+            <td>
+              <form method="POST" action="{{ url_for('superadmin.subscription_renew', sub_id=s.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-sm btn-outline-navy">
+                  <i data-lucide="rotate-cw"></i>
+                  <span>Extend / Renew</span>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted);">
+              No subscriptions found. Click "Create Subscription" to assign a plan to a company.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Create Subscription Modal -->
+<div id="newSubModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Assign Company Subscription</h3>
+      <button onclick="document.getElementById('newSubModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('superadmin.subscription_add') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group">
+        <label class="form-label">Target Company *</label>
+        <select name="company_id" class="form-control" required>
+          <option value="">Choose Company</option>
+          {% for c in companies %}
+          <option value="{{ c.id }}">{{ c.name }} ({{ c.code }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">SaaS Package *</label>
+        <select name="package_id" class="form-control" required>
+          <option value="">Choose Plan Tier</option>
+          {% for p in packages %}
+          <option value="{{ p.id }}">{{ p.name }} (₹{{ p.price_per_month }}/mo | ₹{{ p.price_per_year }}/yr)</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Billing Cadence</label>
+          <select name="billing_cycle" class="form-control">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly (Annual)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Custom Price (Optional)</label>
+          <input type="number" step="0.01" name="amount" class="form-control" placeholder="Default tier rate"/>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('newSubModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Activate Subscription</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

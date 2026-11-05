@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Packages & Plans | Super Admin{% endblock %}
+{% block topbar_title %}SaaS Subscription Packages{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="package"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Packages &amp; Subscription Plans</h1>
+        <p class="reports-header-sub">Configure tiers, user quotas, storage limits, and monthly/annual pricing</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <button class="btn btn-primary" onclick="openPackageModal()">
+        <i data-lucide="plus"></i>
+        <span>Add New Package</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Plans Pricing Grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1.25rem;">
+    {% for p in packages %}
+    <div class="card" style="border:1px solid var(--border);border-radius:14px;padding:1.5rem;background:#FFFFFF;box-shadow:var(--shadow-xs);display:flex;flex-direction:column;justify-content:space-between;position:relative;">
+      {% if p.code == 'PRO' %}
+      <span style="position:absolute;top:12px;right:12px;background:var(--blue);color:#FFFFFF;font-size:0.7rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:999px;">
+        POPULAR
+      </span>
+      {% endif %}
+
+      <div>
+        <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">{{ p.code }}</div>
+        <h3 style="font-size:1.3rem;font-weight:800;color:var(--navy);margin:0.25rem 0 1rem;">{{ p.name }}</h3>
+
+        <div style="display:flex;align-items:baseline;gap:0.35rem;margin-bottom:1.25rem;">
+          <span style="font-size:1.8rem;font-weight:800;color:var(--navy);">₹ {{ "{:,.0f}".format(p.price_per_month) }}</span>
+          <span style="font-size:0.8rem;color:var(--text-sec);">/ month</span>
+        </div>
+
+        <ul style="list-style:none;padding:0;margin:0 0 1.5rem;display:flex;flex-direction:column;gap:0.6rem;font-size:0.85rem;color:var(--text);">
+          <li style="display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="check" style="width:16px;height:16px;color:#10B981;flex-shrink:0;"></i>
+            <span>Up to <strong>{{ p.max_employees }}</strong> Employees</span>
+          </li>
+          <li style="display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="check" style="width:16px;height:16px;color:#10B981;flex-shrink:0;"></i>
+            <span><strong>{{ p.max_storage_mb }} MB</strong> Secure Cloud Storage</span>
+          </li>
+          <li style="display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="check" style="width:16px;height:16px;color:#10B981;flex-shrink:0;"></i>
+            <span>Annual Billing: ₹ {{ "{:,.0f}".format(p.price_per_year) }}/yr</span>
+          </li>
+        </ul>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:1rem;display:flex;align-items:center;justify-content:space-between;">
+        <span class="badge badge-success">Active</span>
+        <button class="btn btn-sm btn-outline-navy" onclick="editPackage({{ p.id }}, '{{ p.name }}', '{{ p.code }}', {{ p.price_per_month }}, {{ p.price_per_year }}, {{ p.max_employees }}, {{ p.max_storage_mb }})">
+          <i data-lucide="edit-2"></i>
+          <span>Edit Plan</span>
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- Package Modal -->
+<div id="pkgModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;" id="pkgModalTitle">Create Plan Tier</h3>
+      <button onclick="document.getElementById('pkgModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('superadmin.package_save') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="package_id" id="pkg_id" value=""/>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Package Name *</label>
+          <input type="text" name="name" id="pkg_name" class="form-control" required placeholder="Growth Tier"/>
+        </div>
+        <div>
+          <label class="form-label">Code *</label>
+          <input type="text" name="code" id="pkg_code" class="form-control" required placeholder="GROWTH" style="text-transform:uppercase;"/>
+        </div>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Monthly Price (₹) *</label>
+          <input type="number" step="0.01" name="price_per_month" id="pkg_price_mo" class="form-control" required placeholder="199"/>
+        </div>
+        <div>
+          <label class="form-label">Annual Price (₹) *</label>
+          <input type="number" step="0.01" name="price_per_year" id="pkg_price_yr" class="form-control" required placeholder="1990"/>
+        </div>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Max Employees</label>
+          <input type="number" name="max_employees" id="pkg_max_emp" class="form-control" value="50"/>
+        </div>
+        <div>
+          <label class="form-label">Storage (MB)</label>
+          <input type="number" name="max_storage_mb" id="pkg_max_storage" class="form-control" value="1000"/>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('pkgModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Package</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openPackageModal() {
+  document.getElementById('pkg_id').value = '';
+  document.getElementById('pkg_name').value = '';
+  document.getElementById('pkg_code').value = '';
+  document.getElementById('pkg_price_mo').value = '';
+  document.getElementById('pkg_price_yr').value = '';
+  document.getElementById('pkg_max_emp').value = '50';
+  document.getElementById('pkg_max_storage').value = '1000';
+  document.getElementById('pkgModalTitle').textContent = 'Create Plan Tier';
+  document.getElementById('pkgModal').style.display = 'flex';
+}
+
+function editPackage(id, name, code, mo, yr, emp, storage) {
+  document.getElementById('pkg_id').value = id;
+  document.getElementById('pkg_name').value = name;
+  document.getElementById('pkg_code').value = code;
+  document.getElementById('pkg_price_mo').value = mo;
+  document.getElementById('pkg_price_yr').value = yr;
+  document.getElementById('pkg_max_emp').value = emp;
+  document.getElementById('pkg_max_storage').value = storage;
+  document.getElementById('pkgModalTitle').textContent = 'Edit Plan Tier';
+  document.getElementById('pkgModal').style.display = 'flex';
+}
+</script>
+{% endblock %}

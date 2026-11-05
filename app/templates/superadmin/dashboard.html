@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Super Admin Executive Dashboard | EBT System{% endblock %}
+{% block topbar_title %}Super Admin SaaS Control Center{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Hero Header -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="crown"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Super Admin Control Hub</h1>
+        <p class="reports-header-sub">
+          Enterprise Multi-Tenant SaaS Management &bull; Company Licenses &bull; Tier Packaging &bull; Global Subscriptions
+        </p>
+      </div>
+    </div>
+    
+    <div class="reports-header-actions">
+      <a href="{{ url_for('superadmin.companies_list') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
+        <i data-lucide="building"></i>
+        <span>Manage Companies</span>
+      </a>
+      <a href="{{ url_for('superadmin.packages_list') }}" class="btn btn-primary">
+        <i data-lucide="package"></i>
+        <span>Manage Packages</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="reports-kpi-grid">
+    <div class="reports-kpi-card">
+      <div>
+        <div class="reports-kpi-label">Registered Companies</div>
+        <div class="reports-kpi-value">{{ total_companies }}</div>
+        <span style="font-size:0.75rem;color:var(--text-muted);">{{ active_companies }} Active Tenants</span>
+      </div>
+      <div class="reports-kpi-icon-box">
+        <i data-lucide="building-2"></i>
+      </div>
+    </div>
+
+    <div class="reports-kpi-card">
+      <div>
+        <div class="reports-kpi-label">Active Subscriptions</div>
+        <div class="reports-kpi-value">{{ active_subscriptions }}</div>
+        <span style="font-size:0.75rem;color:var(--text-muted);">Running SaaS accounts</span>
+      </div>
+      <div class="reports-kpi-icon-box">
+        <i data-lucide="credit-card"></i>
+      </div>
+    </div>
+
+    <div class="reports-kpi-card">
+      <div>
+        <div class="reports-kpi-label">Active Plans / Packages</div>
+        <div class="reports-kpi-value">{{ total_packages }}</div>
+        <span style="font-size:0.75rem;color:var(--text-muted);">Starter, Pro, Enterprise</span>
+      </div>
+      <div class="reports-kpi-icon-box">
+        <i data-lucide="layers"></i>
+      </div>
+    </div>
+
+    <div class="reports-kpi-card">
+      <div>
+        <div class="reports-kpi-label">Total Monthly MRR</div>
+        <div class="reports-kpi-value">₹ {{ "{:,.2f}".format(total_revenue) }}</div>
+        <span style="font-size:0.75rem;color:#10B981;font-weight:700;">Active SaaS Billing</span>
+      </div>
+      <div class="reports-kpi-icon-box">
+        <i data-lucide="dollar-sign"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dual Tables: Recent Companies & Recent Subscriptions -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+
+    <!-- Recent Companies Card -->
+    <div class="reports-table-card">
+      <div class="reports-table-header">
+        <div class="reports-table-heading">
+          <i data-lucide="building"></i>
+          <span>Recent Companies</span>
+        </div>
+        <a href="{{ url_for('superadmin.companies_list') }}" class="btn btn-sm btn-outline-navy">View All</a>
+      </div>
+      <div class="reports-table-wrapper">
+        <table class="reports-data-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Code</th>
+              <th>Package</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in recent_companies %}
+            <tr>
+              <td>
+                <div style="font-weight:700;color:var(--navy);">{{ c.name }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">{{ c.email }}</div>
+              </td>
+              <td><span class="report-code-badge">{{ c.code }}</span></td>
+              <td>{{ c.package.name if c.package else 'Custom' }}</td>
+              <td>
+                <span class="badge {% if c.status == 'active' %}badge-success{% else %}badge-danger{% endif %}">
+                  {{ c.status|title }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                No companies registered yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Subscriptions Card -->
+    <div class="reports-table-card">
+      <div class="reports-table-header">
+        <div class="reports-table-heading">
+          <i data-lucide="receipt"></i>
+          <span>Recent Subscriptions</span>
+        </div>
+        <a href="{{ url_for('superadmin.subscriptions_list') }}" class="btn btn-sm btn-outline-navy">View All</a>
+      </div>
+      <div class="reports-table-wrapper">
+        <table class="reports-data-table">
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Plan</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in recent_subscriptions %}
+            <tr>
+              <td>
+                <div style="font-weight:700;color:var(--navy);">{{ s.company.name if s.company else '—' }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">Expires: {{ s.expires_at.strftime('%Y-%m-%d') if s.expires_at else 'Never' }}</div>
+              </td>
+              <td>{{ s.package.name if s.package else '—' }}</td>
+              <td class="report-amount">₹ {{ "{:,.2f}".format(s.amount) }}</td>
+              <td>
+                <span class="badge {% if s.status == 'active' %}badge-success{% else %}badge-warning{% endif %}">
+                  {{ s.status|title }}
+                </span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                No active subscriptions yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

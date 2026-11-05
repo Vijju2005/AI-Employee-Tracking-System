@@ -68,6 +68,24 @@ Traditional attendance systems only capture punch-in and punch-out times, obscur
 
 ## 👥 Features by Role
 
+### 👑 Super Admin & SaaS Multi-Tenancy Portal
+* **Global Executive Dashboard**: Real-time cross-company KPIs (Total Tenants, Active Licenses, Active Subscriptions, Monthly Recurring Revenue MRR).
+* **Company & Tenant Management**: Onboard new client enterprises with company codes, official contacts, and instant status toggling (Active/Suspended).
+* **Package Tier Configuration**: Configure subscription plans (Starter, Professional, Enterprise) with quotas (Max Employees, Cloud Storage Limits, Monthly & Annual Pricing).
+* **Subscriptions Engine**: Assign subscription packages to companies with auto-calculated duration, renewal management, and active status tracking.
+
+### 🛡️ Enterprise RBAC & Security Portal
+* **Granular Role Management**: Create custom organizational roles (e.g., HR Manager, Team Lead, Compliance Auditor) alongside system defaults.
+* **Permission Registry**: Fine-grained module-level permissions for Dashboard, Employees, Attendance, Breaks, Leaves, Payroll, Reports, and Security.
+* **User-Role & 2FA Assignments**: Multi-role assignment per user and on-demand enforcement of Two-Step Verification (Email OTP).
+
+### 🔐 Authentication Enhancements
+* **User Self-Registration**: Secure registration flow generating linked employee profiles and email verification tokens.
+* **Email Verification**: Cryptographically signed activation links (24h expiry) ensuring email ownership.
+* **Forgot & Reset Password**: Time-limited password reset tokens (1h expiry) preventing account enumeration.
+* **Two-Step Verification (Email OTP)**: 6-digit one-time passcodes with 10-minute expiry for enhanced credential defense.
+* **Session Lock Screen**: Quick lock shortcut in the navigation bar to protect active sessions without terminating login state.
+
 ### 👨‍💼 Administrator Portal
 * **Dashboard Overview**: Real-time KPI metric cards (Total Employees, Present Today, Pending Leaves, Active Breaks).
 * **Visual Analytics**: 7-day attendance trend charts (Present vs Absent) and Department employee distribution charts via Chart.js.

@@ -87,6 +87,9 @@ class Config:
     WTF_CSRF_ENABLED: bool = True
     WTF_CSRF_SECRET_KEY: str = os.environ.get("WTF_CSRF_SECRET_KEY", SECRET_KEY)
 
+    # ── Self-Registration Switch ───────────────────────────────────────
+    ENABLE_SELF_REGISTRATION: bool = os.environ.get("ENABLE_SELF_REGISTRATION", "false").lower() in ("true", "1", "yes")
+
     # ── Session ────────────────────────────────────────────────────────
     PERMANENT_SESSION_LIFETIME: timedelta = timedelta(hours=8)
     SESSION_COOKIE_HTTPONLY: bool = True
@@ -157,6 +160,7 @@ class ProductionConfig(Config):
 
 class TestingConfig(Config):
     TESTING: bool = True
+    ENABLE_SELF_REGISTRATION: bool = False
     WTF_CSRF_ENABLED: bool = False  # Disable CSRF in tests
     # Use SQLite in-memory for tests — no MySQL required in sandbox/CI
     SQLALCHEMY_DATABASE_URI: str = "sqlite:///:memory:"

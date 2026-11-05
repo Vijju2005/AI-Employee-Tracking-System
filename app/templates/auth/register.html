@@ -1,126 +1,137 @@
 {% extends "base_auth.html" %}
-{% block title %}Sign Up{% endblock %}
+{% block title %}Create Account{% endblock %}
 
 {% block auth_content %}
-<div class="login-brand">
-  <span class="brand-logo">&#127970; EBT System</span>
-  <span class="brand-tagline">Employee Break Tracking &amp; Availability Prediction</span>
-  <p style="font-size:.78rem;color:#64748B;margin-top:.35rem;">Work Smarter. Track Better. Improve Productivity.</p>
-</div>
-
-<div style="text-align:center;margin-bottom:1.25rem;">
-  <h2 style="font-size:1.1rem;font-weight:700;color:#163A5F;margin:0;">Create Account</h2>
-  <p style="font-size:.8rem;color:#64748B;margin:.25rem 0 0;">Register as a new employee</p>
+<div style="text-align:center;margin-bottom:1.5rem;">
+  <div style="width:48px;height:48px;border-radius:12px;background:var(--blue-light);color:var(--blue);display:inline-flex;align-items:center;justify-content:center;margin-bottom:0.75rem;">
+    <i data-lucide="user-plus" style="width:24px;height:24px;"></i>
+  </div>
+  <h2 style="font-size:1.3rem;font-weight:800;color:var(--navy);margin:0;letter-spacing:-0.02em;">Create Your Account</h2>
+  <p style="font-size:0.84rem;color:var(--text-sec);margin:0.35rem 0 0;">
+    Join the Enterprise Workforce Intelligence Platform
+  </p>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
-  {% for category, message in messages %}
-    <div class="alert alert-{{ category }}" style="margin-bottom:1rem;">
-      {% if category == 'danger' %}&#9888;{% elif category == 'success' %}&#10003;{% else %}&#8505;{% endif %}
-      {{ message }}
-    </div>
-  {% endfor %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category if category != 'message' else 'info' }}" style="margin-bottom:1.25rem;">
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
 {% endwith %}
 
 {% if error %}
-<div class="alert alert-danger" style="margin-bottom:1rem;">&#9888; {{ error }}</div>
+<div class="alert alert-danger" style="margin-bottom:1.25rem;">
+  <i data-lucide="alert-circle" style="width:16px;height:16px;flex-shrink:0;"></i>
+  <span>{{ error }}</span>
+</div>
 {% endif %}
 
 <form method="POST" action="{{ url_for('auth.register') }}" data-loading>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-  <div class="form-row" style="margin-bottom:1rem;">
+  <div class="form-row" style="margin-bottom:0.9rem;display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
     <div class="form-group" style="margin-bottom:0;">
-      <label class="form-label" for="username">&#128100; Username</label>
+      <label class="form-label" for="username">
+        <i data-lucide="user"></i>
+        <span>Username</span>
+      </label>
       <input type="text" id="username" name="username" class="form-control"
-             placeholder="Choose a username" required autocomplete="username"
+             placeholder="johndoe" required autocomplete="username"
              value="{{ form_data.username if form_data else '' }}"/>
     </div>
     <div class="form-group" style="margin-bottom:0;">
-      <label class="form-label" for="full_name">&#128220; Full Name</label>
+      <label class="form-label" for="full_name">
+        <i data-lucide="badge-check"></i>
+        <span>Full Name</span>
+      </label>
       <input type="text" id="full_name" name="full_name" class="form-control"
-             placeholder="Your full name" required autocomplete="name"
+             placeholder="John Doe" required autocomplete="name"
              value="{{ form_data.full_name if form_data else '' }}"/>
     </div>
   </div>
 
-  <div class="form-group">
-    <label class="form-label" for="email">&#128231; Email Address</label>
+  <div class="form-group" style="margin-bottom:0.9rem;">
+    <label class="form-label" for="email">
+      <i data-lucide="mail"></i>
+      <span>Corporate Email</span>
+    </label>
     <input type="email" id="email" name="email" class="form-control"
-           placeholder="Enter your email" required autocomplete="email"
+           placeholder="john.doe@company.com" required autocomplete="email"
            value="{{ form_data.email if form_data else '' }}"/>
   </div>
 
-  <div class="form-group">
-    <label class="form-label" for="reg_password">&#128274; Password</label>
+  <div class="form-group" style="margin-bottom:0.9rem;">
+    <label class="form-label" for="reg_password">
+      <i data-lucide="lock"></i>
+      <span>Password</span>
+    </label>
     <div style="position:relative;">
       <input type="password" id="reg_password" name="password" class="form-control"
-             placeholder="At least 8 characters" required autocomplete="new-password"
-             style="padding-right:2.5rem;"/>
-      <button type="button" onclick="toggleRegPwd('reg_password')" title="Show/hide password"
-              style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);
-                     background:none;border:none;cursor:pointer;color:#64748B;font-size:1rem;">
-        &#128065;
+             placeholder="Minimum 8 characters" required minlength="8" autocomplete="new-password"
+             style="padding-right:2.75rem;"/>
+      <button type="button" onclick="toggleRegPass('reg_password', 'regEye1')"
+              style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;">
+        <i data-lucide="eye" id="regEye1" style="width:18px;height:18px;"></i>
       </button>
     </div>
   </div>
 
-  <div class="form-group">
-    <label class="form-label" for="confirm_password">&#128274; Confirm Password</label>
+  <div class="form-group" style="margin-bottom:1.25rem;">
+    <label class="form-label" for="confirm_password">
+      <i data-lucide="check-circle"></i>
+      <span>Confirm Password</span>
+    </label>
     <div style="position:relative;">
       <input type="password" id="confirm_password" name="confirm_password" class="form-control"
-             placeholder="Re-enter your password" required autocomplete="new-password"
-             style="padding-right:2.5rem;"/>
-      <button type="button" onclick="toggleRegPwd('confirm_password')" title="Show/hide password"
-              style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);
-                     background:none;border:none;cursor:pointer;color:#64748B;font-size:1rem;">
-        &#128065;
+             placeholder="Re-type password" required minlength="8" autocomplete="new-password"
+             style="padding-right:2.75rem;"/>
+      <button type="button" onclick="toggleRegPass('confirm_password', 'regEye2')"
+              style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:flex;align-items:center;">
+        <i data-lucide="eye" id="regEye2" style="width:18px;height:18px;"></i>
       </button>
     </div>
-    <p class="form-hint" id="pwdMatchHint" style="display:none;color:#DC2626;">&#9888; Passwords do not match.</p>
+    <div id="pwdMismatchWarning" style="display:none;color:#DC2626;font-size:0.74rem;font-weight:600;margin-top:0.35rem;">
+      Passwords do not match
+    </div>
   </div>
 
-  <button type="submit" class="btn btn-primary w-100 btn-lg" style="margin-top:.25rem;">
-    Create Account
+  <button type="submit" class="btn btn-primary w-100 btn-lg">
+    <span>Create Account</span>
+    <i data-lucide="arrow-right" style="width:16px;height:16px;"></i>
   </button>
 </form>
 
-<p style="text-align:center;font-size:.82rem;color:#64748B;margin-top:1rem;">
-  Already have an account?
-  <a href="{{ url_for('auth.login') }}" style="color:#2563EB;font-weight:600;">Sign In</a>
-</p>
-
-<p style="text-align:center;font-size:.78rem;color:#64748B;margin-top:.75rem;">
-  Better Breaks. Smarter Teams. Higher Productivity.
-</p>
+<div style="text-align:center;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">
+  <span style="font-size:0.82rem;color:var(--text-sec);">
+    Already have an account?
+    <a href="{{ url_for('auth.login') }}" style="color:var(--blue);font-weight:700;margin-left:0.25rem;">Sign In</a>
+  </span>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function toggleRegPwd(fieldId) {
-  const f = document.getElementById(fieldId);
-  f.type = f.type === 'password' ? 'text' : 'password';
+function toggleRegPass(inpId, eyeId) {
+  const p = document.getElementById(inpId);
+  p.type = p.type === 'password' ? 'text' : 'password';
 }
 
-// Real-time password match indicator
-const pwd  = document.getElementById('reg_password');
-const cpwd = document.getElementById('confirm_password');
-const hint = document.getElementById('pwdMatchHint');
+const p1 = document.getElementById('reg_password');
+const p2 = document.getElementById('confirm_password');
+const warn = document.getElementById('pwdMismatchWarning');
 
-function checkMatch() {
-  if (cpwd.value.length === 0) { hint.style.display = 'none'; return; }
-  hint.style.display = pwd.value !== cpwd.value ? 'block' : 'none';
-}
-pwd?.addEventListener('input', checkMatch);
-cpwd?.addEventListener('input', checkMatch);
-
-// Prevent submit if passwords don't match (client-side guard)
-document.querySelector('form[data-loading]')?.addEventListener('submit', function(e) {
-  if (pwd.value !== cpwd.value) {
-    e.preventDefault();
-    hint.style.display = 'block';
-    cpwd.focus();
+function checkMatching() {
+  if (p2.value.length === 0) {
+    warn.style.display = 'none';
+    return;
   }
-});
+  warn.style.display = (p1.value !== p2.value) ? 'block' : 'none';
+}
+
+p1?.addEventListener('input', checkMatching);
+p2?.addEventListener('input', checkMatching);
 </script>
 {% endblock %}
