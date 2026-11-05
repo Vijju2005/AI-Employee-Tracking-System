@@ -103,6 +103,34 @@ def create_app(config_class=None):
                         except Exception as mig_err:
                             db.session.rollback()
                             flask_app.logger.warning("Column migration skipped or failed: %s", mig_err)
+
+                if "users" in existing_tables:
+                    user_cols = [c["name"] for c in inspector.get_columns("users")]
+                    cols_to_add = [
+                        ("is_verified", "TINYINT(1) NOT NULL DEFAULT 1"),
+                        ("two_factor_enabled", "TINYINT(1) NOT NULL DEFAULT 0"),
+                        ("otp_code", "VARCHAR(6) NULL"),
+                        ("otp_expires_at", "DATETIME NULL"),
+                        ("company_id", "INT NULL"),
+                    ]
+                    for col_name, col_sql in cols_to_add:
+                        if col_name not in user_cols:
+                            try:
+                                from sqlalchemy import text
+                                db.session.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_sql}"))
+                                db.session.commit()
+                                flask_app.logger.info("Migrated users table: added %s column.", col_name)
+                            except Exception as u_mig_err:
+                                db.session.rollback()
+                                flask_app.logger.warning("User column %s migration warning: %s", col_name, u_mig_err)
+
+                    # Also ensure users.role is VARCHAR(30) to allow superadmin
+                    try:
+                        from sqlalchemy import text
+                        db.session.execute(text("ALTER TABLE users MODIFY COLUMN role VARCHAR(30) NOT NULL DEFAULT 'employee'"))
+                        db.session.commit()
+                    except Exception as role_mod_err:
+                        db.session.rollback()
         except Exception as init_err:
             flask_app.logger.warning("Auto db table creation skipped on startup: %s", init_err)
 
@@ -133,6 +161,33 @@ def create_app(config_class=None):
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()
                 migration_result = (migration_result or "") + " Initialized enterprise models."
+
+            # Ensure users table columns exist in production
+            if "users" in tables:
+                u_cols = [c["name"] for c in inspector.get_columns("users")]
+                cols_to_add = [
+                    ("is_verified", "TINYINT(1) NOT NULL DEFAULT 1"),
+                    ("two_factor_enabled", "TINYINT(1) NOT NULL DEFAULT 0"),
+                    ("otp_code", "VARCHAR(6) NULL"),
+                    ("otp_expires_at", "DATETIME NULL"),
+                    ("company_id", "INT NULL"),
+                ]
+                for col_name, col_sql in cols_to_add:
+                    if col_name not in u_cols:
+                        try:
+                            from sqlalchemy import text
+                            db.session.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_sql}"))
+                            db.session.commit()
+                            migration_result = (migration_result or "") + f" Added users.{col_name}."
+                        except Exception as c_err:
+                            db.session.rollback()
+
+                try:
+                    from sqlalchemy import text
+                    db.session.execute(text("ALTER TABLE users MODIFY COLUMN role VARCHAR(30) NOT NULL DEFAULT 'employee'"))
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
 
             # Seed default RBAC permissions, roles, and SaaS packages
             try:
