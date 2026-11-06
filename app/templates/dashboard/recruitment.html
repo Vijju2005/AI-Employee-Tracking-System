@@ -17,10 +17,14 @@
       </div>
     </div>
     <div class="reports-header-actions">
-      <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
-        <i data-lucide="users"></i>
-        <span>Workforce Directory</span>
-      </a>
+      <button class="btn btn-outline" onclick="document.getElementById('addJobModal').style.display='flex'" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
+        <i data-lucide="plus"></i>
+        <span>Add Job Opening</span>
+      </button>
+      <button class="btn btn-primary" onclick="document.getElementById('addCandModal').style.display='flex'">
+        <i data-lucide="user-plus"></i>
+        <span>Add Candidate</span>
+      </button>
     </div>
   </div>
 
@@ -106,6 +110,7 @@
               <th>Candidate</th>
               <th>Applied For</th>
               <th>Stage</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -113,16 +118,37 @@
             <tr>
               <td>
                 <div style="font-weight:700;color:var(--navy);">{{ c.full_name }}</div>
-                <div style="font-size:0.75rem;color:var(--text-sec);">{{ c.email }}</div>
+                <div style="font-size:0.75rem;color:var(--text-sec);">{{ c.email }} &bull; {{ c.phone or '' }}</div>
               </td>
               <td>{{ c.job_opening.title }}</td>
               <td>
+                {% if c.status == 'hired' or c.status == 'offered' %}
+                <span class="report-badge badge-active">{{ c.status|upper }}</span>
+                {% elif c.status == 'interviewing' %}
+                <span class="report-badge" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">INTERVIEW</span>
+                {% elif c.status == 'rejected' %}
+                <span class="report-badge badge-inactive">REJECTED</span>
+                {% else %}
                 <span class="code-pill">{{ c.status|upper }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <form method="POST" action="{{ url_for('dashboard.update_candidate_status', cand_id=c.id) }}" style="display:inline;margin:0;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <select name="status" onchange="this.form.submit()" style="font-size:0.75rem;padding:0.2rem 0.4rem;border-radius:5px;border:1px solid var(--border);background:#F8FAFC;">
+                    <option value="applied" {% if c.status == 'applied' %}selected{% endif %}>Applied</option>
+                    <option value="screening" {% if c.status == 'screening' %}selected{% endif %}>Screening</option>
+                    <option value="interviewing" {% if c.status == 'interviewing' %}selected{% endif %}>Interviewing</option>
+                    <option value="offered" {% if c.status == 'offered' %}selected{% endif %}>Offered</option>
+                    <option value="hired" {% if c.status == 'hired' %}selected{% endif %}>Hired</option>
+                    <option value="rejected" {% if c.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                  </select>
+                </form>
               </td>
             </tr>
             {% else %}
             <tr>
-              <td colspan="3" style="text-align:center;padding:2rem;">No candidates currently in pipeline.</td>
+              <td colspan="4" style="text-align:center;padding:2rem;">No candidates currently in pipeline.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -133,4 +159,129 @@
   </div>
 
 </div>
+
+<!-- Modal: Add Job Opening -->
+<div id="addJobModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:500px;box-shadow:var(--shadow-xl);border:1px solid var(--border);overflow:hidden;">
+    <div style="padding:1.2rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="briefcase" style="width:18px;height:18px;color:var(--cyan);"></i>
+        <h3 style="margin:0;color:#FFFFFF;font-size:1.05rem;font-weight:700;">Create Job Opening</h3>
+      </div>
+      <button onclick="document.getElementById('addJobModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.3rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('dashboard.add_job_opening') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Job Title *</label>
+        <input type="text" name="title" required class="form-control" placeholder="e.g. Lead Frontend Architect"/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Department</label>
+          <select name="department_id" class="form-control">
+            <option value="">General</option>
+            {% for d in departments %}
+            <option value="{{ d.id }}">{{ d.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Vacant Positions</label>
+          <input type="number" name="positions" value="1" min="1" class="form-control"/>
+        </div>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Job Type</label>
+          <select name="job_type" class="form-control">
+            <option value="Full-Time">Full-Time</option>
+            <option value="Part-Time">Part-Time</option>
+            <option value="Contract">Contract</option>
+            <option value="Internship">Internship</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Seniority Level</label>
+          <select name="experience_level" class="form-control">
+            <option value="Entry-Level">Entry-Level</option>
+            <option value="Mid-Level">Mid-Level</option>
+            <option value="Senior">Senior</option>
+            <option value="Lead / Executive">Lead / Executive</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Role Description</label>
+        <textarea name="description" class="form-control" rows="2" placeholder="Key responsibilities and qualifications..."></textarea>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:0.6rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('addJobModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Publish Opening</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Add Candidate -->
+<div id="addCandModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:500px;box-shadow:var(--shadow-xl);border:1px solid var(--border);overflow:hidden;">
+    <div style="padding:1.2rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="user-plus" style="width:18px;height:18px;color:var(--cyan);"></i>
+        <h3 style="margin:0;color:#FFFFFF;font-size:1.05rem;font-weight:700;">Add Candidate to Pipeline</h3>
+      </div>
+      <button onclick="document.getElementById('addCandModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.3rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('dashboard.add_job_candidate') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Applying For Job Opening *</label>
+        <select name="job_opening_id" required class="form-control">
+          <option value="">Select Job Opening...</option>
+          {% for j in openings %}
+          <option value="{{ j.id }}">{{ j.title }} ({{ j.positions }} open)</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Candidate Full Name *</label>
+        <input type="text" name="full_name" required class="form-control" placeholder="e.g. Ramesh Kumar"/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Email Address *</label>
+          <input type="email" name="email" required class="form-control" placeholder="candidate@example.com"/>
+        </div>
+        <div>
+          <label class="form-label">Phone Number</label>
+          <input type="text" name="phone" class="form-control" placeholder="+91 98765 43210"/>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Initial Stage</label>
+        <select name="status" class="form-control">
+          <option value="applied">Applied</option>
+          <option value="screening">Screening</option>
+          <option value="interviewing">Interviewing</option>
+        </select>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:0.6rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('addCandModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Enroll Candidate</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {% endblock %}

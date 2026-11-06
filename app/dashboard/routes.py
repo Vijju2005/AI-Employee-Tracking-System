@@ -413,6 +413,7 @@ def recruitment_dashboard():
 
     openings = JobOpening.query.order_by(JobOpening.created_at.desc()).all()
     candidates = JobCandidate.query.order_by(JobCandidate.created_at.desc()).limit(10).all()
+    departments = Department.query.order_by(Department.name.asc()).all()
 
     return render_template(
         "dashboard/recruitment.html",
@@ -423,6 +424,89 @@ def recruitment_dashboard():
         offered_count=offered_count,
         hired_count=hired_count,
         openings=openings,
-        candidates=candidates
+        candidates=candidates,
+        departments=departments
     )
+
+
+@dashboard_bp.route("/dashboard/recruitment/openings/add", methods=["POST"])
+@login_required
+@admin_required
+def add_job_opening():
+    """Create a new job vacancy."""
+    from flask import request, flash
+    title = request.form.get("title", "").strip()
+    department_id = request.form.get("department_id", type=int)
+    positions = request.form.get("positions", 1, type=int)
+    job_type = request.form.get("job_type", "Full-Time").strip()
+    experience_level = request.form.get("experience_level", "Mid-Level").strip()
+    description = request.form.get("description", "").strip()
+
+    if not title:
+        flash("Job title is required.", "danger")
+        return redirect(url_for("dashboard.recruitment_dashboard"))
+
+    opening = JobOpening(
+        title=title,
+        department_id=department_id or None,
+        positions=max(1, positions),
+        job_type=job_type,
+        experience_level=experience_level,
+        description=description,
+        status="open"
+    )
+    db.session.add(opening)
+    db.session.commit()
+    flash(f"Job opening '{title}' published successfully.", "success")
+    return redirect(url_for("dashboard.recruitment_dashboard"))
+
+
+@dashboard_bp.route("/dashboard/recruitment/candidates/add", methods=["POST"])
+@login_required
+@admin_required
+def add_job_candidate():
+    """Register an applicant into the recruitment pipeline."""
+    from flask import request, flash
+    job_opening_id = request.form.get("job_opening_id", type=int)
+    full_name = request.form.get("full_name", "").strip()
+    email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
+    status = request.form.get("status", "applied").strip().lower()
+
+    if not job_opening_id or not full_name or not email:
+        flash("Job selection, candidate name, and email are required.", "danger")
+        return redirect(url_for("dashboard.recruitment_dashboard"))
+
+    candidate = JobCandidate(
+        job_opening_id=job_opening_id,
+        full_name=full_name,
+        email=email,
+        phone=phone or None,
+        status=status,
+        rating=0
+    )
+    db.session.add(candidate)
+    db.session.commit()
+    flash(f"Candidate '{full_name}' added to applicant pipeline.", "success")
+    return redirect(url_for("dashboard.recruitment_dashboard"))
+
+
+@dashboard_bp.route("/dashboard/recruitment/candidates/<int:cand_id>/status", methods=["POST"])
+@login_required
+@admin_required
+def update_candidate_status(cand_id):
+    """Advance or update candidate hiring stage."""
+    from flask import request, flash
+    candidate = JobCandidate.query.get_or_404(cand_id)
+    new_status = request.form.get("status", "").strip().lower()
+
+    if new_status in ["applied", "screening", "interviewing", "offered", "hired", "rejected"]:
+        candidate.status = new_status
+        db.session.commit()
+        flash(f"{candidate.full_name}'s status updated to {new_status.title()}.", "info")
+    else:
+        flash("Invalid recruitment status.", "danger")
+
+    return redirect(url_for("dashboard.recruitment_dashboard"))
+
 
