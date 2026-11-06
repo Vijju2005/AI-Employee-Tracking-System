@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}System Permissions Registry | Enterprise RBAC{% endblock %}
-{% block topbar_title %}Granular Permission Registry{% endblock %}
+{% block title %}System Permissions | Enterprise RBAC{% endblock %}
+{% block topbar_title %}System Permissions{% endblock %}
 
 {% block content %}
 <div class="reports-container">
@@ -9,11 +9,11 @@
   <div class="reports-header-card">
     <div class="reports-header-left">
       <div class="reports-header-icon-box">
-        <i data-lucide="key"></i>
+        <i data-lucide="shield-check"></i>
       </div>
       <div>
-        <h1 class="reports-header-title">System Permissions Registry</h1>
-        <p class="reports-header-sub">Module-based security capabilities, actions, and audit permission slugs</p>
+        <h1 class="reports-header-title">System Permissions</h1>
+        <p class="reports-header-sub">Role-based security capabilities, operational privileges, and access control scopes across modules</p>
       </div>
     </div>
     <div class="reports-header-actions">
@@ -28,27 +28,50 @@
     </div>
   </div>
 
-  <!-- Permissions grouped by Module -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.25rem;">
+  <!-- System Permissions Grouped by Module -->
+  <div class="perm-registry-grid">
     {% for mod_name, perms in modules.items() %}
-    <div class="reports-table-card" style="padding:1.25rem;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:0.75rem;margin-bottom:0.75rem;border-bottom:1px solid var(--border);">
-        <h3 style="margin:0;font-size:0.95rem;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:0.45rem;">
-          <i data-lucide="folder" style="color:var(--blue);width:16px;height:16px;"></i>
-          <span>{{ mod_name }} Module</span>
-        </h3>
-        <span class="report-code-badge">{{ perms|length }}</span>
+    {% set mod_lower = mod_name|lower %}
+    <div class="perm-module-card">
+      <div class="perm-module-header">
+        <div class="perm-module-title-wrap">
+          <div class="perm-module-icon-box">
+            {% if 'admin' in mod_lower %}
+              <i data-lucide="shield-alert"></i>
+            {% elif 'employee' in mod_lower %}
+              <i data-lucide="users"></i>
+            {% elif 'attendance' in mod_lower %}
+              <i data-lucide="calendar-check"></i>
+            {% elif 'break' in mod_lower %}
+              <i data-lucide="coffee"></i>
+            {% elif 'leave' in mod_lower %}
+              <i data-lucide="calendar-days"></i>
+            {% elif 'payroll' in mod_lower %}
+              <i data-lucide="banknote"></i>
+            {% elif 'report' in mod_lower %}
+              <i data-lucide="file-bar-chart"></i>
+            {% elif 'analytic' in mod_lower %}
+              <i data-lucide="sparkles"></i>
+            {% elif 'dashboard' in mod_lower %}
+              <i data-lucide="layout-dashboard"></i>
+            {% else %}
+              <i data-lucide="folder"></i>
+            {% endif %}
+          </div>
+          <h3 class="perm-module-title">{{ mod_name }}</h3>
+        </div>
+        <span class="perm-module-count-badge">{{ perms|length }}</span>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:0.6rem;">
+      <div class="perm-module-body">
         {% for p in perms %}
-        <div style="background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:0.65rem 0.85rem;">
-          <div style="display:flex;align-items:center;justify-content:space-between;">
-            <strong style="font-size:0.83rem;color:var(--navy);">{{ p.name }}</strong>
-            <code style="font-size:0.72rem;background:#E2E8F0;padding:0.15rem 0.4rem;border-radius:4px;color:var(--text-sec);">{{ p.slug }}</code>
+        <div class="perm-item-row" data-perm-slug="{{ p.slug }}">
+          <div class="perm-item-name">
+            <span class="perm-item-dot"></span>
+            <span>{{ p.name }}</span>
           </div>
           {% if p.description %}
-          <p style="margin:0.25rem 0 0;font-size:0.75rem;color:var(--text-sec);">{{ p.description }}</p>
+          <p class="perm-item-desc">{{ p.description }}</p>
           {% endif %}
         </div>
         {% endfor %}
