@@ -156,7 +156,7 @@ def create_app(config_class=None):
                 migration_result = "Created holidays table"
 
             # Ensure payroll, superadmin, and RBAC tables exist
-            if any(t not in tables for t in ["payroll_items", "expenses", "companies", "packages", "subscriptions", "roles", "permissions"]):
+            if any(t not in tables for t in ["payroll_items", "expenses", "companies", "packages", "subscriptions", "roles", "permissions", "designations", "leave_type_policies", "job_openings", "job_candidates"]):
                 db.create_all()
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()
