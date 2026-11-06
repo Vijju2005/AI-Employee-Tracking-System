@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Recruitment & Hiring Pipeline | Enterprise HRMS{% endblock %}
+{% block title %}Recruitment &amp; Hiring Pipeline | Enterprise HRMS{% endblock %}
 {% block topbar_title %}Recruitment Analytics{% endblock %}
 
 {% block content %}
@@ -28,33 +28,63 @@
     </div>
   </div>
 
-  <!-- Recruitment Pipeline Summary Row -->
-  <div class="reports-summary-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1.5rem;">
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">Active Job Openings</span>
-      <div class="reports-summary-value" style="color:var(--blue);">{{ total_openings }}</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Published Opportunities</span>
+  <!-- Recruitment Pipeline 4 KPI Cards -->
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:1.15rem;margin-bottom:1.75rem;">
+    
+    <!-- 1. Active Job Openings -->
+    <div class="stat-card accent-blue">
+      <div class="stat-icon blue">
+        <i data-lucide="briefcase"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--blue);">{{ total_openings }}</div>
+        <div class="stat-label">Active Job Openings</div>
+        <div class="stat-sub">Published opportunities</div>
+      </div>
     </div>
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">Applied Applicants</span>
-      <div class="reports-summary-value">{{ applied_count }}</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">New Candidate Profiles</span>
+
+    <!-- 2. Applied Applicants -->
+    <div class="stat-card accent-cyan">
+      <div class="stat-icon cyan">
+        <i data-lucide="users"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:#0891B2;">{{ applied_count }}</div>
+        <div class="stat-label">Applied Applicants</div>
+        <div class="stat-sub">New candidate profiles</div>
+      </div>
     </div>
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">Interviewing</span>
-      <div class="reports-summary-value" style="color:#D97706;">{{ interviewing_count }}</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">In Active Review</span>
+
+    <!-- 3. Interviewing -->
+    <div class="stat-card accent-amber">
+      <div class="stat-icon amber">
+        <i data-lucide="calendar"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--warning-dark);">{{ interviewing_count }}</div>
+        <div class="stat-label">Interviewing</div>
+        <div class="stat-sub">In active technical review</div>
+      </div>
     </div>
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">Offers &amp; Hired</span>
-      <div class="reports-summary-value" style="color:var(--navy);">{{ offered_count + hired_count }}</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Finalized Selections</span>
+
+    <!-- 4. Offers & Hired -->
+    <div class="stat-card accent-emerald">
+      <div class="stat-icon emerald">
+        <i data-lucide="check-circle-2"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--navy);">{{ offered_count + hired_count }}</div>
+        <div class="stat-label">Offers &amp; Hired</div>
+        <div class="stat-sub">Finalized talent selections</div>
+      </div>
     </div>
+
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+  <!-- Tables Section: 2 Columns on desktop, stacked on mobile -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(420px, 1fr));gap:1.5rem;align-items:start;">
 
-    <!-- Current Job Openings -->
+    <!-- Current Job Openings Table Card -->
     <div class="reports-table-card">
       <div class="reports-table-header">
         <h3 class="reports-table-heading">
@@ -63,30 +93,36 @@
         </h3>
         <span class="reports-table-count-badge">{{ openings|length }} Openings</span>
       </div>
-      <div class="reports-table-wrapper">
-        <table class="reports-data-table">
+      <div class="reports-table-wrapper" style="overflow-x:auto;">
+        <table class="reports-data-table" style="width:100%;min-width:380px;">
           <thead>
             <tr>
-              <th>Job Title</th>
-              <th>Department</th>
-              <th>Type</th>
-              <th>Positions</th>
+              <th style="min-width:140px;">Job Title</th>
+              <th style="min-width:110px;">Department</th>
+              <th style="min-width:90px;">Type</th>
+              <th style="min-width:85px;text-align:right;">Positions</th>
             </tr>
           </thead>
           <tbody>
             {% for job in openings %}
             <tr>
               <td>
-                <div style="font-weight:700;color:var(--navy);">{{ job.title }}</div>
+                <div style="font-weight:700;color:var(--navy);font-size:0.87rem;">{{ job.title }}</div>
                 <div style="font-size:0.75rem;color:var(--text-sec);">{{ job.experience_level }}</div>
               </td>
-              <td>{{ job.department.name if job.department else 'General' }}</td>
-              <td><span class="calc-pill">{{ job.job_type }}</span></td>
-              <td><span class="report-badge badge-active">{{ job.positions }} Open</span></td>
+              <td style="font-size:0.82rem;color:var(--text);">
+                {{ job.department.name if job.department else 'General' }}
+              </td>
+              <td>
+                <span class="calc-pill">{{ job.job_type }}</span>
+              </td>
+              <td style="text-align:right;">
+                <span class="badge badge-info" style="font-size:0.72rem;padding:0.25rem 0.55rem;">{{ job.positions }} Open</span>
+              </td>
             </tr>
             {% else %}
             <tr>
-              <td colspan="4" style="text-align:center;padding:2rem;">No open postings.</td>
+              <td colspan="4" style="text-align:center;padding:2.5rem;color:var(--text-sec);">No open job vacancies published yet.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -94,7 +130,7 @@
       </div>
     </div>
 
-    <!-- Active Candidates Pipeline -->
+    <!-- Active Candidates Pipeline Table Card -->
     <div class="reports-table-card">
       <div class="reports-table-header">
         <h3 class="reports-table-heading">
@@ -103,39 +139,48 @@
         </h3>
         <span class="reports-table-count-badge">{{ candidates|length }} Candidates</span>
       </div>
-      <div class="reports-table-wrapper">
-        <table class="reports-data-table">
+      <div class="reports-table-wrapper" style="overflow-x:auto;">
+        <table class="reports-data-table" style="width:100%;min-width:440px;">
           <thead>
             <tr>
-              <th>Candidate</th>
-              <th>Applied For</th>
-              <th>Stage</th>
-              <th>Action</th>
+              <th style="min-width:150px;">Candidate</th>
+              <th style="min-width:130px;">Applied For</th>
+              <th style="min-width:95px;text-align:center;">Stage</th>
+              <th style="min-width:100px;text-align:right;">Action</th>
             </tr>
           </thead>
           <tbody>
             {% for c in candidates %}
             <tr>
               <td>
-                <div style="font-weight:700;color:var(--navy);">{{ c.full_name }}</div>
-                <div style="font-size:0.75rem;color:var(--text-sec);">{{ c.email }} &bull; {{ c.phone or '' }}</div>
-              </td>
-              <td>{{ c.job_opening.title }}</td>
-              <td>
-                {% if c.status == 'hired' or c.status == 'offered' %}
-                <span class="report-badge badge-active">{{ c.status|upper }}</span>
-                {% elif c.status == 'interviewing' %}
-                <span class="report-badge" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">INTERVIEW</span>
-                {% elif c.status == 'rejected' %}
-                <span class="report-badge badge-inactive">REJECTED</span>
-                {% else %}
-                <span class="code-pill">{{ c.status|upper }}</span>
+                <div style="font-weight:700;color:var(--navy);font-size:0.87rem;">{{ c.full_name }}</div>
+                <div style="font-size:0.74rem;color:var(--text-sec);">{{ c.email }}</div>
+                {% if c.phone %}
+                <div style="font-size:0.7rem;color:var(--text-muted);font-family:monospace;">{{ c.phone }}</div>
                 {% endif %}
               </td>
-              <td>
+              <td style="font-size:0.82rem;color:var(--text);font-weight:500;">
+                {{ c.job_opening.title }}
+              </td>
+              <td style="text-align:center;">
+                {% if c.status == 'hired' %}
+                  <span class="badge badge-success">HIRED</span>
+                {% elif c.status == 'offered' %}
+                  <span class="badge badge-info">OFFERED</span>
+                {% elif c.status == 'interviewing' %}
+                  <span class="badge badge-warning">INTERVIEW</span>
+                {% elif c.status == 'screening' %}
+                  <span class="badge badge-secondary" style="background:#EFF6FF;color:#2563EB;border-color:#BFDBFE;">SCREENING</span>
+                {% elif c.status == 'rejected' %}
+                  <span class="badge badge-danger">REJECTED</span>
+                {% else %}
+                  <span class="badge badge-secondary">APPLIED</span>
+                {% endif %}
+              </td>
+              <td style="text-align:right;">
                 <form method="POST" action="{{ url_for('dashboard.update_candidate_status', cand_id=c.id) }}" style="display:inline;margin:0;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <select name="status" onchange="this.form.submit()" style="font-size:0.75rem;padding:0.2rem 0.4rem;border-radius:5px;border:1px solid var(--border);background:#F8FAFC;">
+                  <select name="status" onchange="this.form.submit()" style="font-size:0.76rem;padding:0.25rem 0.5rem;border-radius:6px;border:1px solid var(--border);background:#F8FAFC;font-weight:600;color:var(--navy);cursor:pointer;">
                     <option value="applied" {% if c.status == 'applied' %}selected{% endif %}>Applied</option>
                     <option value="screening" {% if c.status == 'screening' %}selected{% endif %}>Screening</option>
                     <option value="interviewing" {% if c.status == 'interviewing' %}selected{% endif %}>Interviewing</option>
@@ -148,7 +193,7 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="4" style="text-align:center;padding:2rem;">No candidates currently in pipeline.</td>
+              <td colspan="4" style="text-align:center;padding:2.5rem;color:var(--text-sec);">No candidates currently in applicant pipeline.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -165,8 +210,8 @@
   <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:500px;box-shadow:var(--shadow-xl);border:1px solid var(--border);overflow:hidden;">
     <div style="padding:1.2rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
       <div style="display:flex;align-items:center;gap:0.5rem;">
-        <i data-lucide="briefcase" style="width:18px;height:18px;color:var(--cyan);"></i>
-        <h3 style="margin:0;color:#FFFFFF;font-size:1.05rem;font-weight:700;">Create Job Opening</h3>
+        <i data-lucide="plus-circle" style="width:18px;height:18px;color:var(--cyan);"></i>
+        <h3 style="margin:0;color:#FFFFFF;font-size:1.05rem;font-weight:700;">Publish New Job Opening</h3>
       </div>
       <button onclick="document.getElementById('addJobModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.3rem;cursor:pointer;">&times;</button>
     </div>
@@ -175,14 +220,14 @@
 
       <div class="form-group" style="margin-bottom:1rem;">
         <label class="form-label">Job Title *</label>
-        <input type="text" name="title" required class="form-control" placeholder="e.g. Lead Frontend Architect"/>
+        <input type="text" name="title" required class="form-control" placeholder="e.g. Senior Backend Engineer"/>
       </div>
 
       <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
         <div>
           <label class="form-label">Department</label>
           <select name="department_id" class="form-control">
-            <option value="">General</option>
+            <option value="">General / Organization-wide</option>
             {% for d in departments %}
             <option value="{{ d.id }}">{{ d.name }}</option>
             {% endfor %}

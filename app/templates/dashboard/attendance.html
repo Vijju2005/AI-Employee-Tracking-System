@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Attendance Analytics Dashboard | Enterprise HRMS{% endblock %}
-{% block topbar_title %}Attendance & Roster Analytics{% endblock %}
+{% block topbar_title %}Attendance &amp; Roster Analytics{% endblock %}
 
 {% block content %}
 <div class="reports-container">
@@ -28,28 +28,81 @@
     </div>
   </div>
 
-  <!-- KPI Row -->
-  <div class="reports-summary-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1.5rem;">
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">Present Today</span>
-      <div class="reports-summary-value" style="color:var(--blue);">{{ present_today }}</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">{{ attendance_pct }}% Attendance Rate</span>
+  <!-- 6 Professional Individual KPI Cards -->
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));gap:1.15rem;margin-bottom:1.75rem;">
+    
+    <!-- 1. Present Today -->
+    <div class="stat-card accent-blue">
+      <div class="stat-icon blue">
+        <i data-lucide="check-circle-2"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--blue);">{{ present_today }}</div>
+        <div class="stat-label">Present Today</div>
+        <div class="stat-sub">Active checked in session</div>
+      </div>
     </div>
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">Absent / Not Checked In</span>
-      <div class="reports-summary-value" style="color:#64748B;">{{ absent_today }}</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Out of {{ total_employees }} Total</span>
+
+    <!-- 2. Absent / Not Checked In -->
+    <div class="stat-card accent-rose">
+      <div class="stat-icon red">
+        <i data-lucide="user-x"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--danger-dark);">{{ absent_today }}</div>
+        <div class="stat-label">Absent / Pending</div>
+        <div class="stat-sub">Out of {{ total_employees }} total roster</div>
+      </div>
     </div>
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">On Approved Leave</span>
-      <div class="reports-summary-value" style="color:#D97706;">{{ on_leave_today }}</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Approved Active Time Off</span>
+
+    <!-- 3. On Approved Leave -->
+    <div class="stat-card accent-amber">
+      <div class="stat-icon amber">
+        <i data-lucide="calendar-off"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--warning-dark);">{{ on_leave_today }}</div>
+        <div class="stat-label">On Approved Leave</div>
+        <div class="stat-sub">Scheduled approved time off</div>
+      </div>
     </div>
-    <div class="reports-summary-card">
-      <span class="reports-summary-label">Total Net Working Hours</span>
-      <div class="reports-summary-value" style="color:var(--navy);">{{ total_work_hours }}h</div>
-      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">{{ total_break_hours }}h Breaks Logged</span>
+
+    <!-- 4. Attendance Rate -->
+    <div class="stat-card accent-cyan">
+      <div class="stat-icon cyan">
+        <i data-lucide="percent"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:#0891B2;">{{ attendance_pct }}%</div>
+        <div class="stat-label">Attendance Rate</div>
+        <div class="stat-sub">Daily workforce ratio</div>
+      </div>
     </div>
+
+    <!-- 5. Total Net Working Hours -->
+    <div class="stat-card accent-blue">
+      <div class="stat-icon blue">
+        <i data-lucide="briefcase"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--navy);">{{ total_work_hours }}h</div>
+        <div class="stat-label">Net Working Time</div>
+        <div class="stat-sub">Effective productive hours</div>
+      </div>
+    </div>
+
+    <!-- 6. Total Break Hours -->
+    <div class="stat-card accent-purple">
+      <div class="stat-icon purple">
+        <i data-lucide="coffee"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:#4F46E5;">{{ total_break_hours }}h</div>
+        <div class="stat-label">Total Break Hours</div>
+        <div class="stat-sub">Completed break duration</div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Recent Logs Table -->
@@ -59,39 +112,58 @@
         <i data-lucide="activity"></i>
         <span>Recent Attendance Clock Events</span>
       </h3>
+      <span class="reports-table-count-badge">{{ recent_logs|length }} Events Logged</span>
     </div>
-    <div class="reports-table-wrapper">
-      <table class="reports-data-table">
+    <div class="reports-table-wrapper" style="overflow-x:auto;">
+      <table class="reports-data-table" style="min-width:760px;width:100%;">
         <thead>
           <tr>
-            <th>Employee</th>
-            <th>Date</th>
-            <th>Clock In</th>
-            <th>Clock Out</th>
-            <th>Break Duration</th>
-            <th>Net Work Time</th>
-            <th>Status</th>
+            <th style="min-width:180px;">Employee</th>
+            <th style="min-width:120px;">Date</th>
+            <th style="min-width:95px;">Clock In</th>
+            <th style="min-width:105px;">Clock Out</th>
+            <th style="min-width:120px;">Break Duration</th>
+            <th style="min-width:120px;">Net Work Time</th>
+            <th style="min-width:100px;text-align:center;">Status</th>
           </tr>
         </thead>
         <tbody>
           {% for log in recent_logs %}
           <tr>
             <td>
-              <div style="font-weight:700;color:var(--navy);">{{ log.employee.full_name }}</div>
-              <div style="font-size:0.75rem;color:var(--text-sec);">{{ log.employee.employee_id }}</div>
+              <div style="font-weight:700;color:var(--navy);font-size:0.88rem;">{{ log.employee.full_name }}</div>
+              <div style="font-size:0.75rem;color:var(--text-sec);font-family:monospace;">{{ log.employee.employee_id }}</div>
             </td>
-            <td>{{ log.date.strftime('%d %b %Y') }}</td>
-            <td>{{ log.check_in.strftime('%H:%M') if log.check_in else '—' }}</td>
-            <td>{{ log.check_out.strftime('%H:%M') if log.check_out else 'In Progress' }}</td>
-            <td>{{ log.break_duration_minutes|round(0)|int }} mins</td>
-            <td><strong>{{ (log.net_working_minutes / 60)|round(1) }} hrs</strong></td>
-            <td>
-              <span class="report-badge badge-active">{{ log.status.value|title }}</span>
+            <td style="color:var(--text-sec);font-size:0.83rem;">{{ log.date.strftime('%d %b %Y') }}</td>
+            <td style="font-size:0.83rem;font-weight:600;color:var(--navy);">{{ log.check_in.strftime('%H:%M') if log.check_in else '—' }}</td>
+            <td style="font-size:0.83rem;">
+              {% if log.check_out %}
+                <span style="font-weight:600;color:var(--navy);">{{ log.check_out.strftime('%H:%M') }}</span>
+              {% else %}
+                <span class="badge badge-info" style="font-size:0.7rem;padding:0.2rem 0.5rem;">In Progress</span>
+              {% endif %}
+            </td>
+            <td style="font-size:0.83rem;color:var(--text-sec);">
+              <span class="calc-pill">{{ log.break_duration_minutes|round(0)|int }} mins</span>
+            </td>
+            <td style="font-size:0.85rem;">
+              <strong style="color:var(--navy);">{{ (log.net_working_minutes / 60)|round(1) }} hrs</strong>
+            </td>
+            <td style="text-align:center;">
+              {% if log.status.value == 'present' %}
+                <span class="badge badge-success">{{ log.status.value|title }}</span>
+              {% elif log.status.value == 'late' %}
+                <span class="badge badge-warning">{{ log.status.value|title }}</span>
+              {% elif log.status.value == 'half_day' %}
+                <span class="badge badge-info">Half Day</span>
+              {% else %}
+                <span class="badge badge-secondary">{{ log.status.value|title }}</span>
+              {% endif %}
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-sec);">No clock events recorded yet.</td>
+            <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-sec);">No clock events recorded yet today.</td>
           </tr>
           {% endfor %}
         </tbody>

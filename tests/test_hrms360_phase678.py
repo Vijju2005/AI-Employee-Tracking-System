@@ -156,15 +156,16 @@ class TestHRMS360Phase678Suite:
         client.get("/auth/logout")
         client.post("/auth/login", data={"identifier": f"adm_dash_{uid}", "password": "AdminPass123!"}, follow_redirects=True)
 
-        # 1. HR Dashboard
+        # 1. Verify HR Dashboard route is retired / removed
         hr_resp = client.get("/dashboard/hr")
-        assert hr_resp.status_code == 200
-        assert b"HR Analytics Dashboard" in hr_resp.data
+        assert hr_resp.status_code == 404
 
         # 2. Attendance Dashboard
         att_resp = client.get("/dashboard/attendance")
         assert att_resp.status_code == 200
         assert b"Attendance &amp; Punctuality Dashboard" in att_resp.data or b"Attendance & Punctuality Dashboard" in att_resp.data
+        assert b"Present Today" in att_resp.data
+        assert b"stat-card" in att_resp.data
 
         # 3. Recruitment Dashboard & CRUD
         rec_resp = client.get("/dashboard/recruitment")

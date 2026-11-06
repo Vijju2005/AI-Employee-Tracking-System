@@ -243,53 +243,6 @@ def employee_dashboard():
     )
 
 
-# ── Dedicated HR Analytics Dashboard ─────────────────────────────────────────
-
-@dashboard_bp.route("/dashboard/hr")
-@login_required
-@admin_required
-def hr_dashboard():
-    """Enterprise HR Analytics Dashboard."""
-    total_employees = Employee.query.count()
-    active_employees = Employee.query.filter_by(status=AccountStatus.ACTIVE).count()
-    inactive_employees = total_employees - active_employees
-
-    # Department distribution
-    dept_distribution = (
-        db.session.query(Department.name, func.count(Employee.id))
-        .outerjoin(Employee, Employee.department_id == Department.id)
-        .group_by(Department.id)
-        .all()
-    )
-    dept_labels = [r[0] for r in dept_distribution]
-    dept_counts = [r[1] for r in dept_distribution]
-
-    # Leave requests breakdown
-    pending_leaves = LeaveRequest.query.filter_by(status=LeaveStatus.PENDING).count()
-    approved_leaves = LeaveRequest.query.filter_by(status=LeaveStatus.APPROVED).count()
-    rejected_leaves = LeaveRequest.query.filter_by(status=LeaveStatus.REJECTED).count()
-
-    # Recent workforce joins
-    recent_joins = (
-        Employee.query.order_by(Employee.date_joined.desc())
-        .limit(6)
-        .all()
-    )
-
-    return render_template(
-        "dashboard/hr.html",
-        total_employees=total_employees,
-        active_employees=active_employees,
-        inactive_employees=inactive_employees,
-        dept_labels=dept_labels,
-        dept_counts=dept_counts,
-        pending_leaves=pending_leaves,
-        approved_leaves=approved_leaves,
-        rejected_leaves=rejected_leaves,
-        recent_joins=recent_joins
-    )
-
-
 # ── Dedicated Attendance Dashboard ───────────────────────────────────────────
 
 @dashboard_bp.route("/dashboard/attendance")
