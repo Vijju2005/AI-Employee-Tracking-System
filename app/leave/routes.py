@@ -7,7 +7,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import LeaveRequest, LeaveType, LeaveDayType, LeaveStatus, Employee, UserRole
+from app.models import LeaveRequest, LeaveType, LeaveDayType, LeaveStatus, Employee, UserRole, LeaveTypePolicy
 from app.email import send_leave_status_email
 from app.time_utils import parse_iso_date
 
@@ -136,3 +136,65 @@ def review(leave_id):
         return redirect(url_for("leave.index"))
 
     return render_template("leave/review.html", leave=leave)
+
+
+# ── Leave Policy Settings ───────────────────────────────────────────────────
+
+@leave_bp.route("/policies")
+@login_required
+def policies_list():
+    """List and manage corporate leave policies and allocation allowances."""
+    if not current_user.is_admin:
+        abort(403)
+
+    # Seed default baseline policies idempotently if empty
+    if LeaveTypePolicy.query.count() == 0:
+        default_policies = [
+            {"name": "Paid Annual Leave", "code": "ANNUAL", "annual_allocation_days": 18, "carry_forward_max_days": 5, "is_paid": True, "description": "Standard earned annual vacation"},
+            {"name": "Sick & Medical Leave", "code": "SICK", "annual_allocation_days": 10, "carry_forward_max_days": 0, "is_paid": True, "description": "Medical recuperation and illness recovery"},
+            {"name": "Casual Personal Leave", "code": "CASUAL", "annual_allocation_days": 8, "carry_forward_max_days": 0, "is_paid": True, "description": "Urgent personal affairs and family matters"},
+            {"name": "Unpaid Leave of Absence", "code": "UNPAID", "annual_allocation_days": 0, "carry_forward_max_days": 0, "is_paid": False, "description": "Extended time off without compensation"},
+        ]
+        for p in default_policies:
+            db.session.add(LeaveTypePolicy(**p))
+        db.session.commit()
+
+    policies = LeaveTypePolicy.query.order_by(LeaveTypePolicy.name.asc()).all()
+    return render_template("leave/policies.html", policies=policies)
+
+
+@leave_bp.route("/policies/add", methods=["POST"])
+@login_required
+def add_policy():
+    """Create a new leave policy rule."""
+    if not current_user.is_admin:
+        abort(403)
+
+    name = request.form.get("name", "").strip()
+    code = request.form.get("code", "").strip().upper()
+    allocation = request.form.get("annual_allocation_days", 12, type=int)
+    carry_forward = request.form.get("carry_forward_max_days", 0, type=int)
+    is_paid = request.form.get("is_paid") in ["1", "on", "true", "True"]
+    description = request.form.get("description", "").strip()
+
+    if not name or not code:
+        flash("Policy name and code identifier are required.", "danger")
+        return redirect(url_for("leave.policies_list"))
+
+    if LeaveTypePolicy.query.filter((LeaveTypePolicy.name == name) | (LeaveTypePolicy.code == code)).first():
+        flash("A leave policy with this name or code already exists.", "warning")
+        return redirect(url_for("leave.policies_list"))
+
+    pol = LeaveTypePolicy(
+        name=name,
+        code=code,
+        annual_allocation_days=allocation,
+        carry_forward_max_days=carry_forward,
+        is_paid=is_paid,
+        description=description
+    )
+    db.session.add(pol)
+    db.session.commit()
+    flash(f"Leave policy '{name}' configured successfully.", "success")
+    return redirect(url_for("leave.policies_list"))
+

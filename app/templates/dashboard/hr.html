@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}HR Analytics Dashboard | Enterprise HRMS{% endblock %}
+{% block topbar_title %}HR Workforce Analytics{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card" style="margin-bottom:1.5rem;">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="line-chart"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">HR Analytics Dashboard</h1>
+        <p class="reports-header-sub">Macro workforce distribution, retention metrics, staffing health, and leave status</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('employees.list_employees') }}" class="btn btn-primary">
+        <i data-lucide="users"></i>
+        <span>Employee Directory</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="reports-summary-grid" style="grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">Total Headcount</span>
+      <div class="reports-summary-value">{{ total_employees }}</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Entire Registered Roster</span>
+    </div>
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">Active Staff</span>
+      <div class="reports-summary-value" style="color:var(--blue);">{{ active_employees }}</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Currently Active Roles</span>
+    </div>
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">Inactive / Separated</span>
+      <div class="reports-summary-value" style="color:#64748B;">{{ inactive_employees }}</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Deactivated Profiles</span>
+    </div>
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">Pending Leaves</span>
+      <div class="reports-summary-value" style="color:#D97706;">{{ pending_leaves }}</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Awaiting Review</span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+    <!-- Department Distribution Table -->
+    <div class="reports-table-card">
+      <div class="reports-table-header">
+        <h3 class="reports-table-heading">
+          <i data-lucide="building"></i>
+          <span>Department Staffing Distribution</span>
+        </h3>
+      </div>
+      <div class="reports-table-wrapper">
+        <table class="reports-data-table">
+          <thead>
+            <tr>
+              <th>Department</th>
+              <th>Staff Count</th>
+              <th>Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for i in range(dept_labels|length) %}
+            <tr>
+              <td><strong>{{ dept_labels[i] }}</strong></td>
+              <td><span class="calc-pill">{{ dept_counts[i] }} Members</span></td>
+              <td>
+                <div style="font-size:0.75rem;font-weight:700;color:var(--navy);">
+                  {{ ((dept_counts[i] / total_employees * 100)|round(1)) if total_employees > 0 else 0 }}%
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" style="text-align:center;padding:2rem;">No department metrics available.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Employee Additions -->
+    <div class="reports-table-card">
+      <div class="reports-table-header">
+        <h3 class="reports-table-heading">
+          <i data-lucide="user-plus"></i>
+          <span>Recent Employee Onboardings</span>
+        </h3>
+      </div>
+      <div class="reports-table-wrapper">
+        <table class="reports-data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Joined Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for emp in recent_joins %}
+            <tr>
+              <td>
+                <div style="font-weight:700;color:var(--navy);">{{ emp.full_name }}</div>
+                <div style="font-size:0.75rem;color:var(--text-sec);">{{ emp.employee_id }} &bull; {{ emp.designation or 'Associate' }}</div>
+              </td>
+              <td>{{ emp.department.name if emp.department else '—' }}</td>
+              <td>{{ emp.date_joined.strftime('%d %b %Y') if emp.date_joined else '—' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" style="text-align:center;padding:2rem;">No recent onboardings.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

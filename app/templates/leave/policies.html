@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Leave Policies & Allocation Rules | Enterprise HRMS{% endblock %}
+{% block topbar_title %}Leave Policy Settings{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card" style="margin-bottom:1.5rem;">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="calendar-days"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Leave Policies &amp; Allocation Rules</h1>
+        <p class="reports-header-sub">Govern annual paid leaves, carry-forward rules, medical allowances, and accrual boundaries</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('leave.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
+        <i data-lucide="arrow-left"></i>
+        <span>Leave Requests</span>
+      </a>
+      <button class="btn btn-primary" onclick="document.getElementById('addPolicyModal').style.display='flex'">
+        <i data-lucide="plus"></i>
+        <span>Configure Policy</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Policies Table Card -->
+  <div class="reports-table-card">
+    <div class="reports-table-header">
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <h3 class="reports-table-heading">
+          <i data-lucide="shield-check"></i>
+          <span>Corporate Leave Type Allocations</span>
+        </h3>
+        <span class="reports-table-count-badge">{{ policies|length }} Policies Active</span>
+      </div>
+    </div>
+
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th style="min-width:200px;">Leave Type</th>
+            <th style="min-width:110px;">Code</th>
+            <th style="min-width:140px;">Annual Allocation</th>
+            <th style="min-width:150px;">Max Carry Forward</th>
+            <th style="min-width:110px;">Compensation</th>
+            <th style="min-width:240px;">Policy Scope</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in policies %}
+          <tr>
+            <td>
+              <div style="font-weight:700;color:var(--navy);font-size:0.9rem;">{{ p.name }}</div>
+            </td>
+            <td>
+              <span class="code-pill">{{ p.code }}</span>
+            </td>
+            <td>
+              <span class="calc-pill" style="font-weight:700;color:var(--blue);">{{ p.annual_allocation_days }} Days / Yr</span>
+            </td>
+            <td>
+              {% if p.carry_forward_max_days > 0 %}
+              <span class="calc-pill">{{ p.carry_forward_max_days }} Days</span>
+              {% else %}
+              <span style="font-size:0.8rem;color:var(--text-sec);">Lapses at Year-End</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if p.is_paid %}
+              <span class="report-badge badge-active">Paid Leave</span>
+              {% else %}
+              <span class="report-badge badge-inactive">Unpaid</span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-size:0.8rem;color:var(--text-sec);">{{ p.description or 'Standard company leave allowance' }}</span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:2.5rem;color:var(--text-sec);">No leave policies defined.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Add Policy -->
+<div id="addPolicyModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:500px;box-shadow:var(--shadow-xl);border:1px solid var(--border);overflow:hidden;">
+    <div style="padding:1.2rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="calendar-plus" style="width:18px;height:18px;color:var(--cyan);"></i>
+        <h3 style="margin:0;color:#FFFFFF;font-size:1.05rem;font-weight:700;">Add Leave Policy</h3>
+      </div>
+      <button onclick="document.getElementById('addPolicyModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.3rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('leave.add_policy') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Leave Type Name *</label>
+        <input type="text" name="name" required class="form-control" placeholder="e.g. Parental Leave, Sabbatical"/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Policy Code *</label>
+          <input type="text" name="code" required class="form-control" placeholder="PARENTAL" style="font-family:monospace;text-transform:uppercase;"/>
+        </div>
+        <div>
+          <label class="form-label">Annual Days *</label>
+          <input type="number" name="annual_allocation_days" value="12" min="0" required class="form-control"/>
+        </div>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Max Carry Forward Days</label>
+          <input type="number" name="carry_forward_max_days" value="0" min="0" class="form-control"/>
+        </div>
+        <div style="display:flex;align-items:center;padding-top:1.5rem;">
+          <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;font-weight:600;color:var(--navy);cursor:pointer;">
+            <input type="checkbox" name="is_paid" checked style="accent-color:var(--blue);width:16px;height:16px;"/>
+            <span>Paid Leave Policy</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Policy Scope / Rules</label>
+        <textarea name="description" class="form-control" rows="2" placeholder="Eligibility and usage guidelines..."></textarea>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:0.6rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('addPolicyModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Policy</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

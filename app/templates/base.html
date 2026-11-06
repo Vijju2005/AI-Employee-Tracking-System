@@ -60,6 +60,18 @@
           <span class="nav-icon"><i data-lucide="layout-dashboard"></i></span>
           <span class="nav-label">Dashboard</span>
         </a>
+        <a href="{{ url_for('dashboard.hr_dashboard') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="line-chart"></i></span>
+          <span class="nav-label">HR Analytics</span>
+        </a>
+        <a href="{{ url_for('dashboard.attendance_dashboard') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="clock"></i></span>
+          <span class="nav-label">Attendance Hub</span>
+        </a>
+        <a href="{{ url_for('dashboard.recruitment_dashboard') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="target"></i></span>
+          <span class="nav-label">Recruitment</span>
+        </a>
         <a href="{{ url_for('employees.list_employees') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="users"></i></span>
           <span class="nav-label">Employees</span>
@@ -74,11 +86,19 @@
         </a>
         <a href="{{ url_for('attendance.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="calendar-check"></i></span>
-          <span class="nav-label">Attendance</span>
+          <span class="nav-label">Attendance Roster</span>
+        </a>
+        <a href="{{ url_for('attendance.schedules_list') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="calendar-range"></i></span>
+          <span class="nav-label">Work Shifts</span>
         </a>
         <a href="{{ url_for('leave.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="calendar-days"></i></span>
           <span class="nav-label">Leave</span>
+        </a>
+        <a href="{{ url_for('leave.policies_list') }}" class="nav-item">
+          <span class="nav-icon"><i data-lucide="sliders"></i></span>
+          <span class="nav-label">Leave Policies</span>
         </a>
         <a href="{{ url_for('breaks.index') }}" class="nav-item">
           <span class="nav-icon"><i data-lucide="coffee"></i></span>

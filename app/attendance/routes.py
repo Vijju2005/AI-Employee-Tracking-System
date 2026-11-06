@@ -8,7 +8,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_required, current_user
 
 from app.extensions import db
-from app.models import Employee, Attendance, Break, AttendanceStatus, UserRole, Department
+from app.models import Employee, Attendance, Break, AttendanceStatus, UserRole, Department, WorkSchedule
 from app.time_utils import (
     utc_now, local_today, local_now, format_hours_mins,
     parse_iso_date,
@@ -128,3 +128,85 @@ def checkout():
     total_str = format_hours_mins(attendance.total_duration_minutes)
     flash(f"Checked out successfully! Total: {total_str}, Net Working Time: {net_str}.", "success")
     return redirect(url_for("dashboard.employee_dashboard"))
+
+
+# ── Shift & Work Schedule Management ─────────────────────────────────────────
+
+@attendance_bp.route("/schedules")
+@login_required
+def schedules_list():
+    """View and configure company work schedules and shifts."""
+    if not current_user.is_admin:
+        abort(403)
+
+    schedules = WorkSchedule.query.order_by(WorkSchedule.name.asc()).all()
+    employees = Employee.query.order_by(Employee.full_name.asc()).all()
+    return render_template("attendance/schedules.html", schedules=schedules, employees=employees)
+
+
+@attendance_bp.route("/schedules/add", methods=["POST"])
+@login_required
+def add_schedule():
+    """Create a new work shift schedule."""
+    if not current_user.is_admin:
+        abort(403)
+
+    name = request.form.get("name", "").strip()
+    start_time_str = request.form.get("start_time", "").strip()
+    end_time_str = request.form.get("end_time", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if not name or not start_time_str or not end_time_str:
+        flash("Shift name, start time, and end time are required.", "danger")
+        return redirect(url_for("attendance.schedules_list"))
+
+    try:
+        from datetime import time
+        sh, sm = map(int, start_time_str.split(":")[:2])
+        eh, em = map(int, end_time_str.split(":")[:2])
+        start_time = time(sh, sm)
+        end_time = time(eh, em)
+
+        # Calculate total hours
+        duration_hours = (eh + em/60.0) - (sh + sm/60.0)
+        if duration_hours < 0:
+            duration_hours += 24.0
+
+        sched = WorkSchedule(
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            total_hours=round(duration_hours, 2),
+            description=description
+        )
+        db.session.add(sched)
+        db.session.commit()
+        flash(f"Shift schedule '{name}' created successfully.", "success")
+    except Exception as e:
+        flash(f"Error creating shift: {str(e)}", "danger")
+
+    return redirect(url_for("attendance.schedules_list"))
+
+
+@attendance_bp.route("/schedules/assign", methods=["POST"])
+@login_required
+def assign_schedule():
+    """Assign an employee or group to a work shift schedule."""
+    if not current_user.is_admin:
+        abort(403)
+
+    employee_id = request.form.get("employee_id", type=int)
+    schedule_id = request.form.get("schedule_id", type=int)
+
+    if not employee_id or not schedule_id:
+        flash("Please select both an employee and a shift schedule.", "warning")
+        return redirect(url_for("attendance.schedules_list"))
+
+    emp = Employee.query.get_or_404(employee_id)
+    sched = WorkSchedule.query.get_or_404(schedule_id)
+
+    emp.work_schedule_id = sched.id
+    db.session.commit()
+    flash(f"Assigned {emp.full_name} to '{sched.name}' shift.", "success")
+    return redirect(url_for("attendance.schedules_list"))
+

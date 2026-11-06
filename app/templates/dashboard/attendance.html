@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Attendance Analytics Dashboard | Enterprise HRMS{% endblock %}
+{% block topbar_title %}Attendance & Roster Analytics{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card" style="margin-bottom:1.5rem;">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="calendar-check"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Attendance &amp; Punctuality Dashboard</h1>
+        <p class="reports-header-sub">Daily attendance ratios, shift presence, working hours, and live logging status for {{ today.strftime('%d %B %Y') }}</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('attendance.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
+        <i data-lucide="list"></i>
+        <span>Full Roster</span>
+      </a>
+      <a href="{{ url_for('attendance.schedules_list') }}" class="btn btn-primary">
+        <i data-lucide="clock"></i>
+        <span>Shifts &amp; Schedules</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Row -->
+  <div class="reports-summary-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">Present Today</span>
+      <div class="reports-summary-value" style="color:var(--blue);">{{ present_today }}</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">{{ attendance_pct }}% Attendance Rate</span>
+    </div>
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">Absent / Not Checked In</span>
+      <div class="reports-summary-value" style="color:#64748B;">{{ absent_today }}</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Out of {{ total_employees }} Total</span>
+    </div>
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">On Approved Leave</span>
+      <div class="reports-summary-value" style="color:#D97706;">{{ on_leave_today }}</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">Approved Active Time Off</span>
+    </div>
+    <div class="reports-summary-card">
+      <span class="reports-summary-label">Total Net Working Hours</span>
+      <div class="reports-summary-value" style="color:var(--navy);">{{ total_work_hours }}h</div>
+      <span style="font-size:0.75rem;color:var(--text-sec);font-weight:600;">{{ total_break_hours }}h Breaks Logged</span>
+    </div>
+  </div>
+
+  <!-- Recent Logs Table -->
+  <div class="reports-table-card">
+    <div class="reports-table-header">
+      <h3 class="reports-table-heading">
+        <i data-lucide="activity"></i>
+        <span>Recent Attendance Clock Events</span>
+      </h3>
+    </div>
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Date</th>
+            <th>Clock In</th>
+            <th>Clock Out</th>
+            <th>Break Duration</th>
+            <th>Net Work Time</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in recent_logs %}
+          <tr>
+            <td>
+              <div style="font-weight:700;color:var(--navy);">{{ log.employee.full_name }}</div>
+              <div style="font-size:0.75rem;color:var(--text-sec);">{{ log.employee.employee_id }}</div>
+            </td>
+            <td>{{ log.date.strftime('%d %b %Y') }}</td>
+            <td>{{ log.check_in.strftime('%H:%M') if log.check_in else '—' }}</td>
+            <td>{{ log.check_out.strftime('%H:%M') if log.check_out else 'In Progress' }}</td>
+            <td>{{ log.break_duration_minutes|round(0)|int }} mins</td>
+            <td><strong>{{ (log.net_working_minutes / 60)|round(1) }} hrs</strong></td>
+            <td>
+              <span class="report-badge badge-active">{{ log.status.value|title }}</span>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-sec);">No clock events recorded yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

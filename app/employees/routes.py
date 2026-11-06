@@ -8,7 +8,10 @@ from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 
 from app.extensions import db
-from app.models import Employee, Department, WorkSchedule, User, UserRole, AccountStatus
+from app.models import (
+    Employee, Department, WorkSchedule, User, UserRole, AccountStatus,
+    Designation, EmployeeSalary, Attendance, LeaveRequest
+)
 
 employees_bp = Blueprint("employees", __name__, url_prefix="/employees")
 
@@ -29,6 +32,7 @@ def list_employees():
     q = request.args.get("q", "").strip()
     dept_filter = request.args.get("dept", "")
     status_filter = request.args.get("status", "")
+    view_mode = request.args.get("view", "list")  # list or grid
     page = request.args.get("page", 1, type=int)
 
     query = Employee.query
@@ -38,6 +42,7 @@ def list_employees():
                 Employee.full_name.ilike(f"%{q}%"),
                 Employee.employee_id.ilike(f"%{q}%"),
                 Employee.email.ilike(f"%{q}%"),
+                Employee.designation.ilike(f"%{q}%"),
             )
         )
     if dept_filter:
@@ -46,9 +51,14 @@ def list_employees():
         status_val = AccountStatus.ACTIVE if status_filter == "active" else AccountStatus.INACTIVE
         query = query.filter_by(status=status_val)
 
-    employees = query.order_by(Employee.full_name).paginate(page=page, per_page=15, error_out=False)
+    employees = query.order_by(Employee.full_name).paginate(page=page, per_page=12 if view_mode == 'grid' else 15, error_out=False)
     departments = Department.query.order_by(Department.name).all()
-    return render_template("employees/list.html", employees=employees, departments=departments)
+    return render_template(
+        "employees/list.html",
+        employees=employees,
+        departments=departments,
+        view_mode=view_mode
+    )
 
 
 def get_next_employee_id() -> str:
@@ -250,6 +260,207 @@ def profile():
     """Employee personal profile view and admin self-view."""
     employee = current_user.employee
     return render_template("employees/profile.html", employee=employee, user=current_user)
+
+
+@employees_bp.route("/<int:emp_id>/view")
+@login_required
+def view_employee(emp_id):
+    """Complete employee profile view showing personal, job, salary, attendance, and leave details."""
+    employee = Employee.query.get_or_404(emp_id)
+
+    # Permission check: Standard employees can only view their own profile
+    if not current_user.is_admin:
+        if not current_user.employee or current_user.employee.id != employee.id:
+            abort(403)
+
+    # Sensitive salary details (Admin only)
+    salary = None
+    if current_user.is_admin:
+        salary = EmployeeSalary.query.filter_by(employee_id=employee.id).first()
+
+    recent_attendance = (
+        Attendance.query.filter_by(employee_id=employee.id)
+        .order_by(Attendance.date.desc())
+        .limit(10)
+        .all()
+    )
+    recent_leaves = (
+        LeaveRequest.query.filter_by(employee_id=employee.id)
+        .order_by(LeaveRequest.created_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    return render_template(
+        "employees/view.html",
+        employee=employee,
+        salary=salary,
+        recent_attendance=recent_attendance,
+        recent_leaves=recent_leaves
+    )
+
+
+# ── Department Management ───────────────────────────────────────────────────
+
+@employees_bp.route("/departments")
+@login_required
+@admin_required
+def departments_list():
+    """List, search, and manage organizational departments."""
+    q = request.args.get("q", "").strip()
+    query = Department.query
+    if q:
+        query = query.filter(
+            db.or_(
+                Department.name.ilike(f"%{q}%"),
+                Department.description.ilike(f"%{q}%")
+            )
+        )
+    departments = query.order_by(Department.name.asc()).all()
+    return render_template("employees/departments.html", departments=departments, q=q)
+
+
+@employees_bp.route("/departments/add", methods=["POST"])
+@login_required
+@admin_required
+def add_department():
+    """Create a new department."""
+    name = request.form.get("name", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if not name:
+        flash("Department name is required.", "danger")
+        return redirect(url_for("employees.departments_list"))
+
+    if Department.query.filter_by(name=name).first():
+        flash(f"Department '{name}' already exists.", "warning")
+        return redirect(url_for("employees.departments_list"))
+
+    dept = Department(name=name, description=description)
+    db.session.add(dept)
+    db.session.commit()
+    flash(f"Department '{name}' created successfully.", "success")
+    return redirect(url_for("employees.departments_list"))
+
+
+@employees_bp.route("/departments/<int:dept_id>/edit", methods=["POST"])
+@login_required
+@admin_required
+def edit_department(dept_id):
+    """Edit department details."""
+    dept = Department.query.get_or_404(dept_id)
+    name = request.form.get("name", "").strip()
+    description = request.form.get("description", "").strip()
+
+    if not name:
+        flash("Department name is required.", "danger")
+        return redirect(url_for("employees.departments_list"))
+
+    existing = Department.query.filter_by(name=name).first()
+    if existing and existing.id != dept_id:
+        flash(f"Another department with name '{name}' already exists.", "warning")
+        return redirect(url_for("employees.departments_list"))
+
+    dept.name = name
+    dept.description = description
+    db.session.commit()
+    flash(f"Department '{name}' updated successfully.", "success")
+    return redirect(url_for("employees.departments_list"))
+
+
+@employees_bp.route("/departments/<int:dept_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def delete_department(dept_id):
+    """Safely delete department if no employees are currently assigned."""
+    dept = Department.query.get_or_404(dept_id)
+    assigned_count = Employee.query.filter_by(department_id=dept.id).count()
+    if assigned_count > 0:
+        flash(f"Cannot delete department '{dept.name}' because {assigned_count} employee(s) are assigned to it.", "danger")
+        return redirect(url_for("employees.departments_list"))
+
+    db.session.delete(dept)
+    db.session.commit()
+    flash(f"Department '{dept.name}' deleted successfully.", "info")
+    return redirect(url_for("employees.departments_list"))
+
+
+# ── Designation Management ───────────────────────────────────────────────────
+
+@employees_bp.route("/designations")
+@login_required
+@admin_required
+def designations_list():
+    """List and manage designations associated with departments."""
+    q = request.args.get("q", "").strip()
+    dept_id = request.args.get("dept", type=int)
+
+    query = Designation.query
+    if q:
+        query = query.filter(Designation.name.ilike(f"%{q}%"))
+    if dept_id:
+        query = query.filter_by(department_id=dept_id)
+
+    designations = query.order_by(Designation.name.asc()).all()
+    departments = Department.query.order_by(Department.name.asc()).all()
+    return render_template(
+        "employees/designations.html",
+        designations=designations,
+        departments=departments,
+        selected_dept=dept_id,
+        q=q
+    )
+
+
+@employees_bp.route("/designations/add", methods=["POST"])
+@login_required
+@admin_required
+def add_designation():
+    """Add new designation."""
+    name = request.form.get("name", "").strip()
+    dept_id = request.form.get("department_id", type=int)
+    description = request.form.get("description", "").strip()
+
+    if not name:
+        flash("Designation title is required.", "danger")
+        return redirect(url_for("employees.designations_list"))
+
+    if Designation.query.filter_by(name=name).first():
+        flash(f"Designation '{name}' already exists.", "warning")
+        return redirect(url_for("employees.designations_list"))
+
+    desig = Designation(name=name, department_id=dept_id or None, description=description)
+    db.session.add(desig)
+    db.session.commit()
+    flash(f"Designation '{name}' created successfully.", "success")
+    return redirect(url_for("employees.designations_list"))
+
+
+@employees_bp.route("/designations/<int:desig_id>/edit", methods=["POST"])
+@login_required
+@admin_required
+def edit_designation(desig_id):
+    """Edit designation details."""
+    desig = Designation.query.get_or_404(desig_id)
+    name = request.form.get("name", "").strip()
+    dept_id = request.form.get("department_id", type=int)
+    description = request.form.get("description", "").strip()
+
+    if not name:
+        flash("Designation title is required.", "danger")
+        return redirect(url_for("employees.designations_list"))
+
+    existing = Designation.query.filter_by(name=name).first()
+    if existing and existing.id != desig_id:
+        flash(f"Another designation with name '{name}' already exists.", "warning")
+        return redirect(url_for("employees.designations_list"))
+
+    desig.name = name
+    desig.department_id = dept_id or None
+    desig.description = description
+    db.session.commit()
+    flash(f"Designation '{name}' updated successfully.", "success")
+    return redirect(url_for("employees.designations_list"))
 
 
 @employees_bp.route("/<int:emp_id>/toggle", methods=["POST"])

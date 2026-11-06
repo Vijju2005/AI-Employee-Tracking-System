@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Work Schedules & Shifts | Enterprise HRMS{% endblock %}
+{% block topbar_title %}Shift & Schedule Management{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card" style="margin-bottom:1.5rem;">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="clock"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Work Schedules &amp; Shift Management</h1>
+        <p class="reports-header-sub">Define operational shift windows, configure working hours, and assign employees to schedules</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('attendance.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
+        <i data-lucide="arrow-left"></i>
+        <span>Attendance Roster</span>
+      </a>
+      <button class="btn btn-primary" onclick="document.getElementById('addShiftModal').style.display='flex'">
+        <i data-lucide="plus"></i>
+        <span>Create Shift</span>
+      </button>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;align-items:start;">
+
+    <!-- Shifts Table Card -->
+    <div class="reports-table-card">
+      <div class="reports-table-header">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <h3 class="reports-table-heading">
+            <i data-lucide="calendar"></i>
+            <span>Defined Work Shifts</span>
+          </h3>
+          <span class="reports-table-count-badge">{{ schedules|length }} Shifts</span>
+        </div>
+      </div>
+
+      <div class="reports-table-wrapper">
+        <table class="reports-data-table">
+          <thead>
+            <tr>
+              <th style="min-width:180px;">Shift Name</th>
+              <th style="min-width:130px;">Time Window</th>
+              <th style="min-width:110px;">Shift Length</th>
+              <th style="min-width:120px;">Staff Assigned</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in schedules %}
+            <tr>
+              <td>
+                <div style="font-weight:700;color:var(--navy);font-size:0.9rem;">{{ s.name }}</div>
+                {% if s.description %}
+                <div style="font-size:0.75rem;color:var(--text-sec);margin-top:2px;">{{ s.description }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <span class="code-pill">
+                  {{ s.start_time.strftime('%H:%M') if s.start_time else '09:00' }} - {{ s.end_time.strftime('%H:%M') if s.end_time else '17:00' }}
+                </span>
+              </td>
+              <td>
+                <span class="calc-pill">{{ s.total_hours }} hrs</span>
+              </td>
+              <td>
+                <span class="report-badge badge-active">{{ s.employees.count() }} Employees</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" style="text-align:center;padding:2.5rem;color:var(--text-sec);">
+                No shifts configured yet.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Quick Shift Assignment Card -->
+    <div class="reports-table-card" style="padding:1.4rem;">
+      <div style="display:flex;align-items:center;gap:0.6rem;padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid var(--border);">
+        <i data-lucide="user-check" style="width:20px;height:20px;color:var(--blue);"></i>
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);">Assign Employee to Shift</h3>
+      </div>
+
+      <form method="POST" action="{{ url_for('attendance.assign_schedule') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label">Select Employee *</label>
+          <select name="employee_id" required class="form-control" style="background:#FFFFFF;">
+            <option value="">Choose employee...</option>
+            {% for emp in employees %}
+            <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.employee_id }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label class="form-label">Target Shift *</label>
+          <select name="schedule_id" required class="form-control" style="background:#FFFFFF;">
+            <option value="">Choose shift...</option>
+            {% for s in schedules %}
+            <option value="{{ s.id }}">{{ s.name }} ({{ s.start_time.strftime('%H:%M') }} - {{ s.end_time.strftime('%H:%M') }})</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">
+          <i data-lucide="check"></i>
+          <span>Save Shift Assignment</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- Modal: Create Shift -->
+<div id="addShiftModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.65);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);border:1px solid var(--border);overflow:hidden;">
+    <div style="padding:1.2rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="clock" style="width:18px;height:18px;color:var(--cyan);"></i>
+        <h3 style="margin:0;color:#FFFFFF;font-size:1.05rem;font-weight:700;">Create Work Shift</h3>
+      </div>
+      <button onclick="document.getElementById('addShiftModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.3rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('attendance.add_schedule') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Shift Name *</label>
+        <input type="text" name="name" required class="form-control" placeholder="e.g. Night Shift 11-7, Rotating Shift A"/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Start Time *</label>
+          <input type="time" name="start_time" required class="form-control"/>
+        </div>
+        <div>
+          <label class="form-label">End Time *</label>
+          <input type="time" name="end_time" required class="form-control"/>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Description / Days</label>
+        <textarea name="description" class="form-control" rows="2" placeholder="e.g. Monday to Friday standard core hours"></textarea>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:0.6rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('addShiftModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Shift</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

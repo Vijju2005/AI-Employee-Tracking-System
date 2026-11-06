@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}{{ employee.full_name }} — Personnel Record | Enterprise HRMS{% endblock %}
+{% block topbar_title %}Employee Profile{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card" style="margin-bottom:1.5rem;">
+    <div class="reports-header-left">
+      <div style="width:58px;height:58px;border-radius:14px;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;box-shadow:0 6px 14px rgba(37,99,235,0.3);">
+        {{ employee.full_name[0].upper() }}
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <h1 class="reports-header-title" style="margin:0;">{{ employee.full_name }}</h1>
+          {% if employee.status.value == 'active' %}
+          <span class="report-badge badge-active">Active</span>
+          {% else %}
+          <span class="report-badge badge-inactive">Inactive</span>
+          {% endif %}
+        </div>
+        <p class="reports-header-sub" style="margin-top:0.25rem;">
+          {{ employee.designation or 'Team Member' }} &bull; {{ employee.department.name if employee.department else 'General Department' }} &bull; ID: {{ employee.employee_id }}
+        </p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
+        <i data-lucide="arrow-left"></i>
+        <span>Back to Directory</span>
+      </a>
+      {% if current_user.is_admin %}
+      <a href="{{ url_for('employees.edit_employee', emp_id=employee.id) }}" class="btn btn-primary">
+        <i data-lucide="edit"></i>
+        <span>Edit Profile</span>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Profile Details Layout -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+
+    <!-- Personal & Employment Information -->
+    <div class="reports-table-card" style="padding:1.4rem;">
+      <div style="display:flex;align-items:center;gap:0.6rem;padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid var(--border);">
+        <i data-lucide="user-check" style="width:20px;height:20px;color:var(--blue);"></i>
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);">Personnel &amp; Job Record</h3>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:0.85rem;">
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Full Name</span>
+          <strong style="color:var(--navy);">{{ employee.full_name }}</strong>
+        </div>
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Employee ID</span>
+          <span class="code-pill">{{ employee.employee_id }}</span>
+        </div>
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Department</span>
+          <strong style="color:var(--navy);">{{ employee.department.name if employee.department else '—' }}</strong>
+        </div>
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Designation</span>
+          <strong style="color:var(--navy);">{{ employee.designation or '—' }}</strong>
+        </div>
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Company</span>
+          <strong style="color:var(--navy);">{{ employee.company_name }}</strong>
+        </div>
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Joining Date</span>
+          <strong style="color:var(--navy);">{{ employee.date_joined.strftime('%d %b %Y') if employee.date_joined else '—' }}</strong>
+        </div>
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Work Schedule</span>
+          <span class="calc-pill">{{ employee.work_schedule.name if employee.work_schedule else 'Standard 9-5' }}</span>
+        </div>
+        <div>
+          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">System User Account</span>
+          <strong style="color:var(--blue);">{{ employee.user.username if employee.user else 'No linked login' }}</strong>
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);">
+        <h4 style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:var(--navy);">Contact Information</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-size:0.84rem;">
+          <div style="display:flex;align-items:center;gap:0.4rem;color:var(--text-sec);">
+            <i data-lucide="mail" style="width:15px;height:15px;color:var(--blue);"></i>
+            <span>{{ employee.email }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.4rem;color:var(--text-sec);">
+            <i data-lucide="phone" style="width:15px;height:15px;color:var(--blue);"></i>
+            <span>{{ employee.phone or 'Not provided' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Salary & Compensation Card (Admin Only) -->
+    <div class="reports-table-card" style="padding:1.4rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <i data-lucide="banknote" style="width:20px;height:20px;color:var(--blue);"></i>
+          <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);">Compensation Overview</h3>
+        </div>
+        {% if current_user.is_admin %}
+        <span class="report-code-badge earnings-badge">Confidential</span>
+        {% endif %}
+      </div>
+
+      {% if current_user.is_admin and salary %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:0.85rem;margin-bottom:1.25rem;">
+        <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
+          <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Annual CTC</span>
+          <div style="font-size:1.2rem;font-weight:800;color:var(--navy);margin-top:2px;">₹{{ "{:,.2f}".format(salary.ctc or (salary.gross_salary * 12)) }}</div>
+        </div>
+        <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
+          <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Monthly Net Take-Home</span>
+          <div style="font-size:1.2rem;font-weight:800;color:var(--blue);margin-top:2px;">₹{{ "{:,.2f}".format(salary.net_salary) }}</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem;">
+        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
+          <span style="color:var(--text-sec);">Basic Salary</span>
+          <strong style="color:var(--navy);">₹{{ "{:,.2f}".format(salary.basic_salary) }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
+          <span style="color:var(--text-sec);">House Rent Allowance (HRA)</span>
+          <strong style="color:var(--navy);">₹{{ "{:,.2f}".format(salary.hra) }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
+          <span style="color:var(--text-sec);">Special &amp; Other Allowances</span>
+          <strong style="color:var(--navy);">₹{{ "{:,.2f}".format(salary.special_allowance + salary.other_allowances) }}</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
+          <span style="color:var(--text-sec);">Total Statutory Deductions (PF/ESI/TDS)</span>
+          <strong style="color:#DC2626;">-₹{{ "{:,.2f}".format(salary.total_deductions) }}</strong>
+        </div>
+      </div>
+      {% elif current_user.is_admin %}
+      <div style="text-align:center;padding:2rem 1rem;color:var(--text-sec);">
+        <i data-lucide="file-question" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:0.5rem;"></i>
+        <p style="margin:0;font-weight:600;">Salary structure not yet defined for this employee.</p>
+        <a href="{{ url_for('payroll.salaries_list') }}" class="btn btn-sm btn-primary" style="margin-top:0.75rem;">
+          <span>Configure Salary Structure</span>
+        </a>
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:2rem 1rem;color:var(--text-sec);">
+        <i data-lucide="lock" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:0.5rem;"></i>
+        <p style="margin:0;font-weight:600;">Compensation details are restricted to authorized administrators.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Recent Attendance & Leave Histories -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;align-items:start;">
+
+    <!-- Recent Attendance -->
+    <div class="reports-table-card">
+      <div class="reports-table-header">
+        <h3 class="reports-table-heading">
+          <i data-lucide="calendar-check"></i>
+          <span>Recent Attendance Records</span>
+        </h3>
+        <span class="reports-table-count-badge">{{ recent_attendance|length }} Days</span>
+      </div>
+      <div class="reports-table-wrapper">
+        <table class="reports-data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Net Work</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for att in recent_attendance %}
+            <tr>
+              <td><strong>{{ att.date.strftime('%d %b %Y') }}</strong></td>
+              <td>{{ att.check_in.strftime('%H:%M') if att.check_in else '—' }}</td>
+              <td>{{ att.check_out.strftime('%H:%M') if att.check_out else '—' }}</td>
+              <td>{{ (att.net_working_minutes / 60)|round(1) }} hrs</td>
+              <td>
+                <span class="report-badge badge-active">{{ att.status.value|title }}</span>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-sec);">No attendance logs recorded yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Recent Leave Requests -->
+    <div class="reports-table-card">
+      <div class="reports-table-header">
+        <h3 class="reports-table-heading">
+          <i data-lucide="calendar-days"></i>
+          <span>Recent Leave Requests</span>
+        </h3>
+        <span class="reports-table-count-badge">{{ recent_leaves|length }} Requests</span>
+      </div>
+      <div class="reports-table-wrapper">
+        <table class="reports-data-table">
+          <thead>
+            <tr>
+              <th>Period</th>
+              <th>Type</th>
+              <th>Reason</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lr in recent_leaves %}
+            <tr>
+              <td>
+                <strong>{{ lr.start_date.strftime('%d %b') }}</strong> - {{ lr.end_date.strftime('%d %b %Y') }}
+              </td>
+              <td>{{ lr.leave_type|title }}</td>
+              <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ lr.reason }}</td>
+              <td>
+                {% if lr.status.value == 'approved' %}
+                <span class="report-badge badge-active">Approved</span>
+                {% elif lr.status.value == 'pending' %}
+                <span class="report-badge" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">Pending</span>
+                {% else %}
+                <span class="report-badge badge-inactive">Rejected</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" style="text-align:center;padding:2rem;color:var(--text-sec);">No leave requests filed yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

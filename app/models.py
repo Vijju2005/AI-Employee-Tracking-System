@@ -916,5 +916,98 @@ class Subscription(db.Model):
         return f"<Subscription company={self.company_id} pkg={self.package_id} status={self.status}>"
 
 
+class Designation(db.Model):
+    """
+    Job designations mapped within the organization, optionally associated with a department.
+    """
+    __tablename__ = "designations"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True, index=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    department = relationship("Department")
+
+    def __repr__(self):
+        return f"<Designation {self.name}>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "department_id": self.department_id,
+            "department_name": self.department.name if self.department else None,
+            "description": self.description,
+        }
+
+
+class LeaveTypePolicy(db.Model):
+    """
+    Leave types and annual allocations with carry forward rules.
+    """
+    __tablename__ = "leave_type_policies"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True)
+    code = Column(String(30), nullable=False, unique=True)
+    annual_allocation_days = Column(Integer, default=12, nullable=False)
+    carry_forward_max_days = Column(Integer, default=0, nullable=False)
+    is_paid = Column(Boolean, default=True, nullable=False)
+    description = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<LeaveTypePolicy {self.name} ({self.code})>"
+
+
+class JobOpening(db.Model):
+    """
+    Recruitment Job Postings and Openings.
+    """
+    __tablename__ = "job_openings"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(150), nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    positions = Column(Integer, default=1, nullable=False)
+    status = Column(String(30), default="open", nullable=False)  # open, closed, on_hold
+    job_type = Column(String(50), default="Full-Time")  # Full-Time, Part-Time, Contract
+    experience_level = Column(String(50), default="Mid-Level")
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    department = relationship("Department")
+    candidates = relationship("JobCandidate", back_populates="job_opening", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<JobOpening {self.title} ({self.status})>"
+
+
+class JobCandidate(db.Model):
+    """
+    Recruitment Candidates / Applicants pipeline and interview tracking.
+    """
+    __tablename__ = "job_candidates"
+
+    id = Column(Integer, primary_key=True)
+    job_opening_id = Column(Integer, ForeignKey("job_openings.id"), nullable=False, index=True)
+    full_name = Column(String(150), nullable=False)
+    email = Column(String(255), nullable=False)
+    phone = Column(String(30), nullable=True)
+    status = Column(String(40), default="applied", nullable=False)  # applied, screening, interviewing, offered, hired, rejected
+    interview_date = Column(DateTime, nullable=True)
+    interview_notes = Column(Text, nullable=True)
+    rating = Column(Integer, default=0)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    job_opening = relationship("JobOpening", back_populates="candidates")
+
+    def __repr__(self):
+        return f"<JobCandidate {self.full_name} ({self.status})>"
+
+
+
 
 

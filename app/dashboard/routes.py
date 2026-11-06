@@ -12,7 +12,8 @@ from sqlalchemy import func
 from app.extensions import db
 from app.models import (
     User, Employee, Attendance, Break, LeaveRequest, Holiday,
-    Department, AttendanceStatus, LeaveStatus, UserRole
+    Department, AttendanceStatus, LeaveStatus, UserRole, AccountStatus,
+    JobOpening, JobCandidate
 )
 from app.time_utils import local_today, local_now, utc_now
 
@@ -240,3 +241,188 @@ def employee_dashboard():
         upcoming_holidays=upcoming_holidays,
         my_leaves=my_leaves,
     )
+
+
+# ── Dedicated HR Analytics Dashboard ─────────────────────────────────────────
+
+@dashboard_bp.route("/dashboard/hr")
+@login_required
+@admin_required
+def hr_dashboard():
+    """Enterprise HR Analytics Dashboard."""
+    total_employees = Employee.query.count()
+    active_employees = Employee.query.filter_by(status=AccountStatus.ACTIVE).count()
+    inactive_employees = total_employees - active_employees
+
+    # Department distribution
+    dept_distribution = (
+        db.session.query(Department.name, func.count(Employee.id))
+        .outerjoin(Employee, Employee.department_id == Department.id)
+        .group_by(Department.id)
+        .all()
+    )
+    dept_labels = [r[0] for r in dept_distribution]
+    dept_counts = [r[1] for r in dept_distribution]
+
+    # Leave requests breakdown
+    pending_leaves = LeaveRequest.query.filter_by(status=LeaveStatus.PENDING).count()
+    approved_leaves = LeaveRequest.query.filter_by(status=LeaveStatus.APPROVED).count()
+    rejected_leaves = LeaveRequest.query.filter_by(status=LeaveStatus.REJECTED).count()
+
+    # Recent workforce joins
+    recent_joins = (
+        Employee.query.order_by(Employee.date_joined.desc())
+        .limit(6)
+        .all()
+    )
+
+    return render_template(
+        "dashboard/hr.html",
+        total_employees=total_employees,
+        active_employees=active_employees,
+        inactive_employees=inactive_employees,
+        dept_labels=dept_labels,
+        dept_counts=dept_counts,
+        pending_leaves=pending_leaves,
+        approved_leaves=approved_leaves,
+        rejected_leaves=rejected_leaves,
+        recent_joins=recent_joins
+    )
+
+
+# ── Dedicated Attendance Dashboard ───────────────────────────────────────────
+
+@dashboard_bp.route("/dashboard/attendance")
+@login_required
+@admin_required
+def attendance_dashboard():
+    """Enterprise Attendance Analytics & Roster Dashboard."""
+    today = local_today()
+    total_employees = Employee.query.count()
+
+    today_records = Attendance.query.filter_by(date=today).all()
+    present_today = len(today_records)
+    absent_today = max(0, total_employees - present_today)
+
+    # Approved leaves for today
+    on_leave_today = (
+        LeaveRequest.query.filter(
+            LeaveRequest.status == LeaveStatus.APPROVED,
+            LeaveRequest.start_date <= today,
+            LeaveRequest.end_date >= today
+        ).count()
+    )
+
+    attendance_pct = round((present_today / total_employees * 100), 1) if total_employees > 0 else 0.0
+
+    # Total net work hours & breaks logged today
+    total_work_minutes = sum(r.net_working_minutes or 0.0 for r in today_records)
+    total_break_minutes = sum(r.break_duration_minutes or 0.0 for r in today_records)
+
+    # 7-day trend
+    trend_labels = []
+    trend_present = []
+    for i in range(6, -1, -1):
+        d = today - timedelta(days=i)
+        trend_labels.append(d.strftime("%d %b"))
+        count = Attendance.query.filter_by(date=d).count()
+        trend_present.append(count)
+
+    recent_logs = (
+        Attendance.query.order_by(Attendance.created_at.desc())
+        .limit(8)
+        .all()
+    )
+
+    return render_template(
+        "dashboard/attendance.html",
+        today=today,
+        total_employees=total_employees,
+        present_today=present_today,
+        absent_today=absent_today,
+        on_leave_today=on_leave_today,
+        attendance_pct=attendance_pct,
+        total_work_hours=round(total_work_minutes / 60.0, 1),
+        total_break_hours=round(total_break_minutes / 60.0, 1),
+        trend_labels=trend_labels,
+        trend_present=trend_present,
+        recent_logs=recent_logs
+    )
+
+
+# ── Dedicated Recruitment Dashboard ─────────────────────────────────────────
+
+@dashboard_bp.route("/dashboard/recruitment")
+@login_required
+@admin_required
+def recruitment_dashboard():
+    """Enterprise Talent Acquisition & Recruitment Pipeline Dashboard."""
+    # Seed sample baseline job postings idempotently if empty
+    if JobOpening.query.count() == 0:
+        it_dept = Department.query.filter(Department.name.ilike("%tech%")).first() or Department.query.first()
+        dept_id = it_dept.id if it_dept else None
+
+        job1 = JobOpening(
+            title="Senior Full-Stack Python Engineer",
+            department_id=dept_id,
+            positions=2,
+            status="open",
+            job_type="Full-Time",
+            experience_level="Senior",
+            description="Lead backend architecture and web dashboard services."
+        )
+        job2 = JobOpening(
+            title="HR & Payroll Operations Specialist",
+            department_id=dept_id,
+            positions=1,
+            status="open",
+            job_type="Full-Time",
+            experience_level="Mid-Level",
+            description="Manage corporate employee payroll and attendance compliance."
+        )
+        db.session.add_all([job1, job2])
+        db.session.commit()
+
+        cand1 = JobCandidate(
+            job_opening_id=job1.id,
+            full_name="Aarav Sharma",
+            email="aarav.sharma@example.com",
+            phone="+91 98765 43210",
+            status="interviewing",
+            rating=4,
+            interview_notes="Strong algorithmic background and Flask/MySQL expertise."
+        )
+        cand2 = JobCandidate(
+            job_opening_id=job1.id,
+            full_name="Pooja Rao",
+            email="pooja.rao@example.com",
+            phone="+91 98123 45678",
+            status="applied",
+            rating=3
+        )
+        db.session.add_all([cand1, cand2])
+        db.session.commit()
+
+    total_openings = JobOpening.query.filter_by(status="open").count()
+    total_candidates = JobCandidate.query.count()
+
+    applied_count = JobCandidate.query.filter_by(status="applied").count()
+    interviewing_count = JobCandidate.query.filter_by(status="interviewing").count()
+    offered_count = JobCandidate.query.filter_by(status="offered").count()
+    hired_count = JobCandidate.query.filter_by(status="hired").count()
+
+    openings = JobOpening.query.order_by(JobOpening.created_at.desc()).all()
+    candidates = JobCandidate.query.order_by(JobCandidate.created_at.desc()).limit(10).all()
+
+    return render_template(
+        "dashboard/recruitment.html",
+        total_openings=total_openings,
+        total_candidates=total_candidates,
+        applied_count=applied_count,
+        interviewing_count=interviewing_count,
+        offered_count=offered_count,
+        hired_count=hired_count,
+        openings=openings,
+        candidates=candidates
+    )
+
