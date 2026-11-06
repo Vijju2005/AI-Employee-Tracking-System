@@ -594,6 +594,15 @@ def components_list():
     """Manage earning and deduction pay components."""
     seed_default_payroll_items(db.session)
 
+    # Clean up any misplaced or improperly worded descriptions (e.g. travel with admin role text)
+    travel_item = PayrollItem.query.filter(
+        (PayrollItem.code == "TRAVEL_ALLOW") | (PayrollItem.code == "TRAVEL") | (PayrollItem.name.ilike("%travel%"))
+    ).first()
+    if travel_item and "administrative access" in (travel_item.description or "").lower():
+        travel_item.name = "Travel Allowance"
+        travel_item.description = "Reimbursement for official business travel and conveyance expenses"
+        db.session.commit()
+
     earnings = PayrollItem.query.filter_by(item_type=PayrollItemType.EARNING).order_by(PayrollItem.name).all()
     deductions = PayrollItem.query.filter_by(item_type=PayrollItemType.DEDUCTION).order_by(PayrollItem.name).all()
 

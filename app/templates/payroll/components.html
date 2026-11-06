@@ -4,10 +4,10 @@
 {% block topbar_title %}Pay Components &amp; Statutory Items{% endblock %}
 
 {% block content %}
-<div class="reports-container">
+<div class="reports-container" style="max-width:1440px;margin:0 auto;">
 
   <!-- Header Card matching Enterprise Theme -->
-  <div class="reports-header-card">
+  <div class="reports-header-card" style="margin-bottom:1.5rem;">
     <div class="reports-header-left">
       <div class="reports-header-icon-box">
         <i data-lucide="layers"></i>
@@ -18,7 +18,7 @@
       </div>
     </div>
     <div class="reports-header-actions">
-      <a href="{{ url_for('payroll.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
+      <a href="{{ url_for('payroll.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
         <i data-lucide="arrow-left"></i>
         <span>Payroll Dashboard</span>
       </a>
@@ -29,68 +29,63 @@
     </div>
   </div>
 
-  <!-- Two Column Layout for Earnings & Deductions -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(460px, 1fr));gap:1.5rem;align-items:start;">
+  <!-- Two Column Layout for Earnings & Deductions with Equal Visual Balance -->
+  <div class="pay-components-grid">
 
     <!-- Earnings Components Table Card -->
-    <div class="reports-table-card">
-      <div style="padding:1.15rem 1.35rem;border-bottom:1px solid var(--border);background:#FAFCFF;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:0.6rem;">
-          <div style="width:32px;height:32px;border-radius:8px;background:var(--blue-light);color:var(--blue);display:flex;align-items:center;justify-content:center;">
-            <i data-lucide="trending-up" style="width:17px;height:17px;"></i>
+    <div class="reports-table-card pay-comp-card">
+      <div class="pay-comp-card-header">
+        <div class="pay-comp-card-header-left">
+          <div class="pay-comp-icon-box earnings-icon">
+            <i data-lucide="trending-up"></i>
           </div>
           <div>
-            <h3 style="margin:0;font-size:0.96rem;font-weight:700;color:var(--navy);">Earnings Components</h3>
-            <span style="font-size:0.75rem;color:var(--text-sec);">Salary additions, allowances &amp; bonuses</span>
+            <h3 class="pay-comp-card-title">Earnings Components</h3>
+            <span class="pay-comp-card-sub">Salary additions, allowances &amp; bonuses</span>
           </div>
         </div>
-        <span class="report-code-badge" style="background:var(--blue-light);color:var(--blue);border:1px solid rgba(37,99,235,0.18);">
+        <span class="report-code-badge earnings-badge">
           {{ earnings|length }} Active
         </span>
       </div>
 
-      <div class="table-responsive" style="margin:0;">
-        <table class="report-data-table">
+      <div class="reports-table-wrapper" style="overflow-x:auto;">
+        <table class="reports-data-table pay-comp-table">
           <thead>
             <tr>
-              <th style="min-width:180px;">Component</th>
-              <th style="min-width:110px;">Code</th>
-              <th style="min-width:100px;">Calculation</th>
-              <th style="min-width:90px;">Status</th>
-              <th style="text-align:right;min-width:90px;">Actions</th>
+              <th class="col-component">Component</th>
+              <th class="col-code">Code</th>
+              <th class="col-calc">Calculation</th>
+              <th class="col-status">Status</th>
+              <th class="col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for item in earnings %}
             <tr>
-              <td>
-                <div style="font-weight:600;color:var(--navy);font-size:0.86rem;">{{ item.name }}</div>
+              <td class="col-component">
+                <div class="comp-name">{{ item.name }}</div>
                 {% if item.description %}
-                <div style="font-size:0.75rem;color:var(--text-sec);margin-top:2px;line-height:1.35;">{{ item.description }}</div>
+                <div class="comp-desc">{{ item.description }}</div>
                 {% endif %}
               </td>
-              <td>
-                <span style="font-family:monospace;font-size:0.76rem;font-weight:600;background:#F1F5F9;color:var(--navy);padding:0.2rem 0.5rem;border-radius:4px;border:1px solid #E2E8F0;">
-                  {{ item.code }}
-                </span>
+              <td class="col-code">
+                <span class="code-pill">{{ item.code }}</span>
               </td>
-              <td>
-                <span class="badge" style="background:#F8FAFC;color:var(--text-sec);border:1px solid var(--border);font-size:0.75rem;">
-                  Fixed
-                </span>
+              <td class="col-calc">
+                <span class="calc-pill">Fixed</span>
               </td>
-              <td>
+              <td class="col-status">
                 {% if item.is_active %}
                 <span class="report-badge badge-active">Active</span>
                 {% else %}
                 <span class="report-badge badge-inactive">Inactive</span>
                 {% endif %}
               </td>
-              <td style="text-align:right;">
+              <td class="col-actions">
                 <form method="POST" action="{{ url_for('payroll.toggle_component', item_id=item.id) }}" style="display:inline;margin:0;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <button type="submit" class="btn btn-sm {% if item.is_active %}btn-outline-navy{% else %}btn-primary{% endif %}"
-                          style="padding:0.25rem 0.65rem;font-size:0.74rem;">
+                  <button type="submit" class="btn btn-sm {% if item.is_active %}btn-action-disable{% else %}btn-action-enable{% endif %}">
                     {{ 'Disable' if item.is_active else 'Enable' }}
                   </button>
                 </form>
@@ -98,7 +93,7 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-sec);font-size:0.85rem;">
+              <td colspan="5" style="text-align:center;padding:2.5rem 1rem;color:var(--text-sec);font-size:0.85rem;">
                 No earnings components configured yet.
               </td>
             </tr>
@@ -109,69 +104,66 @@
     </div>
 
     <!-- Deductions & Statutory Components Table Card -->
-    <div class="reports-table-card">
-      <div style="padding:1.15rem 1.35rem;border-bottom:1px solid var(--border);background:#FAFCFF;display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:0.6rem;">
-          <div style="width:32px;height:32px;border-radius:8px;background:rgba(239,68,68,0.1);color:#DC2626;display:flex;align-items:center;justify-content:center;">
-            <i data-lucide="shield-alert" style="width:17px;height:17px;"></i>
+    <div class="reports-table-card pay-comp-card">
+      <div class="pay-comp-card-header">
+        <div class="pay-comp-card-header-left">
+          <div class="pay-comp-icon-box deductions-icon">
+            <i data-lucide="shield-alert"></i>
           </div>
           <div>
-            <h3 style="margin:0;font-size:0.96rem;font-weight:700;color:var(--navy);">Deductions &amp; Statutory</h3>
-            <span style="font-size:0.75rem;color:var(--text-sec);">Statutory compliance and tax withholdings</span>
+            <h3 class="pay-comp-card-title">Deductions &amp; Statutory</h3>
+            <span class="pay-comp-card-sub">Statutory compliance and tax withholdings</span>
           </div>
         </div>
-        <span class="report-code-badge" style="background:#FEF2F2;color:#DC2626;border:1px solid rgba(239,68,68,0.2);">
+        <span class="report-code-badge deductions-badge">
           {{ deductions|length }} Active
         </span>
       </div>
 
-      <div class="table-responsive" style="margin:0;">
-        <table class="report-data-table">
+      <div class="reports-table-wrapper" style="overflow-x:auto;">
+        <table class="reports-data-table pay-comp-table">
           <thead>
             <tr>
-              <th style="min-width:180px;">Component</th>
-              <th style="min-width:110px;">Code</th>
-              <th style="min-width:100px;">Statutory</th>
-              <th style="min-width:90px;">Status</th>
-              <th style="text-align:right;min-width:90px;">Actions</th>
+              <th class="col-component">Component</th>
+              <th class="col-code">Code</th>
+              <th class="col-statutory">Statutory</th>
+              <th class="col-status">Status</th>
+              <th class="col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for item in deductions %}
             <tr>
-              <td>
-                <div style="font-weight:600;color:var(--navy);font-size:0.86rem;">{{ item.name }}</div>
+              <td class="col-component">
+                <div class="comp-name">{{ item.name }}</div>
                 {% if item.description %}
-                <div style="font-size:0.75rem;color:var(--text-sec);margin-top:2px;line-height:1.35;">{{ item.description }}</div>
+                <div class="comp-desc">{{ item.description }}</div>
                 {% endif %}
               </td>
-              <td>
-                <span style="font-family:monospace;font-size:0.76rem;font-weight:600;background:#F1F5F9;color:var(--navy);padding:0.2rem 0.5rem;border-radius:4px;border:1px solid #E2E8F0;">
-                  {{ item.code }}
-                </span>
+              <td class="col-code">
+                <span class="code-pill">{{ item.code }}</span>
               </td>
-              <td>
+              <td class="col-statutory">
                 {% if item.is_statutory %}
-                <span style="display:inline-flex;align-items:center;gap:0.3rem;font-size:0.75rem;font-weight:600;color:var(--blue);">
-                  <i data-lucide="shield-check" style="width:14px;height:14px;"></i>
+                <span class="statutory-pill mandatory">
+                  <i data-lucide="shield-check"></i>
                   <span>Mandatory</span>
                 </span>
                 {% else %}
-                <span style="font-size:0.75rem;color:var(--text-sec);">Optional</span>
+                <span class="statutory-pill optional">Optional</span>
                 {% endif %}
               </td>
-              <td>
+              <td class="col-status">
                 {% if item.is_active %}
                 <span class="report-badge badge-active">Active</span>
                 {% else %}
                 <span class="report-badge badge-inactive">Inactive</span>
                 {% endif %}
               </td>
-              <td style="text-align:right;">
+              <td class="col-actions">
                 <form method="POST" action="{{ url_for('payroll.toggle_component', item_id=item.id) }}" style="display:inline;margin:0;">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <button type="submit" class="btn btn-sm {% if item.is_active %}btn-outline-navy{% else %}btn-primary{% endif %}"
-                          style="padding:0.25rem 0.65rem;font-size:0.74rem;">
+                  <button type="submit" class="btn btn-sm {% if item.is_active %}btn-action-disable{% else %}btn-action-enable{% endif %}">
                     {{ 'Disable' if item.is_active else 'Enable' }}
                   </button>
                 </form>
@@ -179,7 +171,7 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-sec);font-size:0.85rem;">
+              <td colspan="5" style="text-align:center;padding:2.5rem 1rem;color:var(--text-sec);font-size:0.85rem;">
                 No deduction components configured yet.
               </td>
             </tr>

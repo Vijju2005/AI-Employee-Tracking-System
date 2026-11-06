@@ -200,6 +200,16 @@ def create_app(config_class=None):
             try:
                 from app.payroll.seeder import seed_default_payroll_items
                 seed_default_payroll_items(db.session)
+
+                # Correct any erroneously seeded or legacy description for TRAVEL component
+                from app.models import PayrollItem
+                travel_item = PayrollItem.query.filter(
+                    (PayrollItem.code == "TRAVEL_ALLOW") | (PayrollItem.code == "TRAVEL") | (PayrollItem.name.ilike("%travel%"))
+                ).first()
+                if travel_item and "administrative access" in (travel_item.description or "").lower():
+                    travel_item.name = "Travel Allowance"
+                    travel_item.description = "Reimbursement for official business travel and conveyance expenses"
+                    db.session.commit()
             except Exception as pay_seed_err:
                 flask_app.logger.warning("Payroll seeder warning: %s", pay_seed_err)
 
