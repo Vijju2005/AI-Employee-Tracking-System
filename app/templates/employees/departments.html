@@ -29,24 +29,29 @@
   </div>
 
   <!-- Search Filter -->
-  <form method="GET" class="reports-filter-card" style="margin-bottom:1.5rem;">
-    <div class="reports-filter-grid" style="grid-template-columns: 3fr auto auto;">
+  <form method="GET" class="reports-filter-panel" style="margin-bottom:1.5rem;">
+    <div class="reports-filter-grid" style="grid-template-columns: 3fr auto auto; align-items: flex-end;">
       <div class="reports-field-group">
         <label class="reports-field-label">Search Departments</label>
         <div class="reports-input-wrap">
           <i data-lucide="search"></i>
-          <input type="text" name="q" class="reports-input" placeholder="Search by department name or scope..."
+          <input type="text" name="q" class="form-control" style="height:38px;font-size:0.84rem;padding-left:34px;"
+                 placeholder="Search by department name or scope..."
                  value="{{ q or '' }}"/>
         </div>
       </div>
-      <button type="submit" class="reports-btn-filter" style="margin-bottom:2px;">
-        <i data-lucide="filter"></i>
-        <span>Search</span>
-      </button>
-      <a href="{{ url_for('employees.departments_list') }}" class="reports-btn-reset" style="margin-bottom:2px;">
-        <i data-lucide="rotate-ccw"></i>
-        <span>Reset</span>
-      </a>
+      <div class="reports-field-group" style="justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary" style="height:38px;padding:0 1.25rem;">
+          <i data-lucide="filter"></i>
+          <span>Search</span>
+        </button>
+      </div>
+      <div class="reports-field-group" style="justify-content: flex-end;">
+        <a href="{{ url_for('employees.departments_list') }}" class="btn btn-outline-navy" style="height:38px;padding:0 1rem;">
+          <i data-lucide="rotate-ccw"></i>
+          <span>Reset</span>
+        </a>
+      </div>
     </div>
   </form>
 

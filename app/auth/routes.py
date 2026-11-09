@@ -93,6 +93,8 @@ def login():
                     user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
                     db.session.commit()
                     session.pop("is_locked", None)
+                    from app.time_utils import get_current_session_cycle_id
+                    session["login_cycle_id"] = get_current_session_cycle_id()
                     login_user(user, remember=remember)
 
                     next_page = request.args.get("next")
@@ -140,6 +142,8 @@ def verify_otp():
             next_page = session.pop("2fa_next", None)
             session.pop("2fa_user_id", None)
             session.pop("is_locked", None)
+            from app.time_utils import get_current_session_cycle_id
+            session["login_cycle_id"] = get_current_session_cycle_id()
 
             login_user(user, remember=remember)
             flash("Two-step verification successful. Welcome back!", "success")

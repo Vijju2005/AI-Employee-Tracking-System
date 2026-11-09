@@ -109,3 +109,34 @@ def format_mins(minutes: float | None) -> str:
     if minutes is None or minutes < 0:
         minutes = 0.0
     return f"{int(round(minutes))}m"
+
+
+def get_current_session_cycle_id() -> str:
+    """
+    Return the session cycle identifier for the current time in IST.
+    A new cycle begins every day at 18:00 (6:00 PM) IST.
+    Sessions created before 18:00 belong to the previous day's 18:00 cycle.
+    Sessions created at or after 18:00 belong to today's 18:00 cycle.
+    """
+    now = local_now()
+    cutoff_time = time(18, 0, 0)
+    if now.time() < cutoff_time:
+        cycle_date = (now - timedelta(days=1)).date()
+    else:
+        cycle_date = now.date()
+    return f"{cycle_date.isoformat()}_18:00_IST"
+
+
+def get_ms_until_next_6pm_ist() -> int:
+    """
+    Calculate milliseconds remaining until the upcoming 6:00 PM (18:00) IST.
+    """
+    now = local_now()
+    target_today = now.replace(hour=18, minute=0, second=0, microsecond=0)
+    if now >= target_today:
+        target_next = target_today + timedelta(days=1)
+    else:
+        target_next = target_today
+    delta = target_next - now
+    return max(1000, int(delta.total_seconds() * 1000))
+

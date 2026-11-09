@@ -47,22 +47,27 @@
   </div>
 
   <!-- Filters Filter Bar -->
-  <form method="GET" class="reports-filter-card" style="margin-bottom:1.5rem;">
+  <form method="GET" class="reports-filter-panel" style="margin-bottom:1.5rem;">
     <input type="hidden" name="view" value="{{ view_mode }}"/>
-    <div class="reports-filter-grid" style="grid-template-columns: 2fr 1fr 1fr auto auto;">
+    <div class="reports-filter-grid" style="grid-template-columns: 2fr 1fr 1fr auto auto; align-items: flex-end;">
+      
+      <!-- Search Personnel -->
       <div class="reports-field-group">
         <label class="reports-field-label">Search Personnel</label>
         <div class="reports-input-wrap">
           <i data-lucide="search"></i>
-          <input type="text" name="q" class="reports-input" placeholder="Search by name, ID, email, designation..."
+          <input type="text" name="q" class="form-control" style="height:38px;font-size:0.84rem;padding-left:34px;"
+                 placeholder="Search by name, ID, email, designation..."
                  value="{{ request.args.get('q','') }}"/>
         </div>
       </div>
+
+      <!-- Department Filter -->
       <div class="reports-field-group">
         <label class="reports-field-label">Department</label>
         <div class="reports-input-wrap">
           <i data-lucide="building"></i>
-          <select name="dept" class="reports-select">
+          <select name="dept" class="form-control" style="height:38px;font-size:0.84rem;padding-left:34px;">
             <option value="">All Departments</option>
             {% for d in departments %}
             <option value="{{ d.id }}" {% if request.args.get('dept')|string == d.id|string %}selected{% endif %}>{{ d.name }}</option>
@@ -70,25 +75,36 @@
           </select>
         </div>
       </div>
+
+      <!-- Status Filter -->
       <div class="reports-field-group">
         <label class="reports-field-label">Status</label>
         <div class="reports-input-wrap">
           <i data-lucide="activity"></i>
-          <select name="status" class="reports-select">
+          <select name="status" class="form-control" style="height:38px;font-size:0.84rem;padding-left:34px;">
             <option value="">All Statuses</option>
             <option value="active" {% if request.args.get('status')=='active' %}selected{% endif %}>Active</option>
             <option value="inactive" {% if request.args.get('status')=='inactive' %}selected{% endif %}>Inactive</option>
           </select>
         </div>
       </div>
-      <button type="submit" class="reports-btn-filter" style="margin-bottom:2px;">
-        <i data-lucide="filter"></i>
-        <span>Filter</span>
-      </button>
-      <a href="{{ url_for('employees.list_employees', view=view_mode) }}" class="reports-btn-reset" style="margin-bottom:2px;">
-        <i data-lucide="rotate-ccw"></i>
-        <span>Reset</span>
-      </a>
+
+      <!-- Filter Button -->
+      <div class="reports-field-group" style="justify-content: flex-end;">
+        <button type="submit" class="btn btn-primary" style="height:38px;padding:0 1.25rem;">
+          <i data-lucide="filter"></i>
+          <span>Filter</span>
+        </button>
+      </div>
+
+      <!-- Reset Button -->
+      <div class="reports-field-group" style="justify-content: flex-end;">
+        <a href="{{ url_for('employees.list_employees', view=view_mode) }}" class="btn btn-outline-navy" style="height:38px;padding:0 1rem;" title="Reset filters">
+          <i data-lucide="rotate-ccw"></i>
+          <span>Reset</span>
+        </a>
+      </div>
+
     </div>
   </form>
 

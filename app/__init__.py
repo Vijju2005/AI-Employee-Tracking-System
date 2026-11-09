@@ -232,6 +232,34 @@ def create_app(config_class=None):
             "migration": migration_result,
         }), (200 if db_status == "healthy" else 503)
 
+    # Automatic 6:00 PM IST Session Logout Policy
+    @flask_app.before_request
+    def enforce_daily_6pm_logout():
+        from flask import request, redirect, url_for, flash, session
+        from flask_login import current_user, logout_user
+        from app.time_utils import get_current_session_cycle_id
+
+        # Skip static assets and public endpoints
+        if request.endpoint in ("static", "health", "auth.login", "auth.logout", "auth.register", "auth.forgot_password", "auth.reset_password", "auth.verify_email"):
+            return
+
+        if current_user.is_authenticated:
+            curr_cycle = get_current_session_cycle_id()
+            user_cycle = session.get("login_cycle_id")
+
+            # In testing environments, allow test sessions created without cycle
+            if flask_app.config.get("TESTING") and not user_cycle:
+                session["login_cycle_id"] = curr_cycle
+                return
+
+            # If user logged in during a previous cycle (i.e. before 6:00 PM IST), invalidate session
+            if not user_cycle or user_cycle != curr_cycle:
+                session.pop("login_cycle_id", None)
+                session.pop("is_locked", None)
+                logout_user()
+                flash("Your session has expired due to the automatic logout policy. Please log in again.", "warning")
+                return redirect(url_for("auth.login", next=request.path if request.method == "GET" else None))
+
     # Error handlers
     @flask_app.errorhandler(403)
     def forbidden(e):
@@ -261,7 +289,7 @@ def create_app(config_class=None):
     # Template globals and filters
     from app.time_utils import (
         format_local_time, format_local_date, to_local,
-        format_hours_mins, format_mins
+        format_hours_mins, format_mins, get_ms_until_next_6pm_ist
     )
 
     flask_app.jinja_env.filters["local_time"] = format_local_time
@@ -279,6 +307,7 @@ def create_app(config_class=None):
             "format_local_date": format_local_date,
             "format_hours_mins": format_hours_mins,
             "format_mins": format_mins,
+            "ms_until_6pm_ist": get_ms_until_next_6pm_ist(),
         }
 
     return flask_app
