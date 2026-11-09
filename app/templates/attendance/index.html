@@ -61,7 +61,8 @@
   </a>
 </form>
 
-<!-- ── Attendance Analytics Section ──────────────────────────────────────── -->
+<!-- ── Attendance Analytics Section (Visible to Employees, hidden for Admin Attendance Roster) ──────────────────────────────────────── -->
+{% if not current_user.is_admin %}
 <div class="analytics-section" style="margin-bottom:1.75rem;">
 
   <!-- Monthly Attendance Summary KPI Cards -->
@@ -193,6 +194,7 @@
   </div>
 
 </div>
+{% endif %}
 
 <!-- ── Daily Attendance Log Table ─────────────────────────────────────────── -->
 <div class="card">
@@ -280,6 +282,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{% if not current_user.is_admin %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const analyticsData = {{ analytics | tojson }};
@@ -539,4 +542,5 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
+{% endif %}
 {% endblock %}
