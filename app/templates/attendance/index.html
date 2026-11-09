@@ -29,7 +29,7 @@
 </div>
 
 <!-- Filters Toolbar -->
-<form method="GET" class="filters-bar">
+<form method="GET" class="filters-bar" style="margin-bottom:1.5rem;">
   <div class="filter-group">
     <span class="filter-label">From Date</span>
     <input type="date" name="from_date" class="form-control" value="{{ request.args.get('from_date','') }}"/>
@@ -61,6 +61,140 @@
   </a>
 </form>
 
+<!-- ── Attendance Analytics Section ──────────────────────────────────────── -->
+<div class="analytics-section" style="margin-bottom:1.75rem;">
+
+  <!-- Monthly Attendance Summary KPI Cards -->
+  <div class="stats-grid" style="grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1.15rem;margin-bottom:1.5rem;">
+    <!-- 1. Working Days -->
+    <div class="stat-card accent-blue">
+      <div class="stat-icon blue">
+        <i data-lucide="calendar"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--navy);">{{ analytics.working_days }}</div>
+        <div class="stat-label">Working Days</div>
+        <div class="stat-sub">{{ analytics.month_name }} {{ analytics.month_year }}</div>
+      </div>
+    </div>
+
+    <!-- 2. Present Days -->
+    <div class="stat-card accent-cyan">
+      <div class="stat-icon cyan">
+        <i data-lucide="check-circle-2"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:#0891B2;">{{ analytics.present_days }}</div>
+        <div class="stat-label">Present Days</div>
+        <div class="stat-sub">Logged attendance</div>
+      </div>
+    </div>
+
+    <!-- 3. Absent Days -->
+    <div class="stat-card accent-rose">
+      <div class="stat-icon red">
+        <i data-lucide="user-x"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--danger-dark);">{{ analytics.absent_days }}</div>
+        <div class="stat-label">Absent Days</div>
+        <div class="stat-sub">Unrecorded workdays</div>
+      </div>
+    </div>
+
+    <!-- 4. Total Net Working Hours -->
+    <div class="stat-card accent-blue">
+      <div class="stat-icon blue">
+        <i data-lucide="briefcase"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--navy);">{{ analytics.total_work_hours }}h</div>
+        <div class="stat-label">Total Net Work</div>
+        <div class="stat-sub">Productive shift time</div>
+      </div>
+    </div>
+
+    <!-- 5. Total Break Hours -->
+    <div class="stat-card accent-amber">
+      <div class="stat-icon amber">
+        <i data-lucide="coffee"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:var(--warning-dark);">{{ analytics.total_break_hours }}h</div>
+        <div class="stat-label">Total Break Time</div>
+        <div class="stat-sub">All completed pauses</div>
+      </div>
+    </div>
+
+    <!-- 6. Attendance Rate -->
+    <div class="stat-card accent-cyan">
+      <div class="stat-icon cyan">
+        <i data-lucide="percent"></i>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" style="color:#0891B2;">{{ analytics.attendance_pct }}%</div>
+        <div class="stat-label">Attendance Rate</div>
+        <div class="stat-sub">Monthly consistency</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Charts Grid: 3 Responsive Chart Cards -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+
+    <!-- Chart 1: Weekly Attendance Trend -->
+    <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;">
+      <div class="card-header" style="padding:1rem 1.25rem;">
+        <h3 style="font-size:0.92rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;margin:0;color:var(--navy);">
+          <i data-lucide="trending-up" style="width:18px;height:18px;color:var(--blue);"></i>
+          <span>Weekly Attendance Trend</span>
+        </h3>
+        <span class="badge badge-info" style="font-size:0.72rem;">Last 7 Days</span>
+      </div>
+      <div class="card-body" style="padding:1.15rem;flex:1;display:flex;flex-direction:column;justify-content:center;">
+        <div style="position:relative;height:220px;width:100%;">
+          <canvas id="weeklyTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 2: Working Hours vs Break Hours -->
+    <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;">
+      <div class="card-header" style="padding:1rem 1.25rem;">
+        <h3 style="font-size:0.92rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;margin:0;color:var(--navy);">
+          <i data-lucide="bar-chart-2" style="width:18px;height:18px;color:var(--cyan);"></i>
+          <span>Working Hours vs Break Hours</span>
+        </h3>
+        <span class="badge badge-secondary" style="font-size:0.72rem;">Shift Comparison</span>
+      </div>
+      <div class="card-body" style="padding:1.15rem;flex:1;display:flex;flex-direction:column;justify-content:center;">
+        <div style="position:relative;height:220px;width:100%;">
+          <canvas id="workVsBreakChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart 3: Attendance Status Distribution -->
+    <div class="card" style="margin-bottom:0;display:flex;flex-direction:column;">
+      <div class="card-header" style="padding:1rem 1.25rem;">
+        <h3 style="font-size:0.92rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;margin:0;color:var(--navy);">
+          <i data-lucide="pie-chart" style="width:18px;height:18px;color:#4F46E5;"></i>
+          <span>Attendance Status</span>
+        </h3>
+        <span class="badge badge-secondary" style="font-size:0.72rem;">Roster Ratio</span>
+      </div>
+      <div class="card-body" style="padding:1.15rem;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+        <div style="position:relative;height:220px;width:100%;max-width:240px;display:flex;align-items:center;justify-content:center;">
+          <canvas id="statusDoughnutChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ── Daily Attendance Log Table ─────────────────────────────────────────── -->
 <div class="card">
   <div class="card-header">
     <h3>
@@ -143,4 +277,266 @@
     </table>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const analyticsData = {{ analytics | tojson }};
+
+  // 1. Weekly Attendance Trend Line Chart
+  const trendCanvas = document.getElementById('weeklyTrendChart');
+  if (trendCanvas) {
+    const trendCtx = trendCanvas.getContext('2d');
+    new Chart(trendCtx, {
+      type: 'line',
+      data: {
+        labels: analyticsData.trend_labels || [],
+        datasets: [
+          {
+            label: 'Present Days',
+            data: analyticsData.trend_present || [],
+            borderColor: '#2563EB',
+            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#2563EB',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Absent Days',
+            data: analyticsData.trend_absent || [],
+            borderColor: '#EF4444',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderDash: [4, 4],
+            tension: 0.35,
+            pointBackgroundColor: '#EF4444',
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Attendance %',
+            data: analyticsData.trend_pct || [],
+            borderColor: '#06B6D4',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            tension: 0.35,
+            pointBackgroundColor: '#06B6D4',
+            pointRadius: 3.5,
+            pointHoverRadius: 5.5,
+            yAxisID: 'yPct'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'end',
+            labels: {
+              boxWidth: 10,
+              boxHeight: 10,
+              usePointStyle: true,
+              font: { family: 'Inter', size: 11, weight: 600 },
+              padding: 10
+            }
+          },
+          tooltip: {
+            backgroundColor: '#0B192C',
+            titleFont: { family: 'Inter', size: 12, weight: 700 },
+            bodyFont: { family: 'Inter', size: 11 },
+            padding: 10,
+            cornerRadius: 8
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'Inter', size: 10, weight: 500 }, color: '#64748B' }
+          },
+          y: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            ticks: { stepSize: 1, font: { family: 'Inter', size: 10 }, color: '#64748B' },
+            grid: { color: '#F1F5F9' }
+          },
+          yPct: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            max: 100,
+            ticks: {
+              stepSize: 25,
+              callback: function(v) { return v + '%'; },
+              font: { family: 'Inter', size: 10 },
+              color: '#0891B2'
+            },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Working Hours vs Break Hours Bar Chart
+  const hoursCanvas = document.getElementById('workVsBreakChart');
+  if (hoursCanvas) {
+    const hoursCtx = hoursCanvas.getContext('2d');
+    const hLabels = analyticsData.hours_labels && analyticsData.hours_labels.length > 0
+      ? analyticsData.hours_labels
+      : (analyticsData.trend_labels || ['No Data']);
+    const hGross = analyticsData.hours_gross && analyticsData.hours_gross.length > 0
+      ? analyticsData.hours_gross
+      : [0];
+    const hBreak = analyticsData.hours_break && analyticsData.hours_break.length > 0
+      ? analyticsData.hours_break
+      : [0];
+    const hNet = analyticsData.hours_net && analyticsData.hours_net.length > 0
+      ? analyticsData.hours_net
+      : [0];
+
+    new Chart(hoursCtx, {
+      type: 'bar',
+      data: {
+        labels: hLabels,
+        datasets: [
+          {
+            label: 'Gross Hours',
+            data: hGross,
+            backgroundColor: '#93C5FD',
+            borderRadius: 4,
+            borderSkipped: false
+          },
+          {
+            label: 'Break Hours',
+            data: hBreak,
+            backgroundColor: '#F59E0B',
+            borderRadius: 4,
+            borderSkipped: false
+          },
+          {
+            label: 'Net Work Hours',
+            data: hNet,
+            backgroundColor: '#2563EB',
+            borderRadius: 4,
+            borderSkipped: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'end',
+            labels: {
+              boxWidth: 10,
+              boxHeight: 10,
+              usePointStyle: true,
+              font: { family: 'Inter', size: 11, weight: 600 },
+              padding: 10
+            }
+          },
+          tooltip: {
+            backgroundColor: '#0B192C',
+            titleFont: { family: 'Inter', size: 12, weight: 700 },
+            bodyFont: { family: 'Inter', size: 11 },
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              label: function (ctx) {
+                return ctx.dataset.label + ': ' + ctx.parsed.y + ' hrs';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'Inter', size: 10, weight: 500 }, color: '#64748B' }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(v) { return v + 'h'; },
+              font: { family: 'Inter', size: 10 },
+              color: '#64748B'
+            },
+            grid: { color: '#F1F5F9' }
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Attendance Status Distribution Doughnut Chart
+  const statusCanvas = document.getElementById('statusDoughnutChart');
+  if (statusCanvas) {
+    const statusCtx = statusCanvas.getContext('2d');
+    const pCount = analyticsData.status_present || 0;
+    const aCount = analyticsData.status_absent || 0;
+    const lCount = analyticsData.status_leave || 0;
+    const hasData = (pCount + aCount + lCount) > 0;
+
+    new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Present', 'Absent', 'Approved Leave'],
+        datasets: [{
+          data: hasData ? [pCount, aCount, lCount] : [1, 0, 0],
+          backgroundColor: hasData
+            ? ['#2563EB', '#EF4444', '#F59E0B']
+            : ['#E2E8F0', '#E2E8F0', '#E2E8F0'],
+          borderColor: '#FFFFFF',
+          borderWidth: 2,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              boxWidth: 10,
+              boxHeight: 10,
+              usePointStyle: true,
+              font: { family: 'Inter', size: 11, weight: 600 },
+              padding: 12
+            }
+          },
+          tooltip: {
+            backgroundColor: '#0B192C',
+            titleFont: { family: 'Inter', size: 12, weight: 700 },
+            bodyFont: { family: 'Inter', size: 11 },
+            padding: 10,
+            cornerRadius: 8,
+            callbacks: {
+              label: function(ctx) {
+                if (!hasData) return 'No records recorded';
+                return ctx.label + ': ' + ctx.parsed;
+              }
+            }
+          }
+        },
+        cutout: '68%'
+      }
+    });
+  }
+});
+</script>
 {% endblock %}
