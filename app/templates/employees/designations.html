@@ -30,12 +30,12 @@
 
   <!-- Search Filter -->
   <form method="GET" class="reports-filter-panel" style="margin-bottom:1.5rem;">
-    <div class="reports-filter-grid" style="grid-template-columns: 2fr 1fr auto auto; align-items: flex-end;">
+    <div class="reports-filter-grid" style="grid-template-columns: 2fr 1.5fr auto; align-items: flex-end; gap: 1rem;">
       <div class="reports-field-group">
         <label class="reports-field-label">Search Designation</label>
         <div class="reports-input-wrap">
           <i data-lucide="search"></i>
-          <input type="text" name="q" class="form-control" style="height:38px;font-size:0.84rem;padding-left:34px;"
+          <input type="text" name="q" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;"
                  placeholder="Search by title..." value="{{ q or '' }}"/>
         </div>
       </div>
@@ -43,7 +43,7 @@
         <label class="reports-field-label">Filter Department</label>
         <div class="reports-input-wrap">
           <i data-lucide="building"></i>
-          <select name="dept" class="form-control" style="height:38px;font-size:0.84rem;padding-left:34px;">
+          <select name="dept" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;">
             <option value="">All Departments</option>
             {% for d in departments %}
             <option value="{{ d.id }}" {% if selected_dept|string == d.id|string %}selected{% endif %}>{{ d.name }}</option>
@@ -52,16 +52,16 @@
         </div>
       </div>
       <div class="reports-field-group" style="justify-content: flex-end;">
-        <button type="submit" class="btn btn-primary" style="height:38px;padding:0 1.25rem;">
-          <i data-lucide="filter"></i>
-          <span>Filter</span>
-        </button>
-      </div>
-      <div class="reports-field-group" style="justify-content: flex-end;">
-        <a href="{{ url_for('employees.designations_list') }}" class="btn btn-outline-navy" style="height:38px;padding:0 1rem;">
-          <i data-lucide="rotate-ccw"></i>
-          <span>Reset</span>
-        </a>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <button type="submit" class="btn btn-primary" style="height:40px;padding:0 1.25rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="filter" style="width:15px;height:15px;"></i>
+            <span>Filter</span>
+          </button>
+          <a href="{{ url_for('employees.designations_list') }}" class="btn btn-outline-navy" style="height:40px;padding:0 1rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+            <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i>
+            <span>Reset</span>
+          </a>
+        </div>
       </div>
     </div>
   </form>
