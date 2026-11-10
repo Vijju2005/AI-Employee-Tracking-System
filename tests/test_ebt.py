@@ -1131,6 +1131,10 @@ class TestHolidayManagement:
         assert resp.status_code == 200
         assert b"TODAY IS A HOLIDAY!" in resp.data
         assert b"Company Founders Day" in resp.data
+        with app.app_context():
+            from app.models import Holiday
+            Holiday.query.filter_by(holiday_name="Company Founders Day").delete()
+            db.session.commit()
 
     def test_karnataka_holidays_2026_seeder(self, app, db):
         """
