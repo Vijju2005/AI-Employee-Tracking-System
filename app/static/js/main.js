@@ -9,16 +9,156 @@ function initLucideIcons() {
 
 document.addEventListener('DOMContentLoaded', initLucideIcons);
 
-// ── Sidebar toggle (mobile) ────────────────────────────────
-const sidebar   = document.getElementById('sidebar');
-const overlay   = document.getElementById('sidebarOverlay');
-const hamburger = document.getElementById('hamburger');
+// ── Sidebar Dropdown & Navigation System ────────────────────
+function initSidebarNavigation() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const hamburger = document.getElementById('hamburger');
+  const sidebarClose = document.getElementById('sidebarClose');
 
-function openSidebar()  { sidebar?.classList.add('open');   overlay?.classList.add('active'); }
-function closeSidebar() { sidebar?.classList.remove('open'); overlay?.classList.remove('active'); }
+  // Mobile drawer controls
+  function openSidebar() {
+    sidebar?.classList.add('open');
+    overlay?.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
 
-hamburger?.addEventListener('click', openSidebar);
-overlay?.addEventListener('click', closeSidebar);
+  function closeSidebar() {
+    sidebar?.classList.remove('open');
+    overlay?.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  hamburger?.addEventListener('click', openSidebar);
+  sidebarClose?.addEventListener('click', closeSidebar);
+  overlay?.addEventListener('click', closeSidebar);
+
+  // Close sidebar on mobile when a link is clicked
+  document.querySelectorAll('.sidebar-sublink, .sidebar-direct-link').forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 1024) {
+        closeSidebar();
+      }
+    });
+  });
+
+  // Main section dropdown toggle
+  document.querySelectorAll('.sidebar-menu-btn[data-toggle="dropdown"]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const submenu = this.nextElementSibling;
+      if (!submenu) return;
+      const isOpen = submenu.classList.contains('open');
+
+      if (isOpen) {
+        submenu.classList.remove('open');
+        this.classList.remove('expanded');
+        this.setAttribute('aria-expanded', 'false');
+      } else {
+        submenu.classList.add('open');
+        this.classList.add('expanded');
+        this.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  // Nested dropdown toggle (e.g. Leaves inside Attendance)
+  document.querySelectorAll('.sidebar-nested-btn[data-toggle="nested"]').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const nestedMenu = this.nextElementSibling;
+      if (!nestedMenu) return;
+      const isOpen = nestedMenu.classList.contains('open');
+
+      if (isOpen) {
+        nestedMenu.classList.remove('open');
+        this.classList.remove('expanded');
+        this.setAttribute('aria-expanded', 'false');
+      } else {
+        nestedMenu.classList.add('open');
+        this.classList.add('expanded');
+        this.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  // Highlight active menu and auto-expand parent section
+  highlightActiveSidebarMenu();
+}
+
+function highlightActiveSidebarMenu() {
+  const currentPath = window.location.pathname;
+  const currentSearch = window.location.search;
+  const fullUrl = currentPath + currentSearch;
+
+  // 1. Direct links check (e.g. Holidays)
+  document.querySelectorAll('.sidebar-direct-link').forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && (href === fullUrl || href === currentPath)) {
+      link.classList.add('active');
+    }
+  });
+
+  // 2. Submenu links check
+  const sublinks = Array.from(document.querySelectorAll('.sidebar-sublink'));
+  if (!sublinks.length) return;
+
+  // Exact match (including query params, e.g. view=grid vs view=list)
+  let matchedLink = sublinks.find(link => link.getAttribute('href') === fullUrl);
+
+  // If not matched, try pathname match (longest path wins)
+  if (!matchedLink) {
+    const matches = sublinks
+      .filter(link => {
+        const href = link.getAttribute('href');
+        if (!href || href === '/') return false;
+        const cleanHref = href.split('?')[0];
+        return currentPath === cleanHref || (cleanHref !== '/' && currentPath.startsWith(cleanHref));
+      })
+      .sort((a, b) => b.getAttribute('href').length - a.getAttribute('href').length);
+
+    if (matches.length > 0) {
+      matchedLink = matches[0];
+    }
+  }
+
+  // If on root path '/', match dashboard
+  if (!matchedLink && currentPath === '/') {
+    matchedLink = sublinks.find(link => {
+      const h = link.getAttribute('href');
+      return h && (h.includes('/dashboard/admin') || h.includes('/dashboard/employee'));
+    });
+  }
+
+  if (matchedLink) {
+    matchedLink.classList.add('active');
+
+    // If inside nested menu (e.g. Leaves), expand nested menu & toggle button
+    const nestedMenu = matchedLink.closest('.sidebar-nested-menu');
+    if (nestedMenu) {
+      nestedMenu.classList.add('open');
+      const nestedBtn = nestedMenu.previousElementSibling;
+      if (nestedBtn && nestedBtn.classList.contains('sidebar-nested-btn')) {
+        nestedBtn.classList.add('expanded');
+        nestedBtn.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    // Expand parent submenu & toggle button
+    const parentSubmenu = matchedLink.closest('.sidebar-submenu');
+    if (parentSubmenu) {
+      parentSubmenu.classList.add('open');
+      const parentBtn = parentSubmenu.previousElementSibling;
+      if (parentBtn && parentBtn.classList.contains('sidebar-menu-btn')) {
+        parentBtn.classList.add('expanded', 'active-parent');
+        parentBtn.setAttribute('aria-expanded', 'true');
+      }
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initSidebarNavigation);
 
 // ── Flash message auto-dismiss ─────────────────────────────
 document.querySelectorAll('.flash-msg').forEach(msg => {
@@ -33,19 +173,6 @@ document.querySelectorAll('[data-confirm]').forEach(el => {
     if (!confirm(el.dataset.confirm)) e.preventDefault();
   });
 });
-
-// ── Active nav item detection ──────────────────────────────
-(function() {
-  const path = window.location.pathname;
-  document.querySelectorAll('.nav-item').forEach(item => {
-    const href = item.getAttribute('href');
-    if (href && href !== '/' && path.startsWith(href)) {
-      item.classList.add('active');
-    } else if (href === '/' && path === '/') {
-      item.classList.add('active');
-    }
-  });
-})();
 
 // ── Topbar live clock ──────────────────────────────────────
 const clockEl = document.getElementById('liveClock');
