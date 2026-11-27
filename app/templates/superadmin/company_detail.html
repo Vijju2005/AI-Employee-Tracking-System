@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+{% block title %}{{ company.name }} — Company Details | Super Admin{% endblock %}
+{% block topbar_title %}Company Profile: {{ company.code }}{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box" style="background:var(--navy);color:#FFFFFF;">
+        {% if company.logo %}
+        <img src="/static/uploads/avatars/{{ company.logo }}" style="width:36px;height:36px;border-radius:8px;object-fit:cover;"/>
+        {% else %}
+        <i data-lucide="building-2"></i>
+        {% endif %}
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <h1 class="reports-header-title" style="margin:0;">{{ company.name }}</h1>
+          <span class="report-code-badge" style="font-size:0.8rem;padding:3px 8px;">{{ company.code }}</span>
+          {% if company.status == 'active' %}
+          <span class="badge badge-success">Active</span>
+          {% elif company.status == 'suspended' %}
+          <span class="badge badge-danger">Suspended</span>
+          {% elif company.status == 'archived' %}
+          <span class="badge" style="background:#64748B;color:#FFFFFF;">Archived</span>
+          {% else %}
+          <span class="badge badge-warning">{{ company.status|title }}</span>
+          {% endif %}
+        </div>
+        <p class="reports-header-sub" style="margin-top:4px;">
+          Registered {{ company.created_at.strftime('%d %B %Y') }} &bull; {{ company.industry or 'General Industry' }}
+        </p>
+      </div>
+    </div>
+    <div class="reports-header-actions" style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <a href="{{ url_for('superadmin.company_edit', company_id=company.id) }}" class="btn btn-primary">
+        <i data-lucide="edit-3"></i>
+        <span>Edit Company</span>
+      </a>
+      <button class="btn btn-outline-navy" onclick="document.getElementById('locationModal').style.display='flex'">
+        <i data-lucide="map-pin"></i>
+        <span>Add Location</span>
+      </button>
+      <button class="btn btn-outline-navy" onclick="openQuickSubModal()">
+        <i data-lucide="credit-card"></i>
+        <span>Change Subscription</span>
+      </button>
+      <form method="POST" action="{{ url_for('superadmin.company_toggle_status', company_id=company.id) }}" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-sm {% if company.status == 'active' %}btn-danger{% else %}btn-success{% endif %}" style="height:36px;padding:0 0.85rem;">
+          <i data-lucide="{{ 'shield-off' if company.status == 'active' else 'shield-check' }}"></i>
+          <span>{{ 'Suspend Company' if company.status == 'active' else 'Activate Company' }}</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- KPI Metrics Ribbon -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Subscription Plan</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy);margin-top:2px;">
+          {{ company.package.name if company.package else 'No Active Plan' }}
+        </div>
+        <div style="font-size:0.75rem;color:var(--blue);font-weight:600;margin-top:2px;">
+          {% if active_sub and active_sub.expires_at %}
+          Expires {{ active_sub.expires_at.strftime('%Y-%m-%d') }}
+          {% else %}
+          —
+          {% endif %}
+        </div>
+      </div>
+      <i data-lucide="award" style="width:26px;height:26px;color:var(--cyan);"></i>
+    </div>
+
+    <div class="card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Active Employees</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy);margin-top:2px;">
+          {{ employee_count }} <span style="font-size:0.85rem;color:var(--text-muted);font-weight:400;">/ {{ company.employee_limit or (company.package.max_employees if company.package else '∞') }}</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-sec);margin-top:2px;">Roster Capacity</div>
+      </div>
+      <i data-lucide="users" style="width:26px;height:26px;color:var(--blue);"></i>
+    </div>
+
+    <div class="card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">System Users</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy);margin-top:2px;">
+          {{ user_count }} <span style="font-size:0.85rem;color:var(--text-muted);font-weight:400;">/ {{ company.user_limit or (company.package.max_users if company.package else '∞') }}</span>
+        </div>
+        <div style="font-size:0.75rem;color:var(--text-sec);margin-top:2px;">Logins &amp; Admins</div>
+      </div>
+      <i data-lucide="user-check" style="width:26px;height:26px;color:var(--navy);"></i>
+    </div>
+
+    <div class="card" style="padding:1.25rem;border-radius:12px;border:1px solid var(--border);background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Branch Locations</div>
+        <div style="font-size:1.2rem;font-weight:800;color:var(--navy);margin-top:2px;">{{ locations|length }}</div>
+        <div style="font-size:0.75rem;color:var(--text-sec);margin-top:2px;">Facilities Onboarded</div>
+      </div>
+      <i data-lucide="map-pin" style="width:26px;height:26px;color:#10B981;"></i>
+    </div>
+  </div>
+
+  <!-- Detailed Sections Grid -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+    <!-- Left Column: Company Profile & Statutory -->
+    <div class="card" style="background:#FFFFFF;border-radius:14px;border:1px solid var(--border);padding:1.5rem;box-shadow:var(--shadow-xs);">
+      <div style="display:flex;align-items:center;gap:0.5rem;border-bottom:1px solid var(--border);padding-bottom:0.75rem;margin-bottom:1rem;">
+        <i data-lucide="briefcase" style="width:18px;height:18px;color:var(--navy);"></i>
+        <h3 style="font-size:1.05rem;font-weight:800;color:var(--navy);margin:0;">Profile &amp; Statutory Data</h3>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.85rem;font-size:0.88rem;">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">Registration / CIN:</span>
+          <span style="font-weight:700;color:var(--navy);">{{ company.registration_number or '—' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">GSTIN:</span>
+          <span style="font-weight:700;color:var(--navy);">{{ company.gstin or '—' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">Company PAN:</span>
+          <span style="font-weight:700;color:var(--navy);">{{ company.pan or '—' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">Industry:</span>
+          <span>{{ company.industry or '—' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">Official Website:</span>
+          {% if company.website %}
+          <a href="{{ company.website }}" target="_blank" style="color:var(--blue);text-decoration:none;font-weight:600;">{{ company.website }}</a>
+          {% else %}
+          <span>—</span>
+          {% endif %}
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--text-muted);font-weight:600;">Country / State:</span>
+          <span>{{ company.country or 'India' }} {% if company.state %}&bull; {{ company.state }}{% endif %}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Contact Details & Headquarters -->
+    <div class="card" style="background:#FFFFFF;border-radius:14px;border:1px solid var(--border);padding:1.5rem;box-shadow:var(--shadow-xs);">
+      <div style="display:flex;align-items:center;gap:0.5rem;border-bottom:1px solid var(--border);padding-bottom:0.75rem;margin-bottom:1rem;">
+        <i data-lucide="mail" style="width:18px;height:18px;color:var(--navy);"></i>
+        <h3 style="font-size:1.05rem;font-weight:800;color:var(--navy);margin:0;">Contact &amp; Headquarters</h3>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.85rem;font-size:0.88rem;">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">Official Email:</span>
+          <span style="font-weight:700;color:var(--navy);">{{ company.email }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">Contact Phone:</span>
+          <span>{{ company.phone or '—' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">Street Address:</span>
+          <span>{{ company.address or '—' }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px dashed #F1F5F9;padding-bottom:0.4rem;">
+          <span style="color:var(--text-muted);font-weight:600;">City &amp; PIN:</span>
+          <span>{{ company.city or '—' }} {% if company.pincode %}- {{ company.pincode }}{% endif %}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--text-muted);font-weight:600;">Tenant Created:</span>
+          <span>{{ company.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Geographic Locations List -->
+  <div class="reports-table-card" style="margin-bottom:1.5rem;">
+    <div class="reports-table-header">
+      <div class="reports-table-heading">
+        <i data-lucide="map"></i>
+        <span>Operating Branch Locations &amp; Facilities ({{ locations|length }})</span>
+      </div>
+      <button class="btn btn-sm btn-outline-navy" onclick="document.getElementById('locationModal').style.display='flex'">
+        <i data-lucide="plus"></i>
+        <span>Add Facility</span>
+      </button>
+    </div>
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th>Facility Name</th>
+            <th>Type</th>
+            <th>Address</th>
+            <th>City / State</th>
+            <th>Contact</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for loc in locations %}
+          <tr>
+            <td>
+              <strong style="color:var(--navy);">{{ loc.location_name }}</strong>
+            </td>
+            <td>
+              {% if loc.is_headquarters %}
+              <span class="badge badge-success">Headquarters</span>
+              {% else %}
+              <span class="badge" style="background:#F1F5F9;color:#475569;">Branch Office</span>
+              {% endif %}
+            </td>
+            <td>{{ loc.address or '—' }}</td>
+            <td>{{ loc.city or '—' }} &bull; {{ loc.state or loc.country }}</td>
+            <td>{{ loc.phone or loc.email or '—' }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('superadmin.company_location_delete', company_id=company.id, loc_id=loc.id) }}" style="display:inline;" onsubmit="return confirm('Remove location \'{{ loc.location_name }}\'?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <button type="submit" class="btn btn-sm" style="background:#FFF1F2;color:#E11D48;border:1px solid #FFE4E6;" title="Delete Location">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">
+              No separate facilities recorded. Click "Add Facility" to map branch offices.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Subscription Information & Audit History -->
+  <div class="reports-table-card">
+    <div class="reports-table-header">
+      <div class="reports-table-heading">
+        <i data-lucide="layers"></i>
+        <span>Subscription Plans &amp; Transaction History ({{ subscriptions|length }})</span>
+      </div>
+      <a href="{{ url_for('superadmin.company_subscriptions_history', company_id=company.id) }}" class="btn btn-sm btn-outline-navy">
+        <i data-lucide="external-link"></i>
+        <span>View Audit Timeline</span>
+      </a>
+    </div>
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Plan Tier</th>
+            <th>Billing Cycle</th>
+            <th>Amount</th>
+            <th>Start Date</th>
+            <th>Expiry Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subscriptions %}
+          <tr>
+            <td style="color:var(--text-muted);font-weight:600;">#{{ s.id }}</td>
+            <td>
+              <strong style="color:var(--navy);">{{ s.package.name if s.package else '—' }}</strong>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ s.package.code if s.package else '' }}</div>
+            </td>
+            <td><span class="report-code-badge">{{ s.billing_cycle|upper }}</span></td>
+            <td class="report-amount" style="font-weight:700;color:var(--navy);">
+              ₹ {{ "{:,.2f}".format(s.amount) }}
+            </td>
+            <td>{{ s.starts_at.strftime('%Y-%m-%d') if s.starts_at else '—' }}</td>
+            <td>
+              {% if s.expires_at %}
+                <span style="font-weight:600;{% if s.status == 'active' and s.expires_at < now %}color:#DC2626;{% endif %}">
+                  {{ s.expires_at.strftime('%Y-%m-%d') }}
+                </span>
+              {% else %}
+                <span style="color:var(--text-muted);">Lifetime</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.status == 'active' %}
+              <span class="badge badge-success">Active</span>
+              {% elif s.status == 'pending' %}
+              <span class="badge" style="background:#FEF3C7;color:#D97706;">Pending</span>
+              {% elif s.status == 'expired' %}
+              <span class="badge" style="background:#FEE2E2;color:#DC2626;">Expired</span>
+              {% elif s.status == 'cancelled' %}
+              <span class="badge" style="background:#E2E8F0;color:#475569;">Cancelled</span>
+              {% else %}
+              <span class="badge badge-secondary">{{ s.status|title }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">
+              No subscription records found.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal 1: Add Location -->
+<div id="locationModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Add Branch Location</h3>
+      <button onclick="document.getElementById('locationModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('superadmin.company_location_add', company_id=company.id) }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Facility / Branch Name *</label>
+        <input type="text" name="location_name" class="form-control" required placeholder="e.g. Hyderabad Development Center"/>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Street Address</label>
+        <input type="text" name="address" class="form-control" placeholder="HITEC City, Madhapur"/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">City</label>
+          <input type="text" name="city" class="form-control" placeholder="Hyderabad"/>
+        </div>
+        <div>
+          <label class="form-label">State</label>
+          <input type="text" name="state" class="form-control" placeholder="Telangana"/>
+        </div>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Country</label>
+          <input type="text" name="country" class="form-control" value="India"/>
+        </div>
+        <div>
+          <label class="form-label">PIN Code</label>
+          <input type="text" name="pincode" class="form-control" placeholder="500081"/>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;cursor:pointer;">
+          <input type="checkbox" name="is_headquarters" value="1"/>
+          <span>Designate as Principal Headquarters</span>
+        </label>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('locationModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Location</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal 2: Quick Change Subscription -->
+<div id="quickSubModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:440px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Assign / Switch Plan</h3>
+      <button onclick="document.getElementById('quickSubModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('superadmin.subscription_add') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="company_id" value="{{ company.id }}"/>
+      <input type="hidden" name="status" value="active"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Select Package Tier *</label>
+        <select name="package_id" class="form-control" required>
+          {% for p in packages %}
+          <option value="{{ p.id }}" {% if company.package_id == p.id %}selected{% endif %}>
+            {{ p.name }} (₹{{ "{:,.0f}".format(p.price_per_month) }}/mo &bull; ₹{{ "{:,.0f}".format(p.price_per_year) }}/yr)
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Billing Cycle</label>
+        <select name="billing_cycle" class="form-control">
+          <option value="monthly">Monthly (30 Days)</option>
+          <option value="yearly">Yearly (Annual License)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('quickSubModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Activate Plan</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openQuickSubModal() {
+  document.getElementById('quickSubModal').style.display = 'flex';
+}
+</script>
+{% endblock %}

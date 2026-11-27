@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% block title %}Calendar Year Management | Enterprise HRMS{% endblock %}
+{% block topbar_title %}Calendar Year Management{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="calendar-range"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Calendar Year Management</h1>
+        <p class="reports-header-sub">Configure statutory and fiscal calendar years and map employee joining cycles</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('holidays.index') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
+        <i data-lucide="calendar"></i>
+        <span>Official Holidays</span>
+      </a>
+      <button class="btn btn-primary" onclick="openAddCalendarModal()">
+        <i data-lucide="calendar-plus"></i>
+        <span>Add Calendar Year</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI Metric Ribbon -->
+  <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="stat-card" style="background:#FFFFFF;padding:1.25rem 1.5rem;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:1.25rem;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="calendar" style="width:24px;height:24px;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);">{{ years|length }}</div>
+        <div style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">Total Calendar Years</div>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background:#FFFFFF;padding:1.25rem 1.5rem;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:1.25rem;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#ECFDF5;color:#059669;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="check-circle" style="width:24px;height:24px;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);">{{ years|selectattr('is_active')|list|length }}</div>
+        <div style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">Active Cycles</div>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background:#FFFFFF;padding:1.25rem 1.5rem;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:1.25rem;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#F0FDF4;color:#16A34A;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="users" style="width:24px;height:24px;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);">{{ total_employees }}</div>
+        <div style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">Total Workforce Members</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Roster Table Card -->
+  <div class="reports-table-card">
+    <div class="reports-table-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <h3 class="reports-table-heading" style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="layers" style="color:var(--blue);"></i>
+          <span>Configured Calendar Cycles</span>
+        </h3>
+        <span class="reports-table-count-badge">{{ years|length }} Records</span>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <input type="text" id="yearSearchInput" class="form-control" placeholder="Search calendar name..." style="height:36px;font-size:0.82rem;padding-left:12px;border-radius:6px;max-width:220px;" oninput="filterYearsTable()"/>
+      </div>
+    </div>
+
+    <div class="reports-table-wrapper" style="overflow-x:auto;">
+      <table class="reports-data-table" id="calendarYearsTable">
+        <thead>
+          <tr>
+            <th style="min-width:180px;">Calendar Name</th>
+            <th style="min-width:130px;">Start Date</th>
+            <th style="min-width:130px;">End Date</th>
+            <th style="min-width:120px;">Duration</th>
+            <th style="min-width:130px;">Mapped Employees</th>
+            <th style="min-width:100px;">Status</th>
+            <th style="min-width:180px;text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cy in years %}
+          <tr>
+            <td>
+              <div style="font-weight:700;color:var(--navy);font-size:0.9rem;">
+                {{ cy.name }}
+              </div>
+              <div style="font-size:0.72rem;color:var(--text-sec);">Year {{ cy.start_date.year }}</div>
+            </td>
+            <td>
+              <span style="font-weight:600;color:var(--navy);font-size:0.84rem;">
+                {{ cy.start_date.strftime('%d %B %Y') }}
+              </span>
+            </td>
+            <td>
+              <span style="font-weight:600;color:var(--navy);font-size:0.84rem;">
+                {{ cy.end_date.strftime('%d %B %Y') }}
+              </span>
+            </td>
+            <td>
+              <span style="font-size:0.8rem;color:var(--text-sec);">
+                {{ (cy.end_date - cy.start_date).days + 1 }} Days
+              </span>
+            </td>
+            <td>
+              <a href="{{ url_for('holidays.view_calendar_year_employees', year_id=cy.id) }}"
+                 class="badge" style="background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE;padding:0.3rem 0.65rem;border-radius:999px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;" title="View employees who joined during this year">
+                <i data-lucide="users" style="width:12px;height:12px;"></i>
+                <span>{{ emp_count_map.get(cy.id, 0) }} Employees</span>
+              </a>
+            </td>
+            <td>
+              {% if cy.is_active %}
+                <span class="report-badge badge-active">Active</span>
+              {% else %}
+                <span class="report-badge badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex;align-items:center;gap:0.4rem;">
+                <a href="{{ url_for('holidays.view_calendar_year_employees', year_id=cy.id) }}"
+                   class="btn btn-sm btn-outline-navy" style="padding:0.3rem 0.6rem;font-size:0.75rem;" title="View Employees">
+                  <i data-lucide="users" style="width:13px;height:13px;"></i>
+                  <span>View</span>
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-navy" style="padding:0.3rem 0.6rem;font-size:0.75rem;"
+                        onclick="openEditCalendarModal({{ cy.id }}, '{{ cy.name|escape }}', '{{ cy.start_date.strftime('%Y-%m-%d') }}', '{{ cy.end_date.strftime('%Y-%m-%d') }}', {{ 'true' if cy.is_active else 'false' }})" title="Edit Details">
+                  <i data-lucide="edit-2" style="width:13px;height:13px;"></i>
+                  <span>Edit</span>
+                </button>
+                <form method="POST" action="{{ url_for('holidays.toggle_calendar_year_status', year_id=cy.id) }}" style="display:inline;margin:0;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  {% if cy.is_active %}
+                  <button type="submit" class="btn btn-sm btn-outline-navy" style="padding:0.3rem 0.6rem;font-size:0.75rem;color:#D97706;" title="Deactivate Year">
+                    <i data-lucide="pause-circle" style="width:13px;height:13px;"></i>
+                    <span>Deactivate</span>
+                  </button>
+                  {% else %}
+                  <button type="submit" class="btn btn-sm btn-outline-navy" style="padding:0.3rem 0.6rem;font-size:0.75rem;color:#059669;" title="Activate Year">
+                    <i data-lucide="play-circle" style="width:13px;height:13px;"></i>
+                    <span>Activate</span>
+                  </button>
+                  {% endif %}
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center;padding:3rem 1rem;color:var(--text-sec);">
+              <i data-lucide="calendar" style="width:36px;height:36px;color:var(--text-muted);margin-bottom:0.5rem;display:inline-block;"></i>
+              <p style="margin:0;font-weight:600;">No calendar years configured yet. Click "Add Calendar Year" to create one.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ADD CALENDAR YEAR MODAL -->
+<div id="addCalendarModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="calendar-plus" style="color:var(--cyan);"></i>
+        <span>Add Calendar Year</span>
+      </h3>
+      <button onclick="closeAddCalendarModal()" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('holidays.add_calendar_year') }}" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Calendar Name <span style="color:#DC2626;">*</span></label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Calendar Year 2026" required/>
+        <small class="form-hint" style="font-size:0.75rem;color:var(--text-muted);">Unique title identifying this operational or fiscal year.</small>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Start Date <span style="color:#DC2626;">*</span></label>
+          <input type="date" name="start_date" id="add_start_date" class="form-control" required/>
+        </div>
+        <div>
+          <label class="form-label">End Date <span style="color:#DC2626;">*</span></label>
+          <input type="date" name="end_date" id="add_end_date" class="form-control" required/>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.5rem;">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--navy);">
+          <input type="checkbox" name="is_active" checked style="accent-color:var(--blue);width:16px;height:16px;"/>
+          <span>Mark as Active Calendar Year</span>
+        </label>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="closeAddCalendarModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Calendar Year</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- EDIT CALENDAR YEAR MODAL -->
+<div id="editCalendarModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="edit" style="color:var(--cyan);"></i>
+        <span>Edit Calendar Year</span>
+      </h3>
+      <button onclick="closeEditCalendarModal()" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form id="editCalendarForm" method="POST" action="" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Calendar Name <span style="color:#DC2626;">*</span></label>
+        <input type="text" name="name" id="edit_name" class="form-control" required/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.85rem;margin-bottom:1rem;">
+        <div>
+          <label class="form-label">Start Date <span style="color:#DC2626;">*</span></label>
+          <input type="date" name="start_date" id="edit_start_date" class="form-control" required/>
+        </div>
+        <div>
+          <label class="form-label">End Date <span style="color:#DC2626;">*</span></label>
+          <input type="date" name="end_date" id="edit_end_date" class="form-control" required/>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.5rem;">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--navy);">
+          <input type="checkbox" name="is_active" id="edit_is_active" style="accent-color:var(--blue);width:16px;height:16px;"/>
+          <span>Active Calendar Year</span>
+        </label>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="closeEditCalendarModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddCalendarModal() {
+  document.getElementById('addCalendarModal').style.display = 'flex';
+}
+function closeAddCalendarModal() {
+  document.getElementById('addCalendarModal').style.display = 'none';
+}
+function openEditCalendarModal(id, name, startDate, endDate, isActive) {
+  document.getElementById('edit_name').value = name;
+  document.getElementById('edit_start_date').value = startDate;
+  document.getElementById('edit_end_date').value = endDate;
+  document.getElementById('edit_is_active').checked = isActive;
+  document.getElementById('editCalendarForm').action = '/holidays/calendar-years/' + id + '/edit';
+  document.getElementById('editCalendarModal').style.display = 'flex';
+}
+function closeEditCalendarModal() {
+  document.getElementById('editCalendarModal').style.display = 'none';
+}
+function filterYearsTable() {
+  const q = document.getElementById('yearSearchInput').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#calendarYearsTable tbody tr');
+  rows.forEach(r => {
+    const text = r.innerText.toLowerCase();
+    r.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

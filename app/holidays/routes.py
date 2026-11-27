@@ -5,9 +5,9 @@ Provides 2026 Interactive Calendar, Holiday CRUD for Admins, and read-only views
 from datetime import datetime, date
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
-from sqlalchemy import extract
+from sqlalchemy import extract, or_
 from app.extensions import db
-from app.models import Holiday
+from app.models import Holiday, CalendarYear, Employee
 from app.time_utils import local_today
 
 holidays_bp = Blueprint("holidays", __name__, url_prefix="/holidays")
@@ -187,3 +187,208 @@ def delete_holiday(holiday_id):
         flash(f"Error deleting holiday: {str(e)}", "danger")
 
     return redirect(url_for("holidays.index"))
+
+
+# ── Calendar Year Management ───────────────────────────────────────────────────
+
+@holidays_bp.route("/calendar-years")
+@login_required
+def calendar_years_list():
+    """
+    List all configured Calendar Years with stats, active/inactive toggles,
+    and associated employees count.
+    """
+    if not current_user.is_admin:
+        flash("Admin privileges required to manage Calendar Years.", "danger")
+        return redirect(url_for("holidays.index"))
+
+    years = CalendarYear.query.order_by(CalendarYear.start_date.desc()).all()
+    
+    # Calculate employee count who joined in each calendar year
+    all_employees = Employee.query.all()
+    emp_count_map = {}
+    for y in years:
+        emp_count_map[y.id] = 0
+
+    unassigned_count = 0
+    for emp in all_employees:
+        if emp.date_joined:
+            d = emp.date_joined.date() if hasattr(emp.date_joined, "date") else emp.date_joined
+            matched = False
+            for y in years:
+                if y.start_date <= d <= y.end_date:
+                    emp_count_map[y.id] += 1
+                    matched = True
+                    break
+            if not matched:
+                unassigned_count += 1
+        else:
+            unassigned_count += 1
+
+    return render_template(
+        "holidays/calendar_years.html",
+        years=years,
+        emp_count_map=emp_count_map,
+        unassigned_count=unassigned_count,
+        total_employees=len(all_employees),
+    )
+
+
+@holidays_bp.route("/calendar-years/add", methods=["POST"])
+@login_required
+def add_calendar_year():
+    """Add a new calendar year with validation."""
+    if not current_user.is_admin:
+        flash("Admin privileges required.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    name = request.form.get("name", "").strip()
+    start_date_str = request.form.get("start_date", "").strip()
+    end_date_str = request.form.get("end_date", "").strip()
+    is_active = request.form.get("is_active") == "on" or request.form.get("is_active") == "true" or request.form.get("is_active") == "1"
+
+    if not all([name, start_date_str, end_date_str]):
+        flash("All fields (Calendar Name, Start Date, End Date) are required.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    try:
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        flash("Invalid date format. Please select valid calendar dates.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    if start_date >= end_date:
+        flash("Start date must be strictly before end date.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    # Uniqueness check on Name
+    if CalendarYear.query.filter(CalendarYear.name.ilike(name)).first():
+        flash(f"A calendar year named '{name}' already exists.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    # Conflicting or overlapping periods check
+    conflict = CalendarYear.query.filter(
+        CalendarYear.start_date <= end_date,
+        CalendarYear.end_date >= start_date
+    ).first()
+    if conflict:
+        flash(f"Date range overlaps with existing '{conflict.name}' ({conflict.start_date} to {conflict.end_date}).", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    cy = CalendarYear(
+        name=name,
+        start_date=start_date,
+        end_date=end_date,
+        is_active=is_active,
+    )
+    db.session.add(cy)
+    try:
+        db.session.commit()
+        flash(f"Calendar Year '{name}' created successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error saving calendar year: {str(e)}", "danger")
+
+    return redirect(url_for("holidays.calendar_years_list"))
+
+
+@holidays_bp.route("/calendar-years/<int:year_id>/edit", methods=["POST"])
+@login_required
+def edit_calendar_year(year_id):
+    """Edit an existing calendar year."""
+    if not current_user.is_admin:
+        flash("Admin privileges required.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    cy = CalendarYear.query.get_or_404(year_id)
+    name = request.form.get("name", "").strip()
+    start_date_str = request.form.get("start_date", "").strip()
+    end_date_str = request.form.get("end_date", "").strip()
+    is_active = request.form.get("is_active") == "on" or request.form.get("is_active") == "true" or request.form.get("is_active") == "1"
+
+    if not all([name, start_date_str, end_date_str]):
+        flash("All fields are required.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    try:
+        start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+        end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
+    except ValueError:
+        flash("Invalid date format.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    if start_date >= end_date:
+        flash("Start date must be strictly before end date.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    # Uniqueness check on Name excluding self
+    existing_name = CalendarYear.query.filter(CalendarYear.id != cy.id, CalendarYear.name.ilike(name)).first()
+    if existing_name:
+        flash(f"Another calendar year named '{name}' already exists.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    # Conflicting or overlapping periods check excluding self
+    conflict = CalendarYear.query.filter(
+        CalendarYear.id != cy.id,
+        CalendarYear.start_date <= end_date,
+        CalendarYear.end_date >= start_date
+    ).first()
+    if conflict:
+        flash(f"Date range overlaps with existing '{conflict.name}' ({conflict.start_date} to {conflict.end_date}).", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    cy.name = name
+    cy.start_date = start_date
+    cy.end_date = end_date
+    cy.is_active = is_active
+    try:
+        db.session.commit()
+        flash(f"Calendar Year '{name}' updated successfully.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating calendar year: {str(e)}", "danger")
+
+    return redirect(url_for("holidays.calendar_years_list"))
+
+
+@holidays_bp.route("/calendar-years/<int:year_id>/toggle-status", methods=["POST"])
+@login_required
+def toggle_calendar_year_status(year_id):
+    """Toggle Active/Inactive status of a calendar year."""
+    if not current_user.is_admin:
+        flash("Admin privileges required.", "danger")
+        return redirect(url_for("holidays.calendar_years_list"))
+
+    cy = CalendarYear.query.get_or_404(year_id)
+    cy.is_active = not cy.is_active
+    db.session.commit()
+    state_str = "activated" if cy.is_active else "deactivated"
+    flash(f"Calendar Year '{cy.name}' has been {state_str}.", "info")
+    return redirect(url_for("holidays.calendar_years_list"))
+
+
+@holidays_bp.route("/calendar-years/<int:year_id>/employees")
+@login_required
+def view_calendar_year_employees(year_id):
+    """
+    View employees who joined during a selected calendar year.
+    """
+    if not current_user.is_admin:
+        flash("Admin privileges required.", "danger")
+        return redirect(url_for("holidays.index"))
+
+    cy = CalendarYear.query.get_or_404(year_id)
+    start_dt = datetime.combine(cy.start_date, datetime.min.time())
+    end_dt = datetime.combine(cy.end_date, datetime.max.time())
+
+    employees = Employee.query.filter(
+        Employee.date_joined >= start_dt,
+        Employee.date_joined <= end_dt
+    ).order_by(Employee.date_joined.asc()).all()
+
+    return render_template(
+        "holidays/calendar_year_employees.html",
+        calendar_year=cy,
+        employees=employees,
+    )

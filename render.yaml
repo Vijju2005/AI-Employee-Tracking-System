@@ -1,10 +1,14 @@
 services:
   - type: web
-    name: ebt-system
+    name: ai-employee-tracking-system
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
     healthCheckPath: /health
+    disk:
+      name: ebt-uploads-disk
+      mountPath: /var/data/uploads
+      sizeGB: 1
     envVars:
       - key: FLASK_ENV
         value: production
@@ -14,8 +18,10 @@ services:
         value: EBT System
       - key: TIMEZONE
         value: Asia/Kolkata
+      - key: PERSISTENT_UPLOAD_DIR
+        value: /var/data/uploads
       - key: AUTO_SEED_DEMO
-        value: "true"
+        value: "false"
       - key: SECRET_KEY
         generateValue: true
       - key: WTF_CSRF_SECRET_KEY

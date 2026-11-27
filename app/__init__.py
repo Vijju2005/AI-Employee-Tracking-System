@@ -63,16 +63,27 @@ def create_app(config_class=None):
     flask_app.register_blueprint(superadmin_bp)
     flask_app.register_blueprint(roles_bp)
 
+    # Register custom template filters
+    import json
+    @flask_app.template_filter("from_json")
+    def from_json_filter(value):
+        if not value:
+            return []
+        try:
+            return json.loads(value)
+        except Exception:
+            return []
+
     # Lightweight idempotent database table check on first boot
     if not flask_app.config.get("TESTING", False):
         try:
             with flask_app.app_context():
-                # Ensure all defined model tables exist (e.g. holidays)
-                from app.models import Holiday, Employee  # Explicitly import models to register with metadata
+                # Ensure all defined model tables exist (e.g. holidays, company_locations, calendar_years)
+                from app.models import Holiday, Employee, EmployeeDocument, CompanyPolicy, EmployeeProfile, CompanyLocation, CalendarYear  # Explicitly import models to register with metadata
                 from sqlalchemy import inspect
                 inspector = inspect(db.engine)
                 existing_tables = inspector.get_table_names()
-                if "holidays" not in existing_tables or len(existing_tables) < 5:
+                if "holidays" not in existing_tables or "employee_documents" not in existing_tables or "company_policies" not in existing_tables or "employee_profiles" not in existing_tables or "calendar_years" not in existing_tables or len(existing_tables) < 5:
                     flask_app.logger.info("Creating any missing database tables (tables found: %s)...", existing_tables)
                     db.create_all()
                     if len(existing_tables) < 5:
@@ -89,9 +100,68 @@ def create_app(config_class=None):
                 except Exception as seed_err:
                     flask_app.logger.warning("Auto holiday seed error: %s", seed_err)
 
+                # Seed Default Calendar Year 2026 idempotently if missing
+                try:
+                    from app.holidays.seeder import seed_default_calendar_years
+                    seed_default_calendar_years()
+                except Exception as cal_err:
+                    flask_app.logger.warning("Auto calendar year seed error: %s", cal_err)
+
                 # Safe idempotent column migration for existing tables
                 inspector = inspect(db.engine)
                 existing_tables = inspector.get_table_names()
+                # Ensure companies table columns exist
+                if "companies" in existing_tables:
+                    comp_cols = [c["name"] for c in inspector.get_columns("companies")]
+                    comp_cols_to_add = [
+                        ("logo", "VARCHAR(255) NULL"),
+                        ("registration_number", "VARCHAR(100) NULL"),
+                        ("gstin", "VARCHAR(50) NULL"),
+                        ("pan", "VARCHAR(50) NULL"),
+                        ("industry", "VARCHAR(100) NULL"),
+                        ("country", "VARCHAR(100) DEFAULT 'India'"),
+                        ("state", "VARCHAR(100) NULL"),
+                        ("city", "VARCHAR(100) NULL"),
+                        ("pincode", "VARCHAR(20) NULL"),
+                        ("employee_limit", "INT NULL"),
+                        ("user_limit", "INT NULL"),
+                    ]
+                    for col_name, col_sql in comp_cols_to_add:
+                        if col_name not in comp_cols:
+                            try:
+                                from sqlalchemy import text
+                                db.session.execute(text(f"ALTER TABLE companies ADD COLUMN {col_name} {col_sql}"))
+                                db.session.commit()
+                                flask_app.logger.info("Migrated companies table: added %s column.", col_name)
+                            except Exception as c_mig_err:
+                                db.session.rollback()
+
+                # Ensure packages table columns exist
+                if "packages" in existing_tables:
+                    pkg_cols = [c["name"] for c in inspector.get_columns("packages")]
+                    pkg_cols_to_add = [
+                        ("description", "VARCHAR(255) NULL"),
+                        ("billing_cycle", "VARCHAR(20) DEFAULT 'monthly'"),
+                        ("max_users", "INT DEFAULT 5"),
+                        ("trial_period_days", "INT DEFAULT 14"),
+                    ]
+                    for col_name, col_sql in pkg_cols_to_add:
+                        if col_name not in pkg_cols:
+                            try:
+                                from sqlalchemy import text
+                                db.session.execute(text(f"ALTER TABLE packages ADD COLUMN {col_name} {col_sql}"))
+                                db.session.commit()
+                                flask_app.logger.info("Migrated packages table: added %s column.", col_name)
+                            except Exception as p_mig_err:
+                                db.session.rollback()
+
+                # Create company_locations table if missing
+                if "company_locations" not in existing_tables:
+                    try:
+                        CompanyLocation.__table__.create(db.engine, checkfirst=True)
+                    except Exception as loc_err:
+                        flask_app.logger.warning("Error creating company_locations table: %s", loc_err)
+
                 if "employees" in existing_tables:
                     cols = [c["name"] for c in inspector.get_columns("employees")]
                     if "company_name" not in cols:
@@ -103,7 +173,29 @@ def create_app(config_class=None):
                         except Exception as mig_err:
                             db.session.rollback()
                             flask_app.logger.warning("Column migration skipped or failed: %s", mig_err)
+                    if "manager_id" not in cols:
+                        try:
+                            from sqlalchemy import text
+                            db.session.execute(text("ALTER TABLE employees ADD COLUMN manager_id INT NULL"))
+                            db.session.commit()
+                            flask_app.logger.info("Migrated employees table: added manager_id column.")
+                        except Exception as mig_err:
+                            db.session.rollback()
+                            flask_app.logger.warning("manager_id column migration skipped: %s", mig_err)
 
+                # Ensure employee_profiles table columns exist
+                if "employee_profiles" in existing_tables:
+                    ep_cols = [c["name"] for c in inspector.get_columns("employee_profiles")]
+                    if "bank_account_encrypted" not in ep_cols:
+                        try:
+                            from sqlalchemy import text
+                            db.session.execute(text("ALTER TABLE employee_profiles ADD COLUMN bank_account_encrypted VARCHAR(255) NULL"))
+                            db.session.commit()
+                            flask_app.logger.info("Migrated employee_profiles table: added bank_account_encrypted column.")
+                        except Exception as ep_mig_err:
+                            db.session.rollback()
+
+                # Ensure users table columns exist
                 if "users" in existing_tables:
                     user_cols = [c["name"] for c in inspector.get_columns("users")]
                     cols_to_add = [
@@ -156,7 +248,7 @@ def create_app(config_class=None):
                 migration_result = "Created holidays table"
 
             # Ensure payroll, superadmin, and RBAC tables exist
-            if any(t not in tables for t in ["payroll_items", "expenses", "companies", "packages", "subscriptions", "roles", "permissions", "designations", "leave_type_policies", "job_openings", "job_candidates"]):
+            if any(t not in tables for t in ["payroll_items", "expenses", "companies", "packages", "subscriptions", "roles", "permissions", "designations", "leave_type_policies", "job_openings", "job_candidates", "employee_documents", "company_policies", "employee_profiles", "company_locations", "calendar_years"]):
                 db.create_all()
                 inspector = inspect(db.engine)
                 tables = inspector.get_table_names()

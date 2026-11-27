@@ -65,3 +65,37 @@ def seed_karnataka_holidays_2026(session=None):
         raise e
 
     return inserted_count, existing_count
+
+
+def seed_default_calendar_years(session=None):
+    """
+    Idempotently seeds default Calendar Years (e.g. 2025, 2026, 2027) into calendar_years.
+    Preserves all existing records.
+    """
+    from app.models import CalendarYear
+    s = session or db.session
+    defaults = [
+        ("Calendar Year 2025", date(2025, 1, 1), date(2025, 12, 31), True),
+        ("Calendar Year 2026", date(2026, 1, 1), date(2026, 12, 31), True),
+        ("Calendar Year 2027", date(2027, 1, 1), date(2027, 12, 31), True),
+    ]
+    added = 0
+    for name, s_dt, e_dt, is_act in defaults:
+        existing = s.query(CalendarYear).filter_by(name=name).first()
+        if not existing:
+            cy = CalendarYear(
+                name=name,
+                start_date=s_dt,
+                end_date=e_dt,
+                is_active=is_act,
+            )
+            s.add(cy)
+            added += 1
+    if added > 0:
+        try:
+            s.commit()
+            logger.info("Default calendar years seeded: %d added.", added)
+        except Exception as e:
+            s.rollback()
+            logger.error("Error committing calendar years: %s", e)
+    return added

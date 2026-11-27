@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Companies Management | Super Admin{% endblock %}
+{% block title %}Companies Directory | Super Admin{% endblock %}
 {% block topbar_title %}Enterprise Multi-Tenant Companies{% endblock %}
 
 {% block content %}
 <div class="reports-container">
 
-  <!-- Header -->
+  <!-- Header Card -->
   <div class="reports-header-card">
     <div class="reports-header-left">
       <div class="reports-header-icon-box">
@@ -13,44 +13,94 @@
       </div>
       <div>
         <h1 class="reports-header-title">Companies Management</h1>
-        <p class="reports-header-sub">Register, license, suspend, and configure corporate tenants</p>
+        <p class="reports-header-sub">Register, license, suspend, archive, and export corporate tenants</p>
       </div>
     </div>
-    <div class="reports-header-actions">
-      <button class="btn btn-primary" onclick="document.getElementById('addCompanyModal').style.display='flex'">
+    <div class="reports-header-actions" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+      <a href="{{ url_for('superadmin.companies_export_excel') }}" class="btn btn-outline-navy">
+        <i data-lucide="file-spreadsheet"></i>
+        <span>Export to Excel</span>
+      </a>
+      <a href="{{ url_for('superadmin.company_create') }}" class="btn btn-primary">
         <i data-lucide="plus"></i>
         <span>Register New Company</span>
-      </button>
+      </a>
     </div>
   </div>
 
-  <!-- Filter & Search -->
-  <div class="reports-filter-panel">
-    <form method="GET" action="{{ url_for('superadmin.companies_list') }}">
-      <div class="reports-filter-grid">
-        <div class="reports-field-group" style="grid-column: span 2;">
-          <label class="reports-field-label">Search Companies</label>
-          <div class="reports-input-wrap">
-            <i data-lucide="search"></i>
-            <input type="text" name="q" value="{{ search_q }}" placeholder="Search company name, code or email..." class="form-control" style="height:38px;font-size:0.84rem;"/>
-          </div>
+  <!-- KPI Badges Ribbon -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:0.75rem;margin-bottom:1.25rem;">
+    <a href="{{ url_for('superadmin.companies_list') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if not status_filter %}var(--navy){% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">All Tenants</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--navy);">{{ total_companies }}</div>
         </div>
-        <div class="reports-field-group">
-          <label class="reports-field-label">Account Status</label>
-          <div class="reports-input-wrap">
-            <i data-lucide="shield"></i>
-            <select name="status" class="form-control" style="height:38px;font-size:0.84rem;">
-              <option value="">All Statuses</option>
-              <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
-              <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
-            </select>
-          </div>
-        </div>
-        <div class="reports-filter-actions">
-          <button type="submit" class="btn btn-primary" style="height:38px;padding:0 1.25rem;">Filter</button>
-          <a href="{{ url_for('superadmin.companies_list') }}" class="btn btn-outline-navy" style="height:38px;">Clear</a>
-        </div>
+        <i data-lucide="buildings" style="color:var(--navy);width:22px;height:22px;"></i>
       </div>
+    </a>
+
+    <a href="{{ url_for('superadmin.companies_list', status='active') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if status_filter == 'active' %}#10B981{% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:#047857;font-weight:700;text-transform:uppercase;">Active</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#047857;">{{ active_count }}</div>
+        </div>
+        <i data-lucide="check-circle" style="color:#10B981;width:22px;height:22px;"></i>
+      </div>
+    </a>
+
+    <a href="{{ url_for('superadmin.companies_list', status='suspended') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if status_filter == 'suspended' %}#EF4444{% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:#B91C1C;font-weight:700;text-transform:uppercase;">Suspended</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#B91C1C;">{{ suspended_count }}</div>
+        </div>
+        <i data-lucide="shield-alert" style="color:#EF4444;width:22px;height:22px;"></i>
+      </div>
+    </a>
+
+    <a href="{{ url_for('superadmin.companies_list', status='archived') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if status_filter == 'archived' %}#64748B{% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:#475569;font-weight:700;text-transform:uppercase;">Archived</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#475569;">{{ archived_count }}</div>
+        </div>
+        <i data-lucide="archive" style="color:#64748B;width:22px;height:22px;"></i>
+      </div>
+    </a>
+  </div>
+
+  <!-- Filter & Search Toolbar -->
+  <div class="card" style="padding:1rem 1.25rem;border-radius:12px;border:1px solid var(--border);background:#FFFFFF;margin-bottom:1.25rem;">
+    <form method="GET" action="{{ url_for('superadmin.companies_list') }}" style="display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;">
+      <div style="flex:1;min-width:220px;position:relative;">
+        <input type="text" name="q" value="{{ search_q }}" placeholder="Search company name, code, email, country..." class="form-control" style="padding-left:2.2rem;"/>
+        <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-muted);"></i>
+      </div>
+
+      <div style="min-width:140px;">
+        <select name="status" class="form-control" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+          <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
+          <option value="archived" {% if status_filter == 'archived' %}selected{% endif %}>Archived</option>
+        </select>
+      </div>
+
+      <div style="min-width:160px;">
+        <select name="plan_id" class="form-control" onchange="this.form.submit()">
+          <option value="">All Plans</option>
+          {% for p in packages %}
+          <option value="{{ p.id }}" {% if plan_filter == p.id %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="padding:0.5rem 1rem;">Filter</button>
+      {% if search_q or status_filter or plan_filter %}
+      <a href="{{ url_for('superadmin.companies_list') }}" class="btn btn-outline-navy" style="padding:0.5rem 0.85rem;">Clear</a>
+      {% endif %}
     </form>
   </div>
 
@@ -59,110 +109,151 @@
     <div class="reports-table-header">
       <div class="reports-table-heading">
         <i data-lucide="list"></i>
-        <span>Registered Companies ({{ pagination.total }})</span>
+        <span>Registered Enterprise Tenants ({{ pagination.total }})</span>
       </div>
     </div>
     <div class="reports-table-wrapper">
       <table class="reports-data-table">
         <thead>
           <tr>
+            <th>Company ID</th>
+            <th>Logo</th>
             <th>Company Name</th>
-            <th>Code</th>
-            <th>Contact Email</th>
+            <th>Reg. Number</th>
+            <th>Email</th>
             <th>Phone</th>
-            <th>Package</th>
+            <th>Country</th>
+            <th>Subscription Plan</th>
+            <th>Subscription Expiry</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th style="text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for c in companies %}
           <tr>
+            <td style="font-weight:700;color:var(--navy);font-size:0.8rem;">CMP-{{ "%04d"|format(c.id) }}</td>
             <td>
-              <strong style="color:var(--navy);font-size:0.9rem;">{{ c.name }}</strong>
-              {% if c.address %}<div style="font-size:0.75rem;color:var(--text-muted);">{{ c.address }}</div>{% endif %}
+              {% if c.logo %}
+              <img src="/static/uploads/avatars/{{ c.logo }}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid #E2E8F0;"/>
+              {% else %}
+              <div style="width:32px;height:32px;border-radius:6px;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:0.75rem;">
+                {{ c.code[:2] }}
+              </div>
+              {% endif %}
             </td>
-            <td><span class="report-code-badge">{{ c.code }}</span></td>
-            <td>{{ c.email }}</td>
-            <td>{{ c.phone or '—' }}</td>
-            <td>{{ c.package.name if c.package else 'None' }}</td>
             <td>
-              <span class="badge {% if c.status == 'active' %}badge-success{% else %}badge-danger{% endif %}">
-                {{ c.status|title }}
+              <a href="{{ url_for('superadmin.company_view', company_id=c.id) }}" style="font-weight:800;color:var(--navy);text-decoration:none;font-size:0.9rem;">
+                {{ c.name }}
+              </a>
+              <div style="font-size:0.75rem;color:var(--text-muted);">
+                <span class="report-code-badge">{{ c.code }}</span>
+                {% if c.city %}&bull; {{ c.city }}{% endif %}
+              </div>
+            </td>
+            <td>
+              <span style="font-size:0.8rem;color:var(--text-sec);font-family:monospace;">
+                {{ c.registration_number or '—' }}
               </span>
             </td>
+            <td>{{ c.email }}</td>
+            <td>{{ c.phone or '—' }}</td>
+            <td>{{ c.country or 'India' }}</td>
             <td>
-              <form method="POST" action="{{ url_for('superadmin.company_toggle_status', company_id=c.id) }}" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <button type="submit" class="btn btn-sm {% if c.status == 'active' %}btn-danger{% else %}btn-success{% endif %}">
-                  {{ 'Suspend' if c.status == 'active' else 'Activate' }}
-                </button>
-              </form>
+              {% if c.package %}
+              <span style="font-weight:700;color:var(--navy);">{{ c.package.name }}</span>
+              <div style="font-size:0.72rem;color:var(--text-muted);">{{ c.package.code }}</div>
+              {% else %}
+              <span style="color:var(--text-muted);">None</span>
+              {% endif %}
+            </td>
+            <td>
+              {% set exp = company_expiries.get(c.id) %}
+              {% if exp %}
+                <span style="font-weight:600;{% if c.status == 'active' and exp < now %}color:#DC2626;{% else %}color:var(--navy);{% endif %}">
+                  {{ exp.strftime('%Y-%m-%d') }}
+                </span>
+              {% else %}
+                <span style="color:var(--text-muted);">No Expiry</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if c.status == 'active' %}
+              <span class="badge badge-success">Active</span>
+              {% elif c.status == 'suspended' %}
+              <span class="badge badge-danger">Suspended</span>
+              {% elif c.status == 'archived' %}
+              <span class="badge" style="background:#64748B;color:#FFFFFF;">Archived</span>
+              {% else %}
+              <span class="badge badge-secondary">{{ c.status|title }}</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex;gap:0.3rem;align-items:center;">
+                <!-- View Profile -->
+                <a href="{{ url_for('superadmin.company_view', company_id=c.id) }}" class="btn btn-sm btn-outline-navy" title="View Company Profile">
+                  <i data-lucide="eye"></i>
+                </a>
+
+                <!-- Edit -->
+                <a href="{{ url_for('superadmin.company_edit', company_id=c.id) }}" class="btn btn-sm btn-outline-navy" title="Edit Company Details">
+                  <i data-lucide="edit-2"></i>
+                </a>
+
+                <!-- Activate / Deactivate (Toggle Status) -->
+                <form method="POST" action="{{ url_for('superadmin.company_toggle_status', company_id=c.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-sm {% if c.status == 'active' %}btn-danger{% else %}btn-success{% endif %}" title="{{ 'Suspend Company' if c.status == 'active' else 'Activate Company' }}">
+                    <i data-lucide="{{ 'pause-circle' if c.status == 'active' else 'play-circle' }}"></i>
+                  </button>
+                </form>
+
+                <!-- Archive -->
+                <form method="POST" action="{{ url_for('superadmin.company_archive', company_id=c.id) }}" style="display:inline;">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-sm btn-outline-navy" title="{{ 'Restore Company' if c.status == 'archived' else 'Archive Company' }}">
+                    <i data-lucide="archive"></i>
+                  </button>
+                </form>
+
+                <!-- Safe Delete -->
+                <form method="POST" action="{{ url_for('superadmin.company_delete', company_id=c.id) }}" style="display:inline;" onsubmit="return confirm('Permanently delete {{ c.name }}? Action rejected if dependent users or records exist.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-sm" style="background:#FFF1F2;color:#E11D48;border:1px solid #FFE4E6;" title="Safe Delete">
+                    <i data-lucide="trash-2"></i>
+                  </button>
+                </form>
+              </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted);">
-              No companies found. Click "Register New Company" to add one.
+            <td colspan="11" style="text-align:center;padding:3rem;color:var(--text-muted);">
+              No companies match your filters. Click "Register New Company" to add a tenant.
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </div>
 
-</div>
-
-<!-- Add Company Modal -->
-<div id="addCompanyModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
-  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:520px;box-shadow:var(--shadow-xl);overflow:hidden;">
-    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
-      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Register Enterprise Company</h3>
-      <button onclick="document.getElementById('addCompanyModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid var(--border);">
+      <div style="font-size:0.85rem;color:var(--text-muted);">
+        Showing page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong>
+      </div>
+      <div style="display:flex;gap:0.4rem;">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('superadmin.companies_list', page=pagination.prev_num, q=search_q, status=status_filter, plan_id=plan_filter) }}" class="btn btn-sm btn-outline-navy">&laquo; Prev</a>
+        {% endif %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for('superadmin.companies_list', page=pagination.next_num, q=search_q, status=status_filter, plan_id=plan_filter) }}" class="btn btn-sm btn-outline-navy">Next &raquo;</a>
+        {% endif %}
+      </div>
     </div>
-    <form method="POST" action="{{ url_for('superadmin.company_add') }}" style="padding:1.5rem;">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-      <div class="form-group">
-        <label class="form-label">Company Name *</label>
-        <input type="text" name="name" class="form-control" required placeholder="e.g. Acme Corporation"/>
-      </div>
-      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-        <div>
-          <label class="form-label">Company Code *</label>
-          <input type="text" name="code" class="form-control" required placeholder="ACME" style="text-transform:uppercase;"/>
-        </div>
-        <div>
-          <label class="form-label">Official Email *</label>
-          <input type="email" name="email" class="form-control" required placeholder="admin@acme.com"/>
-        </div>
-      </div>
-      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-        <div>
-          <label class="form-label">Contact Phone</label>
-          <input type="text" name="phone" class="form-control" placeholder="+91 98765 43210"/>
-        </div>
-        <div>
-          <label class="form-label">SaaS Subscription Package</label>
-          <select name="package_id" class="form-control">
-            <option value="">Select Package</option>
-            {% for p in packages %}
-            <option value="{{ p.id }}">{{ p.name }} (₹{{ p.price_per_month }}/mo)</option>
-            {% endfor %}
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Office Address</label>
-        <input type="text" name="address" class="form-control" placeholder="City, State, Country"/>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;">
-        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('addCompanyModal').style.display='none'">Cancel</button>
-        <button type="submit" class="btn btn-primary">Create Company</button>
-      </div>
-    </form>
+    {% endif %}
   </div>
+
 </div>
 {% endblock %}

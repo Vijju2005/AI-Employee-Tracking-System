@@ -1,6 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Admin Overview{% endblock %}
-{% block topbar_title %}Enterprise Overview{% endblock %}
+{% block title %}Admin Dashboard | EBT System{% endblock %}
+{% block topbar_title %}Enterprise Dashboard{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <i data-lucide="home" style="width:13px;height:13px;"></i>
+  <span class="breadcrumb-sep">/</span>
+  <span class="breadcrumb-current">Admin Dashboard</span>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">

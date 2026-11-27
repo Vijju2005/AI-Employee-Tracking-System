@@ -16,7 +16,11 @@
         <p class="reports-header-sub">Configure tiers, user quotas, storage limits, and monthly/annual pricing</p>
       </div>
     </div>
-    <div class="reports-header-actions">
+    <div class="reports-header-actions" style="display:flex;gap:0.75rem;">
+      <button class="btn btn-outline-navy" id="toggleViewBtn" onclick="toggleMatrixView()">
+        <i data-lucide="table"></i>
+        <span id="toggleViewText">View Feature Comparison</span>
+      </button>
       <button class="btn btn-primary" onclick="openPackageModal()">
         <i data-lucide="plus"></i>
         <span>Add New Package</span>
@@ -25,100 +29,277 @@
   </div>
 
   <!-- Plans Pricing Grid -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1.25rem;">
+  <div id="plansGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));gap:1.25rem;">
     {% for p in packages %}
-    <div class="card" style="border:1px solid var(--border);border-radius:14px;padding:1.5rem;background:#FFFFFF;box-shadow:var(--shadow-xs);display:flex;flex-direction:column;justify-content:space-between;position:relative;">
+    <div class="card" style="border:1px solid {% if not p.is_active %}#E2E8F0;opacity:0.8;{% else %}var(--border);{% endif %}border-radius:14px;padding:1.5rem;background:#FFFFFF;box-shadow:var(--shadow-xs);display:flex;flex-direction:column;justify-content:space-between;position:relative;">
       {% if p.code == 'PRO' %}
       <span style="position:absolute;top:12px;right:12px;background:var(--blue);color:#FFFFFF;font-size:0.7rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:999px;">
         POPULAR
+      </span>
+      {% elif not p.is_active %}
+      <span style="position:absolute;top:12px;right:12px;background:#64748B;color:#FFFFFF;font-size:0.7rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:999px;">
+        INACTIVE
       </span>
       {% endif %}
 
       <div>
         <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">{{ p.code }}</div>
-        <h3 style="font-size:1.3rem;font-weight:800;color:var(--navy);margin:0.25rem 0 1rem;">{{ p.name }}</h3>
+        <h3 style="font-size:1.3rem;font-weight:800;color:var(--navy);margin:0.25rem 0 0.5rem;">{{ p.name }}</h3>
+        {% if p.description %}
+        <p style="font-size:0.8rem;color:var(--text-sec);margin:0 0 1rem;">{{ p.description }}</p>
+        {% endif %}
 
         <div style="display:flex;align-items:baseline;gap:0.35rem;margin-bottom:1.25rem;">
           <span style="font-size:1.8rem;font-weight:800;color:var(--navy);">₹ {{ "{:,.0f}".format(p.price_per_month) }}</span>
           <span style="font-size:0.8rem;color:var(--text-sec);">/ month</span>
+          <span style="margin-left:auto;font-size:0.78rem;font-weight:600;color:var(--cyan);background:rgba(0,180,216,0.1);padding:2px 8px;border-radius:6px;">
+            ₹ {{ "{:,.0f}".format(p.price_per_year) }}/yr
+          </span>
         </div>
 
-        <ul style="list-style:none;padding:0;margin:0 0 1.5rem;display:flex;flex-direction:column;gap:0.6rem;font-size:0.85rem;color:var(--text);">
+        <ul style="list-style:none;padding:0;margin:0 0 1.25rem;display:flex;flex-direction:column;gap:0.55rem;font-size:0.85rem;color:var(--text);">
           <li style="display:flex;align-items:center;gap:0.5rem;">
-            <i data-lucide="check" style="width:16px;height:16px;color:#10B981;flex-shrink:0;"></i>
+            <i data-lucide="users" style="width:16px;height:16px;color:var(--blue);flex-shrink:0;"></i>
             <span>Up to <strong>{{ p.max_employees }}</strong> Employees</span>
           </li>
           <li style="display:flex;align-items:center;gap:0.5rem;">
-            <i data-lucide="check" style="width:16px;height:16px;color:#10B981;flex-shrink:0;"></i>
-            <span><strong>{{ p.max_storage_mb }} MB</strong> Secure Cloud Storage</span>
+            <i data-lucide="user-check" style="width:16px;height:16px;color:var(--navy);flex-shrink:0;"></i>
+            <span>Up to <strong>{{ p.max_users }}</strong> System Logins</span>
           </li>
           <li style="display:flex;align-items:center;gap:0.5rem;">
-            <i data-lucide="check" style="width:16px;height:16px;color:#10B981;flex-shrink:0;"></i>
-            <span>Annual Billing: ₹ {{ "{:,.0f}".format(p.price_per_year) }}/yr</span>
+            <i data-lucide="hard-drive" style="width:16px;height:16px;color:var(--cyan);flex-shrink:0;"></i>
+            <span><strong>{{ p.max_storage_mb }} MB</strong> Storage</span>
+          </li>
+          <li style="display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="clock" style="width:16px;height:16px;color:#F59E0B;flex-shrink:0;"></i>
+            <span>Trial: <strong>{{ p.trial_period_days }} Days</strong></span>
+          </li>
+          <li style="display:flex;align-items:center;gap:0.5rem;">
+            <i data-lucide="briefcase" style="width:16px;height:16px;color:var(--navy);flex-shrink:0;"></i>
+            <span>Subscribers: <strong>{{ sub_counts.get(p.id, 0) }}</strong> Company Subscriptions</span>
           </li>
         </ul>
+
+        {% if p.features_json %}
+        <div style="border-top:1px dashed var(--border);padding-top:0.75rem;margin-bottom:1.25rem;">
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:0.4rem;">Included Modules</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
+            {% set feat_list = p.features_json|from_json if p.features_json.startswith('[') else [] %}
+            {% for f in feat_list %}
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:0.75rem;background:#F8FAFC;border:1px solid var(--border);padding:2px 8px;border-radius:6px;color:var(--navy);">
+              <i data-lucide="check" style="width:12px;height:12px;color:#10B981;"></i>
+              {{ f }}
+            </span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
       </div>
 
-      <div style="border-top:1px solid var(--border);padding-top:1rem;display:flex;align-items:center;justify-content:space-between;">
-        <span class="badge badge-success">Active</span>
-        <button class="btn btn-sm btn-outline-navy" onclick="editPackage({{ p.id }}, '{{ p.name }}', '{{ p.code }}', {{ p.price_per_month }}, {{ p.price_per_year }}, {{ p.max_employees }}, {{ p.max_storage_mb }})">
-          <i data-lucide="edit-2"></i>
-          <span>Edit Plan</span>
-        </button>
+      <div style="border-top:1px solid var(--border);padding-top:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+        <div>
+          {% if p.is_active %}
+          <span class="badge badge-success">Active</span>
+          {% else %}
+          <span class="badge badge-secondary" style="background:#E2E8F0;color:#475569;">Inactive</span>
+          {% endif %}
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.4rem;">
+          <!-- Duplicate Plan -->
+          <form method="POST" action="{{ url_for('superadmin.package_duplicate', pkg_id=p.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-sm btn-outline-navy" title="Duplicate Plan into New Tier">
+              <i data-lucide="copy"></i>
+            </button>
+          </form>
+
+          <!-- Toggle Status -->
+          <form method="POST" action="{{ url_for('superadmin.package_toggle_status', pkg_id=p.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-sm btn-outline-navy" title="{{ 'Deactivate' if p.is_active else 'Activate' }}">
+              <i data-lucide="{{ 'pause-circle' if p.is_active else 'play-circle' }}"></i>
+            </button>
+          </form>
+
+          <!-- Edit Package -->
+          <button class="btn btn-sm btn-outline-navy" onclick="editPackage({{ p.id }}, '{{ p.name|escape }}', '{{ p.code|escape }}', '{{ p.description|default('')|escape }}', '{{ p.billing_cycle|default('monthly') }}', {{ p.price_per_month }}, {{ p.price_per_year }}, {{ p.max_employees }}, {{ p.max_users }}, {{ p.max_storage_mb }}, {{ p.trial_period_days }}, {{ p.features_json|default('[]')|tojson }})">
+            <i data-lucide="edit-2"></i>
+            <span>Edit</span>
+          </button>
+
+          <!-- Delete Package (Safe deletion) -->
+          <form method="POST" action="{{ url_for('superadmin.package_delete', pkg_id=p.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete package \'{{ p.name }}\'? Linked packages cannot be deleted.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <button type="submit" class="btn btn-sm" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;" title="Delete Package">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </form>
+        </div>
       </div>
     </div>
     {% endfor %}
+  </div>
+
+  <!-- Feature Comparison Matrix Table -->
+  <div id="matrixSection" class="reports-table-card" style="display:none;margin-top:1.5rem;">
+    <div class="reports-table-header">
+      <div class="reports-table-heading">
+        <i data-lucide="columns"></i>
+        <span>Tier Module &amp; Feature Comparison Matrix</span>
+      </div>
+    </div>
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th style="min-width:240px;">HRMS Module / Capability</th>
+            {% for p in packages %}
+            <th style="text-align:center;min-width:140px;">
+              <div style="font-weight:800;color:var(--navy);">{{ p.name }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">₹{{ "{:,.0f}".format(p.price_per_month) }}/mo</div>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Max Employee Capacity</strong></td>
+            {% for p in packages %}
+            <td style="text-align:center;"><strong>{{ p.max_employees }}</strong> Employees</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><strong>Max System Users</strong></td>
+            {% for p in packages %}
+            <td style="text-align:center;"><strong>{{ p.max_users }}</strong> Users</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><strong>Cloud Storage Quota</strong></td>
+            {% for p in packages %}
+            <td style="text-align:center;">{{ p.max_storage_mb }} MB</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><strong>Free Trial Period</strong></td>
+            {% for p in packages %}
+            <td style="text-align:center;">{{ p.trial_period_days }} Days</td>
+            {% endfor %}
+          </tr>
+          <tr>
+            <td><strong>Annual Plan Rate</strong></td>
+            {% for p in packages %}
+            <td style="text-align:center;color:var(--cyan);font-weight:700;">₹ {{ "{:,.0f}".format(p.price_per_year) }}/yr</td>
+            {% endfor %}
+          </tr>
+          {% for feat in standard_features %}
+          <tr>
+            <td>{{ feat }}</td>
+            {% for p in packages %}
+            <td style="text-align:center;">
+              {% if p.features_json and (feat in p.features_json or 'All' in p.features_json) %}
+              <i data-lucide="check-circle" style="width:18px;height:18px;color:#10B981;margin:auto;"></i>
+              {% else %}
+              <span style="color:#CBD5E1;font-size:1.2rem;">&minus;</span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 
 </div>
 
 <!-- Package Modal -->
 <div id="pkgModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
-  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:580px;box-shadow:var(--shadow-xl);overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
     <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
       <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;" id="pkgModalTitle">Create Plan Tier</h3>
       <button onclick="document.getElementById('pkgModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
     </div>
-    <form method="POST" action="{{ url_for('superadmin.package_save') }}" style="padding:1.5rem;">
+    <form method="POST" action="{{ url_for('superadmin.package_save') }}" style="padding:1.5rem;overflow-y:auto;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <input type="hidden" name="package_id" id="pkg_id" value=""/>
 
       <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
         <div>
-          <label class="form-label">Package Name *</label>
-          <input type="text" name="name" id="pkg_name" class="form-control" required placeholder="Growth Tier"/>
+          <label class="form-label">Plan Name *</label>
+          <input type="text" name="name" id="pkg_name" class="form-control" required placeholder="e.g. Growth Tier"/>
         </div>
         <div>
-          <label class="form-label">Code *</label>
+          <label class="form-label">Unique Code *</label>
           <input type="text" name="code" id="pkg_code" class="form-control" required placeholder="GROWTH" style="text-transform:uppercase;"/>
         </div>
       </div>
 
-      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Plan Description</label>
+        <input type="text" name="description" id="pkg_description" class="form-control" placeholder="Targeted for mid-market growing companies"/>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.75rem;margin-bottom:1rem;">
         <div>
-          <label class="form-label">Monthly Price (₹) *</label>
-          <input type="number" step="0.01" name="price_per_month" id="pkg_price_mo" class="form-control" required placeholder="199"/>
+          <label class="form-label">Billing Cycle</label>
+          <select name="billing_cycle" id="pkg_billing_cycle" class="form-control">
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+            <option value="both">Both Available</option>
+          </select>
         </div>
         <div>
-          <label class="form-label">Annual Price (₹) *</label>
-          <input type="number" step="0.01" name="price_per_year" id="pkg_price_yr" class="form-control" required placeholder="1990"/>
+          <label class="form-label">Monthly (₹) *</label>
+          <input type="number" step="0.01" min="0" name="price_per_month" id="pkg_price_mo" class="form-control" required placeholder="199"/>
+        </div>
+        <div>
+          <label class="form-label">Yearly (₹) *</label>
+          <input type="number" step="0.01" min="0" name="price_per_year" id="pkg_price_yr" class="form-control" required placeholder="1990"/>
         </div>
       </div>
 
-      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+      <div class="form-row" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:0.75rem;margin-bottom:1rem;">
         <div>
           <label class="form-label">Max Employees</label>
-          <input type="number" name="max_employees" id="pkg_max_emp" class="form-control" value="50"/>
+          <input type="number" min="1" name="max_employees" id="pkg_max_emp" class="form-control" value="50"/>
+        </div>
+        <div>
+          <label class="form-label">Max Users</label>
+          <input type="number" min="1" name="max_users" id="pkg_max_users" class="form-control" value="5"/>
         </div>
         <div>
           <label class="form-label">Storage (MB)</label>
-          <input type="number" name="max_storage_mb" id="pkg_max_storage" class="form-control" value="1000"/>
+          <input type="number" min="1" name="max_storage_mb" id="pkg_max_storage" class="form-control" value="1000"/>
         </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Trial Period (Days)</label>
+        <input type="number" min="0" name="trial_period_days" id="pkg_trial_days" class="form-control" value="14"/>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label" style="margin-bottom:0.4rem;">Included HRMS Modules &amp; Features</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;background:#F8FAFC;padding:0.75rem;border-radius:8px;border:1px solid var(--border);">
+          {% for feat in standard_features %}
+          <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.8rem;color:var(--text);margin:0;cursor:pointer;">
+            <input type="checkbox" name="features[]" value="{{ feat }}" class="pkg-feat-cb"/>
+            <span>{{ feat }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Custom Add-on Features (One per line)</label>
+        <textarea name="custom_features" id="pkg_custom_features" class="form-control" rows="2" placeholder="e.g. Dedicated Account Manager&#10;Custom Domain Support"></textarea>
       </div>
 
       <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;">
         <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('pkgModal').style.display='none'">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Package</button>
+        <button type="submit" class="btn btn-primary">Save Package Plan</button>
       </div>
     </form>
   </div>
@@ -127,26 +308,85 @@
 
 {% block extra_js %}
 <script>
+function toggleMatrixView() {
+  const matrix = document.getElementById('matrixSection');
+  const btnText = document.getElementById('toggleViewText');
+  if (matrix.style.display === 'none' || !matrix.style.display) {
+    matrix.style.display = 'block';
+    btnText.textContent = 'Hide Feature Comparison';
+    matrix.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    matrix.style.display = 'none';
+    btnText.textContent = 'View Feature Comparison';
+  }
+}
+
 function openPackageModal() {
   document.getElementById('pkg_id').value = '';
   document.getElementById('pkg_name').value = '';
   document.getElementById('pkg_code').value = '';
+  document.getElementById('pkg_description').value = '';
+  document.getElementById('pkg_billing_cycle').value = 'monthly';
   document.getElementById('pkg_price_mo').value = '';
   document.getElementById('pkg_price_yr').value = '';
   document.getElementById('pkg_max_emp').value = '50';
+  document.getElementById('pkg_max_users').value = '5';
   document.getElementById('pkg_max_storage').value = '1000';
+  document.getElementById('pkg_trial_days').value = '14';
+  document.getElementById('pkg_custom_features').value = '';
+  document.querySelectorAll('.pkg-feat-cb').forEach(cb => cb.checked = false);
   document.getElementById('pkgModalTitle').textContent = 'Create Plan Tier';
   document.getElementById('pkgModal').style.display = 'flex';
 }
 
-function editPackage(id, name, code, mo, yr, emp, storage) {
+function editPackage(id, name, code, desc, cycle, mo, yr, emp, users, storage, trial, featuresJson) {
   document.getElementById('pkg_id').value = id;
   document.getElementById('pkg_name').value = name;
   document.getElementById('pkg_code').value = code;
+  document.getElementById('pkg_description').value = desc || '';
+  document.getElementById('pkg_billing_cycle').value = cycle || 'monthly';
   document.getElementById('pkg_price_mo').value = mo;
   document.getElementById('pkg_price_yr').value = yr;
   document.getElementById('pkg_max_emp').value = emp;
+  document.getElementById('pkg_max_users').value = users || '5';
   document.getElementById('pkg_max_storage').value = storage;
+  document.getElementById('pkg_trial_days').value = trial !== undefined ? trial : '14';
+  document.getElementById('pkg_custom_features').value = '';
+
+  let feats = [];
+  try {
+    feats = typeof featuresJson === 'string' ? JSON.parse(featuresJson) : (featuresJson || []);
+  } catch(e) {
+    feats = [];
+  }
+
+  const standardNames = [
+    "Attendance Timesheets & GPS Check-in",
+    "Break Tracking & Monitoring",
+    "Leave Approvals & Policy Config",
+    "Automated Payroll & Payslip PDF",
+    "AI Availability Prediction & Telemetry",
+    "Employee Self-Service (ESS) & Document Vault",
+    "Corporate Reports & Excel Export",
+    "Custom RBAC Roles & Permissions"
+  ];
+
+  let customList = [];
+  document.querySelectorAll('.pkg-feat-cb').forEach(cb => {
+    if (feats.includes(cb.value)) {
+      cb.checked = true;
+    } else {
+      cb.checked = false;
+    }
+  });
+
+  feats.forEach(f => {
+    if (!standardNames.includes(f)) {
+      customList.push(f);
+    }
+  });
+  document.getElementById('pkg_custom_features').value = customList.join('\n');
+
   document.getElementById('pkgModalTitle').textContent = 'Edit Plan Tier';
   document.getElementById('pkgModal').style.display = 'flex';
 }

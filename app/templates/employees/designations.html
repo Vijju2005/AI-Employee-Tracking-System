@@ -1,6 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Designations Management | Enterprise HRMS{% endblock %}
+{% block title %}Designations Management | EBT System{% endblock %}
 {% block topbar_title %}Designation Management{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <i data-lucide="home" style="width:13px;height:13px;"></i>
+  <span class="breadcrumb-sep">/</span>
+  <a href="{{ url_for('employees.list_employees') }}">Employees</a>
+  <span class="breadcrumb-sep">/</span>
+  <span class="breadcrumb-current">Designations</span>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="reports-container">

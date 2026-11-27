@@ -1,291 +1,1168 @@
 {% extends "base.html" %}
-{% block title %}Employee Directory | Enterprise HRMS{% endblock %}
-{% block topbar_title %}Employee Management{% endblock %}
+{% block title %}Employee Directory | EBT System{% endblock %}
+{% block topbar_title %}Employee Directory{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <i data-lucide="home" style="width:13px;height:13px;"></i>
+  <span class="breadcrumb-sep">/</span>
+  <span class="breadcrumb-current">Employee Directory</span>
+</nav>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Exact styling matching reference UI */
+.directory-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* 1. Directory Hero Banner Card */
+.directory-hero-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.directory-hero-left {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  z-index: 2;
+}
+
+.directory-hero-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
+  background: #2563EB;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  flex-shrink: 0;
+}
+
+.directory-hero-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.02em;
+}
+
+.directory-hero-sub {
+  font-size: 0.88rem;
+  color: #64748B;
+  margin: 0;
+  font-weight: 500;
+}
+
+.directory-hero-illustration {
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  z-index: 1;
+}
+
+/* 2. Top Summary & Quick Actions Row */
+.summary-quick-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+.summary-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.metric-pill-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.metric-pill-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+}
+
+.metric-icon-box {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.2rem;
+}
+
+.metric-value-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.metric-number {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0F172A;
+  line-height: 1;
+}
+
+.metric-trend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+/* Quick Actions Box */
+.quick-actions-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 0.85rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.quick-actions-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 0.65rem;
+}
+
+.quick-actions-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.quick-action-btn-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: #1E293B;
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 66px;
+  transition: all 0.15s ease;
+}
+
+.quick-action-btn-item:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #2563EB;
+  transform: translateY(-1px);
+}
+
+.quick-action-btn-item i {
+  width: 17px;
+  height: 17px;
+  color: #2563EB;
+}
+
+/* 3. Filter Bar Card */
+.filter-panel-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 1.1rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.filter-grid-row {
+  display: grid;
+  grid-template-columns: 2fr 1.2fr 1.1fr 1.3fr auto auto;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.filter-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.filter-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.filter-input-wrap i {
+  position: absolute;
+  left: 12px;
+  width: 16px;
+  height: 16px;
+  color: #64748B;
+  pointer-events: none;
+}
+
+.filter-control {
+  width: 100%;
+  height: 42px;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  padding: 0 0.85rem 0 36px;
+  font-size: 0.85rem;
+  color: #0F172A;
+  background: #FFFFFF;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.filter-control:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.btn-filter-main {
+  height: 42px;
+  padding: 0 1.4rem;
+  background: #2563EB;
+  color: #FFFFFF;
+  border: 1px solid #2563EB;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+  transition: background 0.15s ease;
+}
+
+.btn-filter-main:hover {
+  background: #1D4ED8;
+}
+
+.btn-reset-main {
+  height: 42px;
+  padding: 0 1.1rem;
+  background: #FFFFFF;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-reset-main:hover {
+  background: #F1F5F9;
+  color: #0F172A;
+}
+
+/* 4. Personnel Roster Table Card */
+.roster-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.roster-card-header {
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #F1F5F9;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.roster-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.roster-header-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.roster-count-badge {
+  background: #EFF6FF;
+  color: #1D4ED8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid #DBEAFE;
+}
+
+.roster-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.view-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.view-toggle-btns {
+  display: inline-flex;
+  background: #F1F5F9;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.view-toggle-btn {
+  width: 32px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #64748B;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.view-toggle-btn.active {
+  background: #2563EB;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.pagination-header-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.pagination-nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.pagination-nav-btn:hover:not(.disabled) {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+
+.pagination-nav-btn.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* Roster Table */
+.roster-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.roster-table th {
+  background: #F8FAFC;
+  color: #475569;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #E2E8F0;
+  text-align: left;
+}
+
+.roster-table td {
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid #F1F5F9;
+  vertical-align: middle;
+  font-size: 0.85rem;
+  color: #1E293B;
+}
+
+.roster-table tr:hover td {
+  background: #FAFAFC;
+}
+
+/* ID Pill */
+.id-pill {
+  font-family: monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  background: #F1F5F9;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  display: inline-block;
+}
+
+/* Employee cell */
+.emp-cell-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.emp-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+}
+
+.emp-avatar-initials {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.emp-name-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  text-decoration: none;
+}
+
+.emp-name-title:hover {
+  color: #2563EB;
+}
+
+.emp-email-sub {
+  font-size: 0.76rem;
+  color: #64748B;
+  margin-top: 1px;
+}
+
+/* Department Badges matching screenshot */
+.dept-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+}
+
+.dept-pill.operations {
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #BFDBFE;
+}
+
+.dept-pill.hr {
+  background: #FAF5FF;
+  color: #9333EA;
+  border: 1px solid #E9D5FF;
+}
+
+.dept-pill.marketing {
+  background: #FFF7ED;
+  color: #EA580C;
+  border: 1px solid #FED7AA;
+}
+
+.dept-pill.finance {
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+}
+
+.dept-pill.it {
+  background: #F0F9FF;
+  color: #0284C7;
+  border: 1px solid #BAE6FD;
+}
+
+.dept-pill.general {
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
+/* Status Badges */
+.status-pill-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #047857;
+  background: #ECFDF5;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #A7F3D0;
+}
+
+.status-pill-leave {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #D97706;
+  background: #FFFBEB;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #FDE68A;
+}
+
+.status-pill-inactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #B91C1C;
+  background: #FEF2F2;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #FECACA;
+}
+
+/* Action Icons */
+.action-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-icon-btn:hover {
+  background: #F1F5F9;
+  color: #2563EB;
+  border-color: #CBD5E1;
+}
+
+@media (max-width: 1024px) {
+  .summary-quick-row {
+    grid-template-columns: 1fr;
+  }
+  .summary-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .filter-grid-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .summary-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  .filter-grid-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="reports-container">
+<div class="directory-container">
 
-  <!-- Header Card -->
-  <div class="reports-header-card">
-    <div class="reports-header-left">
-      <div class="reports-header-icon-box">
-        <i data-lucide="users"></i>
+  <!-- 1. Header Banner -->
+  <div class="directory-hero-card">
+    <div class="directory-hero-left">
+      <div class="directory-hero-icon">
+        <i data-lucide="users" style="width:28px;height:28px;"></i>
       </div>
       <div>
-        <h1 class="reports-header-title">Employee Directory</h1>
-        <p class="reports-header-sub">Manage workforce personnel, profiles, departmental placement, and credentials</p>
+        <h1 class="directory-hero-title">Employee Directory</h1>
+        <p class="directory-hero-sub">Manage workforce personnel, profiles, departmental placement, and credentials.</p>
       </div>
     </div>
-    <div class="reports-header-actions">
-      <!-- Grid / List View Toggle -->
-      <div style="display:inline-flex;background:rgba(255,255,255,0.15);padding:3px;border-radius:8px;border:1px solid rgba(255,255,255,0.25);">
-        <a href="{{ url_for('employees.list_employees', view='list', q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status','')) }}"
-           style="padding:0.35rem 0.75rem;border-radius:6px;font-size:0.78rem;font-weight:700;display:inline-flex;align-items:center;gap:0.35rem;text-decoration:none;{% if view_mode != 'grid' %}background:#FFFFFF;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,0.1);{% else %}background:transparent;color:#FFFFFF;{% endif %}">
-          <i data-lucide="list" style="width:14px;height:14px;"></i>
-          <span>List</span>
-        </a>
-        <a href="{{ url_for('employees.list_employees', view='grid', q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status','')) }}"
-           style="padding:0.35rem 0.75rem;border-radius:6px;font-size:0.78rem;font-weight:700;display:inline-flex;align-items:center;gap:0.35rem;text-decoration:none;{% if view_mode == 'grid' %}background:#FFFFFF;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,0.1);{% else %}background:transparent;color:#FFFFFF;{% endif %}">
-          <i data-lucide="layout-grid" style="width:14px;height:14px;"></i>
-          <span>Grid</span>
-        </a>
-      </div>
-
-      <a href="{{ url_for('employees.departments_list') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
-        <i data-lucide="building"></i>
-        <span>Departments</span>
-      </a>
-      <a href="{{ url_for('employees.designations_list') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
-        <i data-lucide="briefcase"></i>
-        <span>Designations</span>
-      </a>
-      <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">
-        <i data-lucide="user-plus"></i>
-        <span>Add Employee</span>
-      </a>
+    <div class="directory-hero-illustration">
+      <!-- Clean SVG workplace vector matching reference design -->
+      <svg width="220" height="100" viewBox="0 0 220 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M190 20C170 30 160 60 170 85C180 110 210 95 215 75C220 55 210 10 190 20Z" fill="#E0F2FE"/>
+        <path d="M150 45C135 55 130 80 145 95C160 110 185 95 185 75C185 55 165 35 150 45Z" fill="#BAE6FD"/>
+        <!-- Male figure -->
+        <circle cx="185" cy="35" r="12" fill="#FDBA74"/>
+        <path d="M173 30C175 22 185 20 195 24C197 27 197 32 195 35C190 32 180 32 173 30Z" fill="#1E293B"/>
+        <path d="M172 52C172 45 178 42 185 42C192 42 198 45 198 52L202 85H168L172 52Z" fill="#1D4ED8"/>
+        <path d="M182 45L185 55L188 45H182Z" fill="#FFFFFF"/>
+        <!-- Female figure with laptop -->
+        <circle cx="140" cy="40" r="11" fill="#FDBA74"/>
+        <path d="M130 35C132 25 145 25 150 32C152 40 145 45 135 44C132 42 130 38 130 35Z" fill="#0F172A"/>
+        <path d="M128 58C128 50 134 48 140 48C146 48 152 50 152 58L156 85H124L128 58Z" fill="#38BDF8"/>
+        <!-- Laptop -->
+        <rect x="145" y="65" width="22" height="15" rx="2" fill="#0F172A"/>
+        <rect x="148" y="68" width="16" height="9" rx="1" fill="#FFFFFF"/>
+        <line x1="142" y1="80" x2="170" y2="80" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
     </div>
   </div>
 
-  <!-- Filters Filter Bar -->
-  <form method="GET" class="reports-filter-panel" style="margin-bottom:1.5rem;">
-    <input type="hidden" name="view" value="{{ view_mode }}"/>
-    <div class="reports-filter-grid" style="grid-template-columns: 2fr 1.2fr 1.2fr auto; align-items: flex-end; gap: 1rem;">
-      
-      <!-- Search Personnel -->
-      <div class="reports-field-group">
-        <label class="reports-field-label">Search Personnel</label>
-        <div class="reports-input-wrap">
-          <i data-lucide="search"></i>
-          <input type="text" name="q" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;"
-                 placeholder="Search by name, ID, email, designation..."
-                 value="{{ request.args.get('q','') }}"/>
+  <!-- 2. Summary Cards and Quick Actions Row -->
+  <div class="summary-quick-row">
+    <!-- 4 Dynamic Summary Cards -->
+    <div class="summary-cards-grid">
+      <!-- Total Employees -->
+      <div class="metric-pill-card">
+        <div class="metric-icon-box" style="background:#EFF6FF;color:#2563EB;">
+          <i data-lucide="users" style="width:22px;height:22px;"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-title">Total Employees</span>
+          <div class="metric-value-wrap">
+            <span class="metric-number">{{ total_employees_count }}</span>
+            <span class="metric-trend" style="background:#ECFDF5;color:#059669;">+8%</span>
+          </div>
         </div>
       </div>
 
-      <!-- Department Filter -->
-      <div class="reports-field-group">
-        <label class="reports-field-label">Department</label>
-        <div class="reports-input-wrap">
-          <i data-lucide="building"></i>
-          <select name="dept" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;">
-            <option value="">All Departments</option>
-            {% for d in departments %}
-            <option value="{{ d.id }}" {% if request.args.get('dept')|string == d.id|string %}selected{% endif %}>{{ d.name }}</option>
-            {% endfor %}
-          </select>
+      <!-- Active Employees -->
+      <div class="metric-pill-card">
+        <div class="metric-icon-box" style="background:#ECFDF5;color:#059669;">
+          <i data-lucide="check-circle" style="width:22px;height:22px;"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-title">Active Employees</span>
+          <div class="metric-value-wrap">
+            <span class="metric-number">{{ active_employees_count }}</span>
+            <span class="metric-trend" style="background:#ECFDF5;color:#059669;">{{ active_pct }}%</span>
+          </div>
         </div>
       </div>
 
-      <!-- Status Filter -->
-      <div class="reports-field-group">
-        <label class="reports-field-label">Status</label>
-        <div class="reports-input-wrap">
-          <i data-lucide="activity"></i>
-          <select name="status" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;">
-            <option value="">All Statuses</option>
-            <option value="active" {% if request.args.get('status')=='active' %}selected{% endif %}>Active</option>
-            <option value="inactive" {% if request.args.get('status')=='inactive' %}selected{% endif %}>Inactive</option>
-          </select>
+      <!-- New Joinees (YTD) -->
+      <div class="metric-pill-card">
+        <div class="metric-icon-box" style="background:#FFF7ED;color:#EA580C;">
+          <i data-lucide="user-plus" style="width:22px;height:22px;"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-title">New Joinees (YTD)</span>
+          <div class="metric-value-wrap">
+            <span class="metric-number">{{ new_joinees_count }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="reports-field-group" style="justify-content: flex-end;">
-        <div style="display:flex;align-items:center;gap:0.5rem;">
-          <button type="submit" class="btn btn-primary" style="height:40px;padding:0 1.25rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
-            <i data-lucide="filter" style="width:15px;height:15px;"></i>
+      <!-- Departments -->
+      <div class="metric-pill-card">
+        <div class="metric-icon-box" style="background:#FAF5FF;color:#9333EA;">
+          <i data-lucide="network" style="width:22px;height:22px;"></i>
+        </div>
+        <div class="metric-info">
+          <span class="metric-title">Departments</span>
+          <div class="metric-value-wrap">
+            <span class="metric-number">{{ departments_count }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Box -->
+    <div class="quick-actions-card">
+      <div class="quick-actions-title">Quick Actions</div>
+      <div class="quick-actions-btns">
+        <a href="{{ url_for('employees.add_employee') }}" class="quick-action-btn-item">
+          <i data-lucide="user-plus"></i>
+          <span>Add Employee</span>
+        </a>
+        <button type="button" class="quick-action-btn-item" onclick="openImportModal()">
+          <i data-lucide="upload"></i>
+          <span>Bulk Import</span>
+        </button>
+        <a href="{{ url_for('employees.export_employees', q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status',''), calendar_year=request.args.get('calendar_year','')) }}" class="quick-action-btn-item">
+          <i data-lucide="download"></i>
+          <span>Export</span>
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="quick-action-btn-item">
+          <i data-lucide="bar-chart-2"></i>
+          <span>Reports</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Search and Filters Toolbar -->
+  <div class="filter-panel-card">
+    <form method="GET" action="{{ url_for('employees.list_employees') }}">
+      <input type="hidden" name="view" value="{{ view_mode }}"/>
+      <div class="filter-grid-row">
+        <!-- Search Employee -->
+        <div class="filter-field-group">
+          <label class="filter-label">Search Employee</label>
+          <div class="filter-input-wrap">
+            <i data-lucide="search"></i>
+            <input type="text" name="q" class="filter-control" placeholder="Search by name, ID, email, designation..." value="{{ request.args.get('q','') }}"/>
+          </div>
+        </div>
+
+        <!-- Department -->
+        <div class="filter-field-group">
+          <label class="filter-label">Department</label>
+          <div class="filter-input-wrap">
+            <i data-lucide="building"></i>
+            <select name="dept" class="filter-control">
+              <option value="">All Departments</option>
+              {% for d in departments %}
+              <option value="{{ d.id }}" {% if request.args.get('dept')|string == d.id|string %}selected{% endif %}>{{ d.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Status -->
+        <div class="filter-field-group">
+          <label class="filter-label">Status</label>
+          <div class="filter-input-wrap">
+            <i data-lucide="activity"></i>
+            <select name="status" class="filter-control">
+              <option value="">All Statuses</option>
+              <option value="active" {% if request.args.get('status')=='active' %}selected{% endif %}>Active</option>
+              <option value="inactive" {% if request.args.get('status')=='inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Joining Year -->
+        <div class="filter-field-group">
+          <label class="filter-label">Joining Year</label>
+          <div class="filter-input-wrap">
+            <i data-lucide="calendar"></i>
+            <select name="calendar_year" class="filter-control">
+              <option value="">All Calendar Years</option>
+              {% for cy in calendar_years %}
+              <option value="{{ cy.id }}" {% if request.args.get('calendar_year')|string == cy.id|string %}selected{% endif %}>
+                {{ cy.name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Filter Button -->
+        <div class="filter-field-group">
+          <button type="submit" class="btn-filter-main">
+            <i data-lucide="filter" style="width:16px;height:16px;"></i>
             <span>Filter</span>
           </button>
-          <a href="{{ url_for('employees.list_employees', view=view_mode) }}" class="btn btn-outline-navy" style="height:40px;padding:0 1rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;" title="Reset filters">
-            <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="filter-field-group">
+          <a href="{{ url_for('employees.list_employees', view=view_mode) }}" class="btn-reset-main">
+            <i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i>
             <span>Reset</span>
           </a>
         </div>
       </div>
+    </form>
+  </div>
 
-    </div>
-  </form>
-
-  {% if view_mode == 'grid' %}
-  <!-- Employee Grid Card View -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
-    {% for emp in employees.items %}
-    <div class="reports-table-card" style="padding:1.4rem;display:flex;flex-direction:column;justify-content:space-between;transition:transform var(--transition-fast), box-shadow var(--transition-fast);border:1px solid var(--border);">
-      <div>
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
-          <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;box-shadow:0 4px 10px rgba(37,99,235,0.25);">
-            {{ emp.full_name[0].upper() }}
-          </div>
-          <div>
-            {% if emp.status.value == 'active' %}
-            <span class="report-badge badge-active">Active</span>
-            {% else %}
-            <span class="report-badge badge-inactive">Inactive</span>
-            {% endif %}
-          </div>
-        </div>
-
-        <h3 style="margin:0 0 0.25rem;font-size:1.05rem;font-weight:800;color:var(--navy);">
-          <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" style="color:inherit;text-decoration:none;">{{ emp.full_name }}</a>
-        </h3>
-        <div style="display:inline-block;font-size:0.75rem;font-weight:700;color:var(--blue);background:var(--blue-light);padding:0.15rem 0.5rem;border-radius:4px;margin-bottom:0.75rem;">
-          {{ emp.employee_id }}
-        </div>
-
-        <div style="display:flex;flex-direction:column;gap:0.45rem;font-size:0.8rem;color:var(--text-sec);border-top:1px solid #F1F5F9;padding-top:0.75rem;margin-top:0.25rem;">
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <i data-lucide="briefcase" style="width:15px;height:15px;color:var(--text-muted);flex-shrink:0;"></i>
-            <span style="font-weight:600;color:var(--navy);">{{ emp.designation or 'Team Member' }}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <i data-lucide="building" style="width:15px;height:15px;color:var(--text-muted);flex-shrink:0;"></i>
-            <span>{{ emp.department.name if emp.department else 'General' }}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <i data-lucide="mail" style="width:15px;height:15px;color:var(--text-muted);flex-shrink:0;"></i>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ emp.email }}</span>
-          </div>
-        </div>
+  <!-- 4. Personnel Roster Section -->
+  <div class="roster-card">
+    <div class="roster-card-header">
+      <div class="roster-header-left">
+        <h2 class="roster-header-title">
+          <i data-lucide="user-check" style="color:#2563EB;width:20px;height:20px;"></i>
+          <span>Personnel Roster</span>
+        </h2>
+        <span class="roster-count-badge">{{ employees.total }} Employees</span>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-top:1rem;margin-top:1rem;border-top:1px solid var(--border);">
-        <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" class="btn btn-sm btn-outline-navy" style="font-size:0.78rem;">
-          <i data-lucide="user"></i>
-          <span>View Profile</span>
-        </a>
-        <div style="display:flex;align-items:center;gap:0.35rem;">
-          <a href="{{ url_for('employees.edit_employee', emp_id=emp.id) }}" class="btn btn-sm btn-outline-navy" style="padding:0.3rem 0.5rem;" title="Edit">
-            <i data-lucide="edit-2" style="width:14px;height:14px;"></i>
+      <div class="roster-header-right">
+        <!-- View Mode Toggle -->
+        <div class="view-toggle-wrap">
+          <span>View:</span>
+          <div class="view-toggle-btns">
+            <a href="{{ url_for('employees.list_employees', view='list', q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status',''), calendar_year=request.args.get('calendar_year','')) }}"
+               class="view-toggle-btn {% if view_mode != 'grid' %}active{% endif %}" title="List View">
+              <i data-lucide="list" style="width:16px;height:16px;"></i>
+            </a>
+            <a href="{{ url_for('employees.list_employees', view='grid', q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status',''), calendar_year=request.args.get('calendar_year','')) }}"
+               class="view-toggle-btn {% if view_mode == 'grid' %}active{% endif %}" title="Grid View">
+              <i data-lucide="layout-grid" style="width:16px;height:16px;"></i>
+            </a>
+          </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="pagination-header-wrap">
+          <span>Page {{ employees.page }} of {{ employees.pages or 1 }}</span>
+          <a href="{{ url_for('employees.list_employees', page=employees.prev_num, view=view_mode, q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status',''), calendar_year=request.args.get('calendar_year','')) if employees.has_prev else '#' }}"
+             class="pagination-nav-btn {% if not employees.has_prev %}disabled{% endif %}">
+            <i data-lucide="chevron-left" style="width:15px;height:15px;"></i>
+          </a>
+          <a href="{{ url_for('employees.list_employees', page=employees.next_num, view=view_mode, q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status',''), calendar_year=request.args.get('calendar_year','')) if employees.has_next else '#' }}"
+             class="pagination-nav-btn {% if not employees.has_next %}disabled{% endif %}">
+            <i data-lucide="chevron-right" style="width:15px;height:15px;"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    {% if view_mode == 'grid' %}
+    <!-- Grid View -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));gap:1.25rem;padding:1.5rem;">
+      {% for emp in employees.items %}
+      <div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:1.4rem;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,0.02);transition:transform 0.15s ease;">
+        <div>
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
+            {% if emp.user and emp.user.avatar_url %}
+              <img src="{{ emp.user.avatar_url }}" alt="{{ emp.full_name }}" class="emp-avatar" style="width:48px;height:48px;border-radius:14px;"/>
+            {% else %}
+              <div class="emp-avatar-initials" style="width:48px;height:48px;border-radius:14px;font-size:1.15rem;">
+                {{ emp.full_name[0].upper() }}
+              </div>
+            {% endif %}
+            <div>
+              {% if emp.status.value == 'active' %}
+                <span class="status-pill-active">&bull; Active</span>
+              {% else %}
+                <span class="status-pill-inactive">&bull; Inactive</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <h3 style="margin:0 0 0.25rem;font-size:1.05rem;font-weight:800;color:#0F172A;">
+            <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" style="color:inherit;text-decoration:none;">{{ emp.full_name }}</a>
+          </h3>
+          <div class="id-pill" style="margin-bottom:0.75rem;">{{ emp.employee_id }}</div>
+
+          <div style="display:flex;flex-direction:column;gap:0.45rem;font-size:0.8rem;color:#475569;border-top:1px solid #F1F5F9;padding-top:0.75rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="briefcase" style="width:15px;height:15px;color:#64748B;"></i>
+              <span style="font-weight:600;color:#0F172A;">{{ emp.designation or 'Team Member' }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="building" style="width:15px;height:15px;color:#64748B;"></i>
+              <span>{{ emp.department.name if emp.department else 'General' }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="mail" style="width:15px;height:15px;color:#64748B;"></i>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ emp.email }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <i data-lucide="calendar" style="width:15px;height:15px;color:#64748B;"></i>
+              <span>{{ emp.joining_calendar_year.name if emp.joining_calendar_year else (emp.date_joined.strftime('%Y') if emp.date_joined else '—') }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:1rem;margin-top:1rem;border-top:1px solid #F1F5F9;">
+          <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" class="action-icon-btn" title="View Profile">
+            <i data-lucide="eye" style="width:16px;height:16px;"></i>
+          </a>
+          <a href="{{ url_for('employees.edit_employee', emp_id=emp.id) }}" class="action-icon-btn" title="Edit Employee">
+            <i data-lucide="edit-2" style="width:16px;height:16px;"></i>
           </a>
           <form method="POST" action="{{ url_for('employees.toggle_status', emp_id=emp.id) }}" style="display:inline;margin:0;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <button type="submit" class="btn btn-sm {% if emp.status.value == 'active' %}btn-action-disable{% else %}btn-action-enable{% endif %}" style="padding:0.3rem 0.55rem;font-size:0.75rem;">
-              {{ 'Deactivate' if emp.status.value == 'active' else 'Activate' }}
+            <button type="submit" class="action-icon-btn" title="Toggle Status">
+              <i data-lucide="power" style="width:16px;height:16px;"></i>
             </button>
           </form>
         </div>
       </div>
+      {% endfor %}
     </div>
+
     {% else %}
-    <div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;background:#FFFFFF;border:1px solid var(--border);border-radius:12px;color:var(--text-sec);">
-      <i data-lucide="users" style="width:36px;height:36px;color:var(--text-muted);margin-bottom:0.5rem;"></i>
-      <p style="margin:0;font-weight:600;">No employees found matching the filters.</p>
-    </div>
-    {% endfor %}
-  </div>
-
-  {% else %}
-  <!-- Employee Standard List View Table -->
-  <div class="reports-table-card">
-    <div class="reports-table-header">
-      <div style="display:flex;align-items:center;gap:0.6rem;">
-        <h3 class="reports-table-heading">
-          <i data-lucide="users"></i>
-          <span>Personnel Roster</span>
-        </h3>
-        <span class="reports-table-count-badge">{{ employees.total }} Employees</span>
-      </div>
-      <span class="reports-table-info">Page {{ employees.page }} of {{ employees.pages or 1 }}</span>
-    </div>
-
-    <div class="reports-table-wrapper" style="overflow-x:auto;">
-      <table class="reports-data-table">
+    <!-- List Table View (Reference matching) -->
+    <div style="overflow-x:auto;">
+      <table class="roster-table">
         <thead>
           <tr>
-            <th style="min-width:90px;">ID</th>
-            <th style="min-width:200px;">Employee Name</th>
-            <th style="min-width:140px;">Department</th>
-            <th style="min-width:140px;">Designation</th>
-            <th style="min-width:180px;">Work Email</th>
-            <th style="min-width:100px;">Status</th>
-            <th style="min-width:140px;text-align:right;">Actions</th>
+            <th style="width:40px;text-align:center;">
+              <input type="checkbox" id="selectAllCheckbox" style="accent-color:#2563EB;width:15px;height:15px;cursor:pointer;"/>
+            </th>
+            <th style="width:100px;">ID</th>
+            <th style="min-width:230px;">Employee</th>
+            <th style="min-width:150px;">Department</th>
+            <th style="min-width:160px;">Designation</th>
+            <th style="min-width:150px;">Joining Year</th>
+            <th style="min-width:120px;">Status</th>
+            <th style="width:120px;text-align:center;">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for emp in employees.items %}
+          {% set dept_lower = (emp.department.name|lower) if emp.department else 'general' %}
           <tr>
-            <td>
-              <span class="code-pill">{{ emp.employee_id }}</span>
+            <td style="text-align:center;">
+              <input type="checkbox" class="emp-row-checkbox" value="{{ emp.id }}" style="accent-color:#2563EB;width:15px;height:15px;cursor:pointer;"/>
             </td>
             <td>
-              <div style="display:flex;align-items:center;gap:0.65rem;">
-                <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0;">
-                  {{ emp.full_name[0].upper() }}
-                </div>
+              <span class="id-pill">{{ emp.employee_id }}</span>
+            </td>
+            <td>
+              <div class="emp-cell-wrap">
+                {% if emp.user and emp.user.avatar_url %}
+                  <img src="{{ emp.user.avatar_url }}" alt="{{ emp.full_name }}" class="emp-avatar"/>
+                {% else %}
+                  <div class="emp-avatar-initials">
+                    {{ emp.full_name[0].upper() }}
+                  </div>
+                {% endif %}
                 <div>
-                  <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" style="font-weight:700;color:var(--navy);text-decoration:none;">
+                  <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" class="emp-name-title">
                     {{ emp.full_name }}
                   </a>
-                  <div style="font-size:0.73rem;color:var(--text-sec);">{{ emp.company_name }}</div>
+                  <div class="emp-email-sub">{{ emp.email }}</div>
                 </div>
               </div>
             </td>
             <td>
-              <span style="font-weight:600;color:var(--navy);font-size:0.82rem;">
-                {{ emp.department.name if emp.department else '—' }}
+              {% if 'operation' in dept_lower %}
+                <span class="dept-pill operations">
+                  <i data-lucide="settings" style="width:13px;height:13px;"></i>
+                  <span>{{ emp.department.name }}</span>
+                </span>
+              {% elif 'hr' in dept_lower or 'human' in dept_lower %}
+                <span class="dept-pill hr">
+                  <i data-lucide="users" style="width:13px;height:13px;"></i>
+                  <span>{{ emp.department.name }}</span>
+                </span>
+              {% elif 'market' in dept_lower %}
+                <span class="dept-pill marketing">
+                  <i data-lucide="megaphone" style="width:13px;height:13px;"></i>
+                  <span>{{ emp.department.name }}</span>
+                </span>
+              {% elif 'financ' in dept_lower or 'account' in dept_lower %}
+                <span class="dept-pill finance">
+                  <i data-lucide="wallet" style="width:13px;height:13px;"></i>
+                  <span>{{ emp.department.name }}</span>
+                </span>
+              {% elif 'it' in dept_lower or 'tech' in dept_lower or 'engineer' in dept_lower %}
+                <span class="dept-pill IT">
+                  <i data-lucide="monitor" style="width:13px;height:13px;"></i>
+                  <span>{{ emp.department.name }}</span>
+                </span>
+              {% else %}
+                <span class="dept-pill general">
+                  <i data-lucide="briefcase" style="width:13px;height:13px;"></i>
+                  <span>{{ emp.department.name if emp.department else 'General' }}</span>
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <span style="font-size:0.86rem;font-weight:600;color:#0F172A;">
+                {{ emp.designation or '—' }}
               </span>
             </td>
             <td>
-              <span style="font-size:0.82rem;color:var(--text);">{{ emp.designation or '—' }}</span>
-            </td>
-            <td>
-              <span style="font-size:0.82rem;color:var(--text-sec);">{{ emp.email }}</span>
+              <div style="display:flex;flex-direction:column;gap:1px;">
+                <div style="font-weight:700;color:#0F172A;font-size:0.85rem;display:flex;align-items:center;gap:0.35rem;">
+                  <i data-lucide="calendar" style="width:13px;height:13px;color:#2563EB;"></i>
+                  <span>{{ emp.joining_calendar_year.start_date.year if emp.joining_calendar_year else (emp.date_joined.year if emp.date_joined else '2026') }}</span>
+                </div>
+                <div style="font-size:0.73rem;color:#64748B;">
+                  Joined: {{ emp.date_joined.strftime('%d %b %Y') if emp.date_joined else '—' }}
+                </div>
+              </div>
             </td>
             <td>
               {% if emp.status.value == 'active' %}
-              <span class="report-badge badge-active">Active</span>
+                <span class="status-pill-active">&bull; Active</span>
               {% else %}
-              <span class="report-badge badge-inactive">Inactive</span>
+                <span class="status-pill-inactive">&bull; Inactive</span>
               {% endif %}
             </td>
-            <td style="text-align:right;">
-              <div style="display:inline-flex;align-items:center;gap:0.4rem;">
-                <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" class="btn btn-sm btn-outline-navy" style="padding:0.25rem 0.55rem;font-size:0.75rem;" title="View Details">
-                  <i data-lucide="eye" style="width:13px;height:13px;"></i>
+            <td style="text-align:center;">
+              <div style="display:inline-flex;align-items:center;gap:0.3rem;">
+                <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" class="action-icon-btn" title="View Profile">
+                  <i data-lucide="eye" style="width:15px;height:15px;"></i>
                 </a>
-                <a href="{{ url_for('employees.edit_employee', emp_id=emp.id) }}" class="btn btn-sm btn-outline-navy" style="padding:0.25rem 0.55rem;font-size:0.75rem;" title="Edit">
-                  <i data-lucide="edit-2" style="width:13px;height:13px;"></i>
+                <a href="{{ url_for('employees.edit_employee', emp_id=emp.id) }}" class="action-icon-btn" title="Edit Employee">
+                  <i data-lucide="edit-2" style="width:15px;height:15px;"></i>
                 </a>
-                <form method="POST" action="{{ url_for('employees.toggle_status', emp_id=emp.id) }}" style="display:inline;margin:0;">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                  <button type="submit" class="btn btn-sm {% if emp.status.value == 'active' %}btn-action-disable{% else %}btn-action-enable{% endif %}" style="padding:0.25rem 0.6rem;font-size:0.74rem;">
-                    {{ 'Deactivate' if emp.status.value == 'active' else 'Activate' }}
+                <div style="position:relative;display:inline-block;">
+                  <button type="button" class="action-icon-btn" onclick="toggleRowMenu('menu_{{ emp.id }}')" title="More Options">
+                    <i data-lucide="more-vertical" style="width:15px;height:15px;"></i>
                   </button>
-                </form>
+                  <div id="menu_{{ emp.id }}" style="display:none;position:absolute;right:0;top:100%;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.1);z-index:50;min-width:140px;padding:0.4rem 0;">
+                    <form method="POST" action="{{ url_for('employees.toggle_status', emp_id=emp.id) }}" style="margin:0;">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <button type="submit" style="width:100%;text-align:left;background:none;border:none;padding:0.45rem 1rem;font-size:0.8rem;color:#1E293B;cursor:pointer;display:flex;align-items:center;gap:0.5rem;">
+                        <i data-lucide="power" style="width:13px;height:13px;"></i>
+                        <span>Toggle Status</span>
+                      </button>
+                    </form>
+                    <a href="{{ url_for('employees.view_employee', emp_id=emp.id, tab='documents') }}" style="display:flex;align-items:center;gap:0.5rem;padding:0.45rem 1rem;font-size:0.8rem;color:#1E293B;text-decoration:none;">
+                      <i data-lucide="file-text" style="width:13px;height:13px;"></i>
+                      <span>Documents</span>
+                    </a>
+                  </div>
+                </div>
               </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-sec);">
-              No employees found.
+            <td colspan="8" style="text-align:center;padding:3rem 1rem;color:#64748B;">
+              <i data-lucide="users" style="width:36px;height:36px;color:#94A3B8;margin-bottom:0.5rem;display:inline-block;"></i>
+              <p style="margin:0;font-weight:600;">No employees found matching the specified filters.</p>
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-  </div>
-  {% endif %}
+    {% endif %}
 
-  <!-- Pagination Controls -->
-  {% if employees.pages > 1 %}
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1.5rem;flex-wrap:wrap;gap:1rem;">
-    <span style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">
-      Showing page {{ employees.page }} of {{ employees.pages }}
-    </span>
-    <div style="display:inline-flex;align-items:center;gap:0.35rem;">
-      {% if employees.has_prev %}
-      <a href="{{ url_for('employees.list_employees', page=employees.prev_num, view=view_mode, q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status','')) }}"
-         class="btn btn-sm btn-outline-navy">Previous</a>
-      {% endif %}
-      {% if employees.has_next %}
-      <a href="{{ url_for('employees.list_employees', page=employees.next_num, view=view_mode, q=request.args.get('q',''), dept=request.args.get('dept',''), status=request.args.get('status','')) }}"
-         class="btn btn-sm btn-outline-navy">Next</a>
-      {% endif %}
-    </div>
   </div>
-  {% endif %}
 
 </div>
+
+<!-- BULK IMPORT MODAL -->
+<div id="importModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:0 20px 25px -5px rgba(0, 0, 0, 0.1);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:#0F172A;color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="upload" style="color:#38BDF8;"></i>
+        <span>Bulk Import Employees</span>
+      </h3>
+      <button onclick="closeImportModal()" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('employees.import_employees') }}" enctype="multipart/form-data" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label" style="font-weight:700;font-size:0.85rem;color:#0F172A;margin-bottom:0.4rem;display:block;">Select CSV File <span style="color:#DC2626;">*</span></label>
+        <input type="file" name="csv_file" accept=".csv" class="form-control" required style="padding:0.4rem 0.6rem;font-size:0.84rem;border:1px solid #CBD5E1;border-radius:8px;width:100%;"/>
+        <small style="color:#64748B;font-size:0.74rem;display:block;margin-top:0.35rem;">
+          CSV format: <code>employee_id, full_name, email, department, designation, username, password, date_joined</code>
+        </small>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;margin-top:1.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="closeImportModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" style="background:#2563EB;border-color:#2563EB;">Import Roster</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openImportModal() {
+  document.getElementById('importModal').style.display = 'flex';
+}
+function closeImportModal() {
+  document.getElementById('importModal').style.display = 'none';
+}
+
+function toggleRowMenu(menuId) {
+  const el = document.getElementById(menuId);
+  if (!el) return;
+  const isShown = el.style.display === 'block';
+  document.querySelectorAll('[id^="menu_"]').forEach(m => m.style.display = 'none');
+  el.style.display = isShown ? 'none' : 'block';
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('[onclick^="toggleRowMenu"]') && !e.target.closest('[id^="menu_"]')) {
+    document.querySelectorAll('[id^="menu_"]').forEach(m => m.style.display = 'none');
+  }
+});
+
+// Select all checkboxes
+document.getElementById('selectAllCheckbox')?.addEventListener('change', function(e) {
+  document.querySelectorAll('.emp-row-checkbox').forEach(cb => {
+    cb.checked = e.target.checked;
+  });
+});
+</script>
 {% endblock %}

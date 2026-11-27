@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}{{ calendar_year.name }} — Mapped Employees | EBT System{% endblock %}
+{% block topbar_title %}Calendar Year Personnel Mapping{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="calendar"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">{{ calendar_year.name }}</h1>
+        <p class="reports-header-sub">
+          Cycle Period: <strong>{{ calendar_year.start_date.strftime('%d %B %Y') }}</strong> to <strong>{{ calendar_year.end_date.strftime('%d %B %Y') }}</strong>
+          &bull; Status:
+          {% if calendar_year.is_active %}
+            <span class="report-badge badge-active" style="display:inline-block;margin-left:4px;">Active</span>
+          {% else %}
+            <span class="report-badge badge-inactive" style="display:inline-block;margin-left:4px;">Inactive</span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('holidays.calendar_years_list') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.2);">
+        <i data-lucide="arrow-left"></i>
+        <span>All Calendar Years</span>
+      </a>
+      <a href="{{ url_for('employees.list_employees', calendar_year=calendar_year.id) }}" class="btn btn-primary">
+        <i data-lucide="filter"></i>
+        <span>Filter in Directory</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI summary -->
+  <div class="kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="stat-card" style="background:#FFFFFF;padding:1.25rem 1.5rem;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:1.25rem;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#EFF6FF;color:#2563EB;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="user-check" style="width:24px;height:24px;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);">{{ employees|length }}</div>
+        <div style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">Employees Joined in this Year</div>
+      </div>
+    </div>
+
+    <div class="stat-card" style="background:#FFFFFF;padding:1.25rem 1.5rem;border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:1.25rem;">
+      <div style="width:48px;height:48px;border-radius:10px;background:#ECFDF5;color:#059669;display:flex;align-items:center;justify-content:center;">
+        <i data-lucide="activity" style="width:24px;height:24px;"></i>
+      </div>
+      <div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--navy);">{{ employees|selectattr('status.value', 'equalto', 'active')|list|length }}</div>
+        <div style="font-size:0.8rem;color:var(--text-sec);font-weight:600;">Currently Active Personnel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employees Table -->
+  <div class="reports-table-card">
+    <div class="reports-table-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <div style="display:flex;align-items:center;gap:0.6rem;">
+        <h3 class="reports-table-heading" style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="users" style="color:var(--blue);"></i>
+          <span>Joined Personnel Roster</span>
+        </h3>
+        <span class="reports-table-count-badge">{{ employees|length }} Personnel</span>
+      </div>
+
+      <div>
+        <input type="text" id="empSearchInput" class="form-control" placeholder="Search employee..." style="height:36px;font-size:0.82rem;padding-left:12px;border-radius:6px;max-width:220px;" oninput="filterEmpTable()"/>
+      </div>
+    </div>
+
+    <div class="reports-table-wrapper" style="overflow-x:auto;">
+      <table class="reports-data-table" id="empTable">
+        <thead>
+          <tr>
+            <th style="min-width:90px;">ID</th>
+            <th style="min-width:200px;">Employee Name</th>
+            <th style="min-width:140px;">Joining Date</th>
+            <th style="min-width:140px;">Department</th>
+            <th style="min-width:140px;">Designation</th>
+            <th style="min-width:180px;">Work Email</th>
+            <th style="min-width:100px;">Status</th>
+            <th style="min-width:100px;text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for emp in employees %}
+          <tr>
+            <td>
+              <span class="code-pill">{{ emp.employee_id }}</span>
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:0.65rem;">
+                <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;flex-shrink:0;">
+                  {{ emp.full_name[0].upper() }}
+                </div>
+                <div>
+                  <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" style="font-weight:700;color:var(--navy);text-decoration:none;">
+                    {{ emp.full_name }}
+                  </a>
+                  <div style="font-size:0.73rem;color:var(--text-sec);">{{ emp.company_name }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span style="font-weight:700;color:var(--blue);font-size:0.84rem;">
+                {{ emp.date_joined.strftime('%d %B %Y') if emp.date_joined else '—' }}
+              </span>
+            </td>
+            <td>
+              <span style="font-weight:600;color:var(--navy);font-size:0.82rem;">
+                {{ emp.department.name if emp.department else '—' }}
+              </span>
+            </td>
+            <td>
+              <span style="font-size:0.82rem;color:var(--text);">{{ emp.designation or '—' }}</span>
+            </td>
+            <td>
+              <span style="font-size:0.82rem;color:var(--text-sec);">{{ emp.email }}</span>
+            </td>
+            <td>
+              {% if emp.status.value == 'active' %}
+                <span class="report-badge badge-active">Active</span>
+              {% else %}
+                <span class="report-badge badge-inactive">Inactive</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">
+              <a href="{{ url_for('employees.view_employee', emp_id=emp.id) }}" class="btn btn-sm btn-outline-navy" style="padding:0.25rem 0.55rem;font-size:0.75rem;" title="View Details">
+                <i data-lucide="eye" style="width:13px;height:13px;"></i>
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center;padding:3rem 1rem;color:var(--text-sec);">
+              <i data-lucide="users" style="width:36px;height:36px;color:var(--text-muted);margin-bottom:0.5rem;display:inline-block;"></i>
+              <p style="margin:0;font-weight:600;">No employees registered with a joining date within this calendar year period.</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function filterEmpTable() {
+  const q = document.getElementById('empSearchInput').value.toLowerCase().trim();
+  const rows = document.querySelectorAll('#empTable tbody tr');
+  rows.forEach(r => {
+    const text = r.innerText.toLowerCase();
+    r.style.display = text.includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

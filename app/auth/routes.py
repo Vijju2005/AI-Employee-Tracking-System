@@ -93,6 +93,7 @@ def login():
                     user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
                     db.session.commit()
                     session.pop("is_locked", None)
+                    session.permanent = True  # Enforce 8-hour PERMANENT_SESSION_LIFETIME
                     from app.time_utils import get_current_session_cycle_id
                     session["login_cycle_id"] = get_current_session_cycle_id()
                     login_user(user, remember=remember)
@@ -142,6 +143,7 @@ def verify_otp():
             next_page = session.pop("2fa_next", None)
             session.pop("2fa_user_id", None)
             session.pop("is_locked", None)
+            session.permanent = True  # Enforce 8-hour PERMANENT_SESSION_LIFETIME
             from app.time_utils import get_current_session_cycle_id
             session["login_cycle_id"] = get_current_session_cycle_id()
 

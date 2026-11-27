@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Subscription History &bull; {{ company.name }} | Super Admin{% endblock %}
+{% block topbar_title %}Tenant Subscription Timeline{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="history"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">Subscription History: {{ company.name }}</h1>
+        <p class="reports-header-sub">Chronological audit log of all license tiers, renewals, cancellations, and status updates for company code <strong>{{ company.code }}</strong></p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('superadmin.subscriptions_list') }}" class="btn btn-outline-navy">
+        <i data-lucide="arrow-left"></i>
+        <span>Back to Subscriptions</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Company Summary Card -->
+  <div class="card" style="padding:1.25rem 1.5rem;border-radius:12px;border:1px solid var(--border);background:#FFFFFF;margin-bottom:1.25rem;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;">
+    <div>
+      <div style="font-size:0.8rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Tenant Details</div>
+      <div style="font-size:1.25rem;font-weight:800;color:var(--navy);margin-top:2px;">{{ company.name }} ({{ company.code }})</div>
+      <div style="font-size:0.85rem;color:var(--text-sec);margin-top:2px;">
+        <span>{{ company.email }}</span>
+        {% if company.phone %} &bull; <span>{{ company.phone }}</span>{% endif %}
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:1.5rem;">
+      <div>
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Current Package</div>
+        <div style="font-size:1.1rem;font-weight:800;color:var(--blue);margin-top:2px;">
+          {{ company.package.name if company.package else 'None Assigned' }}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">Tenant Status</div>
+        <div style="margin-top:2px;">
+          <span class="badge {% if company.status == 'active' %}badge-success{% else %}badge-warning{% endif %}">
+            {{ company.status|upper }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subscription History Table -->
+  <div class="reports-table-card">
+    <div class="reports-table-header">
+      <div class="reports-table-heading">
+        <i data-lucide="layers"></i>
+        <span>Historical License Transactions ({{ history|length }})</span>
+      </div>
+    </div>
+    <div class="reports-table-wrapper">
+      <table class="reports-data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Package Plan</th>
+            <th>Billing Cycle</th>
+            <th>Amount</th>
+            <th>Start Date</th>
+            <th>Expiration Date</th>
+            <th>Status</th>
+            <th>Created At</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in history %}
+          <tr>
+            <td style="color:var(--text-muted);font-weight:600;">#{{ s.id }}</td>
+            <td>
+              <strong style="color:var(--navy);">{{ s.package.name if s.package else '—' }}</strong>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ s.package.code if s.package else '' }}</div>
+            </td>
+            <td><span class="report-code-badge">{{ s.billing_cycle|upper }}</span></td>
+            <td class="report-amount" style="font-weight:700;color:var(--navy);">
+              ₹ {{ "{:,.2f}".format(s.amount) }}
+            </td>
+            <td>{{ s.starts_at.strftime('%Y-%m-%d') if s.starts_at else '—' }}</td>
+            <td>
+              {% if s.expires_at %}
+                <span>{{ s.expires_at.strftime('%Y-%m-%d') }}</span>
+              {% else %}
+                <span style="color:var(--text-muted);">Lifetime</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.status == 'active' %}
+              <span class="badge badge-success">Active</span>
+              {% elif s.status == 'pending' %}
+              <span class="badge" style="background:#FEF3C7;color:#D97706;border:1px solid #FDE68A;">Pending</span>
+              {% elif s.status == 'expired' %}
+              <span class="badge" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;">Expired</span>
+              {% elif s.status == 'cancelled' %}
+              <span class="badge" style="background:#E2E8F0;color:#475569;">Cancelled</span>
+              {% else %}
+              <span class="badge badge-secondary">{{ s.status|title }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:0.8rem;color:var(--text-muted);">
+              {{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '—' }}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted);">
+              No previous subscription records found for this company.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

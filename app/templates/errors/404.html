@@ -1,20 +1,30 @@
 {% extends "base_auth.html" %}
-{% block title %}Page Not Found (404){% endblock %}
+{% block title %}404 — Page Not Found{% endblock %}
 
 {% block auth_content %}
 <div style="text-align:center;padding:2rem 1rem;">
-  <div style="width:68px;height:68px;border-radius:18px;background:#EFF6FF;color:#2563EB;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1.25rem;box-shadow:var(--shadow-sm);">
+  <div style="width:72px;height:72px;border-radius:50%;background:#EEF4FF;color:#1E50D4;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1.25rem;box-shadow:0 4px 16px rgba(30,80,212,0.12);">
     <i data-lucide="compass" style="width:36px;height:36px;"></i>
   </div>
-  <h2 style="font-size:1.35rem;font-weight:800;color:var(--navy);margin:0;letter-spacing:-0.02em;">404 &mdash; Page Not Found</h2>
-  <p style="font-size:0.86rem;color:var(--text-sec);margin:0.5rem 0 1.5rem;line-height:1.5;">
-    The page or corporate resource you requested could not be located in the system directory.
+  <div style="display:inline-flex;align-items:center;gap:0.5rem;background:#EEF4FF;color:#1E50D4;border:1px solid #BFDBFE;border-radius:999px;padding:0.3rem 0.9rem;font-size:0.74rem;font-weight:700;margin-bottom:1rem;letter-spacing:0.04em;">
+    404 &mdash; NOT FOUND
+  </div>
+  <h2 style="font-size:1.5rem;font-weight:800;color:var(--navy);margin:0 0 0.5rem;letter-spacing:-0.02em;">Page Not Found</h2>
+  <p style="font-size:0.88rem;color:var(--text-sec);margin:0 auto 1.75rem;max-width:380px;line-height:1.6;">
+    The page or resource you requested could not be found in the EBT System system directory. It may have been moved or deleted.
   </p>
-  <div style="display:flex;justify-content:center;gap:0.75rem;">
-    <a href="/" class="btn btn-primary btn-lg">
+  <div style="display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+    <a href="/" class="btn btn-primary">
       <i data-lucide="home"></i>
       <span>Return to Dashboard</span>
     </a>
+    <a href="javascript:history.back()" class="btn btn-secondary">
+      <i data-lucide="arrow-left"></i>
+      <span>Go Back</span>
+    </a>
   </div>
+  <p style="font-size:0.76rem;color:var(--text-muted);margin-top:1.75rem;">
+    EBT System Enterprise Platform &mdash; &copy; {{ 2026 }}
+  </p>
 </div>
 {% endblock %}

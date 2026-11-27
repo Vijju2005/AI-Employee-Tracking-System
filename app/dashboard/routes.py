@@ -23,7 +23,7 @@ dashboard_bp = Blueprint("dashboard", __name__)
 def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role != UserRole.ADMIN:
+        if not current_user.is_authenticated or not current_user.is_admin:
             abort(403)
         return f(*args, **kwargs)
     return decorated

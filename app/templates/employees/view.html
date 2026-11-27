@@ -1,256 +1,801 @@
 {% extends "base.html" %}
-{% block title %}{{ employee.full_name }} — Personnel Record | Enterprise HRMS{% endblock %}
-{% block topbar_title %}Employee Profile{% endblock %}
+{% block title %}{{ employee.full_name }} — Comprehensive Profile | EBT System{% endblock %}
+{% block topbar_title %}Employee Master Profile{% endblock %}
 
 {% block content %}
-<div class="reports-container">
+<div class="reports-container" style="max-width:1200px;margin:0 auto;padding-bottom:3rem;">
 
-  <!-- Header Card -->
-  <div class="reports-header-card" style="margin-bottom:1.5rem;">
-    <div class="reports-header-left">
-      <div style="width:58px;height:58px;border-radius:14px;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;box-shadow:0 6px 14px rgba(37,99,235,0.3);">
-        {{ employee.full_name[0].upper() }}
-      </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:0.6rem;">
-          <h1 class="reports-header-title" style="margin:0;">{{ employee.full_name }}</h1>
-          {% if employee.status.value == 'active' %}
-          <span class="report-badge badge-active">Active</span>
-          {% else %}
-          <span class="report-badge badge-inactive">Inactive</span>
-          {% endif %}
-        </div>
-        <p class="reports-header-sub" style="margin-top:0.25rem;">
-          {{ employee.designation or 'Team Member' }} &bull; {{ employee.department.name if employee.department else 'General Department' }} &bull; ID: {{ employee.employee_id }}
-        </p>
-      </div>
-    </div>
-    <div class="reports-header-actions">
-      <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
-        <i data-lucide="arrow-left"></i>
-        <span>Back to Directory</span>
-      </a>
-      {% if current_user.is_admin %}
-      <a href="{{ url_for('employees.edit_employee', emp_id=employee.id) }}" class="btn btn-primary">
-        <i data-lucide="edit"></i>
-        <span>Edit Profile</span>
-      </a>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Profile Details Layout -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
-
-    <!-- Personal & Employment Information -->
-    <div class="reports-table-card" style="padding:1.4rem;">
-      <div style="display:flex;align-items:center;gap:0.6rem;padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid var(--border);">
-        <i data-lucide="user-check" style="width:20px;height:20px;color:var(--blue);"></i>
-        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);">Personnel &amp; Job Record</h3>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:0.85rem;">
-        <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Full Name</span>
-          <strong style="color:var(--navy);">{{ employee.full_name }}</strong>
+  <!-- Master Profile Header Card -->
+  <div class="reports-header-card" style="margin-bottom:1.5rem;background:linear-gradient(135deg, #0F172A 0%, #1E3A8A 100%);border-radius:16px;padding:1.75rem 2rem;color:#FFFFFF;box-shadow:0 10px 25px -5px rgba(15,23,42,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1.5rem;">
+        <div style="width:76px;height:76px;border-radius:20px;background:linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);color:#FFFFFF;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;box-shadow:0 8px 20px rgba(37,99,235,0.4);border:2px solid rgba(255,255,255,0.2);">
+          {{ employee.full_name[0].upper() }}
         </div>
         <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Employee ID</span>
-          <span class="code-pill">{{ employee.employee_id }}</span>
-        </div>
-        <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Department</span>
-          <strong style="color:var(--navy);">{{ employee.department.name if employee.department else '—' }}</strong>
-        </div>
-        <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Designation</span>
-          <strong style="color:var(--navy);">{{ employee.designation or '—' }}</strong>
-        </div>
-        <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Company</span>
-          <strong style="color:var(--navy);">{{ employee.company_name }}</strong>
-        </div>
-        <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Joining Date</span>
-          <strong style="color:var(--navy);">{{ employee.date_joined.strftime('%d %b %Y') if employee.date_joined else '—' }}</strong>
-        </div>
-        <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Work Schedule</span>
-          <span class="calc-pill">{{ employee.work_schedule.name if employee.work_schedule else 'Standard 9-5' }}</span>
-        </div>
-        <div>
-          <span style="display:block;font-size:0.73rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">System User Account</span>
-          <strong style="color:var(--blue);">{{ employee.user.username if employee.user else 'No linked login' }}</strong>
-        </div>
-      </div>
-
-      <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border);">
-        <h4 style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:var(--navy);">Contact Information</h4>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;font-size:0.84rem;">
-          <div style="display:flex;align-items:center;gap:0.4rem;color:var(--text-sec);">
-            <i data-lucide="mail" style="width:15px;height:15px;color:var(--blue);"></i>
-            <span>{{ employee.email }}</span>
+          <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+            <h1 style="margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;color:#FFFFFF;">{{ employee.full_name }}</h1>
+            {% if employee.status.value == 'active' %}
+              <span class="report-badge badge-active" style="background:#ECFDF5;color:#047857;border-color:#A7F3D0;">Active</span>
+            {% else %}
+              <span class="report-badge badge-inactive" style="background:#FEF2F2;color:#B91C1C;border-color:#FECACA;">Inactive</span>
+            {% endif %}
+            <span style="background:rgba(255,255,255,0.15);padding:0.25rem 0.65rem;border-radius:999px;font-size:0.78rem;font-weight:700;color:#E0F2FE;">
+              {{ profile.employment_type or 'Full-Time' }}
+            </span>
           </div>
-          <div style="display:flex;align-items:center;gap:0.4rem;color:var(--text-sec);">
-            <i data-lucide="phone" style="width:15px;height:15px;color:var(--blue);"></i>
-            <span>{{ employee.phone or 'Not provided' }}</span>
-          </div>
+          <p style="margin:0.4rem 0 0;font-size:0.9rem;color:#94A3B8;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+            <span><i data-lucide="award" style="width:15px;height:15px;color:#38BDF8;vertical-align:middle;margin-right:3px;"></i>{{ employee.designation or 'Associate' }}</span>
+            <span>&bull;</span>
+            <span><i data-lucide="building-2" style="width:15px;height:15px;color:#38BDF8;vertical-align:middle;margin-right:3px;"></i>{{ employee.department.name if employee.department else 'General' }}</span>
+            <span>&bull;</span>
+            <span><i data-lucide="hash" style="width:15px;height:15px;color:#38BDF8;vertical-align:middle;margin-right:3px;"></i>{{ employee.employee_id }}</span>
+            <span>&bull;</span>
+            <span><i data-lucide="map-pin" style="width:15px;height:15px;color:#38BDF8;vertical-align:middle;margin-right:3px;"></i>{{ profile.work_location or 'Bengaluru' }}</span>
+          </p>
         </div>
       </div>
-    </div>
-
-    <!-- Salary & Compensation Card (Admin Only) -->
-    <div class="reports-table-card" style="padding:1.4rem;">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:1rem;margin-bottom:1rem;border-bottom:1px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:0.6rem;">
-          <i data-lucide="banknote" style="width:20px;height:20px;color:var(--blue);"></i>
-          <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);">Compensation Overview</h3>
-        </div>
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+        <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline" style="background:rgba(255,255,255,0.1);color:#FFFFFF;border-color:rgba(255,255,255,0.25);">
+          <i data-lucide="arrow-left"></i>
+          <span>Directory</span>
+        </a>
         {% if current_user.is_admin %}
-        <span class="report-code-badge earnings-badge">Confidential</span>
+        <a href="{{ url_for('employees.edit_employee', emp_id=employee.id) }}" class="btn btn-primary" style="background:#2563EB;border-color:#2563EB;">
+          <i data-lucide="edit"></i>
+          <span>Edit Core Job</span>
+        </a>
         {% endif %}
       </div>
-
-      {% if current_user.is_admin and salary %}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:0.85rem;margin-bottom:1.25rem;">
-        <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
-          <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Annual CTC</span>
-          <div style="font-size:1.2rem;font-weight:800;color:var(--navy);margin-top:2px;">₹{{ "{:,.2f}".format(salary.ctc or (salary.gross_salary * 12)) }}</div>
-        </div>
-        <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
-          <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Monthly Net Take-Home</span>
-          <div style="font-size:1.2rem;font-weight:800;color:var(--blue);margin-top:2px;">₹{{ "{:,.2f}".format(salary.net_salary) }}</div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem;">
-        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
-          <span style="color:var(--text-sec);">Basic Salary</span>
-          <strong style="color:var(--navy);">₹{{ "{:,.2f}".format(salary.basic_salary) }}</strong>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
-          <span style="color:var(--text-sec);">House Rent Allowance (HRA)</span>
-          <strong style="color:var(--navy);">₹{{ "{:,.2f}".format(salary.hra) }}</strong>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
-          <span style="color:var(--text-sec);">Special &amp; Other Allowances</span>
-          <strong style="color:var(--navy);">₹{{ "{:,.2f}".format(salary.special_allowance + salary.other_allowances) }}</strong>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:0.35rem 0;border-bottom:1px dashed #E2E8F0;">
-          <span style="color:var(--text-sec);">Total Statutory Deductions (PF/ESI/TDS)</span>
-          <strong style="color:#DC2626;">-₹{{ "{:,.2f}".format(salary.total_deductions) }}</strong>
-        </div>
-      </div>
-      {% elif current_user.is_admin %}
-      <div style="text-align:center;padding:2rem 1rem;color:var(--text-sec);">
-        <i data-lucide="file-question" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:0.5rem;"></i>
-        <p style="margin:0;font-weight:600;">Salary structure not yet defined for this employee.</p>
-        <a href="{{ url_for('payroll.salaries_list') }}" class="btn btn-sm btn-primary" style="margin-top:0.75rem;">
-          <span>Configure Salary Structure</span>
-        </a>
-      </div>
-      {% else %}
-      <div style="text-align:center;padding:2rem 1rem;color:var(--text-sec);">
-        <i data-lucide="lock" style="width:32px;height:32px;color:var(--text-muted);margin-bottom:0.5rem;"></i>
-        <p style="margin:0;font-weight:600;">Compensation details are restricted to authorized administrators.</p>
-      </div>
-      {% endif %}
     </div>
-
   </div>
 
-  <!-- Recent Attendance & Leave Histories -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:1.5rem;align-items:start;">
+  <!-- Navigation Tabs -->
+  <div style="display:flex;gap:0.5rem;border-bottom:2px solid #E2E8F0;margin-bottom:1.75rem;overflow-x:auto;padding-bottom:0.25rem;">
+    <button type="button" class="tab-btn active" onclick="switchProfileTab('personal')" id="tab-btn-personal">
+      <i data-lucide="user"></i> Personal Info
+    </button>
+    <button type="button" class="tab-btn" onclick="switchProfileTab('identity')" id="tab-btn-identity">
+      <i data-lucide="shield-check"></i> Identity &amp; Govt
+    </button>
+    <button type="button" class="tab-btn" onclick="switchProfileTab('family')" id="tab-btn-family">
+      <i data-lucide="users"></i> Family &amp; Emergency
+    </button>
+    <button type="button" class="tab-btn" onclick="switchProfileTab('education')" id="tab-btn-education">
+      <i data-lucide="graduation-cap"></i> Education &amp; Exp
+    </button>
+    <button type="button" class="tab-btn" onclick="switchProfileTab('employment')" id="tab-btn-employment">
+      <i data-lucide="briefcase"></i> Employment &amp; Hierarchy
+    </button>
+    <button type="button" class="tab-btn" onclick="switchProfileTab('banking')" id="tab-btn-banking">
+      <i data-lucide="banknote"></i> Bank &amp; Compensation
+    </button>
+    <button type="button" class="tab-btn" onclick="switchProfileTab('documents')" id="tab-btn-documents">
+      <i data-lucide="folder-check"></i> Documents ({{ documents|length }})
+    </button>
+  </div>
 
-    <!-- Recent Attendance -->
-    <div class="reports-table-card">
-      <div class="reports-table-header">
-        <h3 class="reports-table-heading">
-          <i data-lucide="calendar-check"></i>
-          <span>Recent Attendance Records</span>
+  <!-- TAB 1: Personal Information -->
+  <div class="profile-tab-content" id="tab-content-personal">
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="user" style="color:var(--blue);"></i>
+          <span>Personal Information &amp; Personnel &amp; Job Record</span>
         </h3>
-        <span class="reports-table-count-badge">{{ recent_attendance|length }} Days</span>
+        <span class="badge badge-info">Confidential</span>
       </div>
-      <div class="reports-table-wrapper">
-        <table class="reports-data-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Check In</th>
-              <th>Check Out</th>
-              <th>Net Work</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for att in recent_attendance %}
-            <tr>
-              <td><strong>{{ att.date.strftime('%d %b %Y') }}</strong></td>
-              <td>{{ att.check_in.strftime('%H:%M') if att.check_in else '—' }}</td>
-              <td>{{ att.check_out.strftime('%H:%M') if att.check_out else '—' }}</td>
-              <td>{{ (att.net_working_minutes / 60)|round(1) }} hrs</td>
-              <td>
-                <span class="report-badge badge-active">{{ att.status.value|title }}</span>
-              </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-sec);">No attendance logs recorded yet.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('employees.update_employee_profile_sections', emp_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="section" value="personal"/>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Full Legal Name</label>
+              <input type="text" class="form-control" value="{{ employee.full_name }}" readonly style="background:#F8FAFC;font-weight:600;"/>
+              <small class="form-hint">Governed by official company appointment record</small>
+            </div>
+            <div>
+              <label class="form-label">Date of Birth</label>
+              <input type="date" name="date_of_birth" class="form-control" value="{{ profile.date_of_birth.strftime('%Y-%m-%d') if profile.date_of_birth else '' }}"/>
+            </div>
+            <div>
+              <label class="form-label">Gender</label>
+              <select name="gender" class="form-control">
+                <option value="">Select Gender</option>
+                <option value="Male" {% if profile.gender == 'Male' %}selected{% endif %}>Male</option>
+                <option value="Female" {% if profile.gender == 'Female' %}selected{% endif %}>Female</option>
+                <option value="Other" {% if profile.gender == 'Other' %}selected{% endif %}>Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Marital Status</label>
+              <select name="marital_status" class="form-control">
+                <option value="">Select Marital Status</option>
+                <option value="Single" {% if profile.marital_status == 'Single' %}selected{% endif %}>Single</option>
+                <option value="Married" {% if profile.marital_status == 'Married' %}selected{% endif %}>Married</option>
+                <option value="Divorced" {% if profile.marital_status == 'Divorced' %}selected{% endif %}>Divorced</option>
+                <option value="Widowed" {% if profile.marital_status == 'Widowed' %}selected{% endif %}>Widowed</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Blood Group</label>
+              <input type="text" name="blood_group" class="form-control" value="{{ profile.blood_group or '' }}" placeholder="e.g. O+, A+, B+"/>
+            </div>
+            <div>
+              <label class="form-label">Nationality</label>
+              <input type="text" name="nationality" class="form-control" value="{{ profile.nationality or 'Indian' }}" placeholder="Indian"/>
+            </div>
+            <div>
+              <label class="form-label">Official Work Email</label>
+              <input type="email" class="form-control" value="{{ employee.email }}" readonly style="background:#F8FAFC;"/>
+            </div>
+            <div>
+              <label class="form-label">Personal Email</label>
+              <input type="email" name="personal_email" class="form-control" value="{{ profile.personal_email or '' }}" placeholder="personal@email.com"/>
+            </div>
+            <div>
+              <label class="form-label">Corporate Mobile</label>
+              <input type="text" name="phone" class="form-control" value="{{ employee.phone or '' }}" placeholder="+91 98765 43210"/>
+            </div>
+            <div>
+              <label class="form-label">Personal Contact Number</label>
+              <input type="text" name="personal_phone" class="form-control" value="{{ profile.personal_phone or '' }}" placeholder="+91 98765 00000"/>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Current Residential Address</label>
+              <textarea name="current_address" class="form-control" rows="3" placeholder="Flat, Street, City, State, PIN Code">{{ profile.current_address or '' }}</textarea>
+            </div>
+            <div>
+              <label class="form-label">Permanent Address</label>
+              <textarea name="permanent_address" class="form-control" rows="3" placeholder="Permanent residence address as per Aadhaar/Passport">{{ profile.permanent_address or '' }}</textarea>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="save"></i>
+              <span>Save Personal Information</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
+  </div>
 
-    <!-- Recent Leave Requests -->
-    <div class="reports-table-card">
-      <div class="reports-table-header">
-        <h3 class="reports-table-heading">
-          <i data-lucide="calendar-days"></i>
-          <span>Recent Leave Requests</span>
+  <!-- TAB 2: Identity & Government Details -->
+  <div class="profile-tab-content" id="tab-content-identity" style="display:none;">
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="shield-check" style="color:var(--blue);"></i>
+          <span>Identity, KYC &amp; Statutory Numbers</span>
         </h3>
-        <span class="reports-table-count-badge">{{ recent_leaves|length }} Requests</span>
+        <span class="badge badge-success">Encrypted AES-256 at Rest</span>
       </div>
-      <div class="reports-table-wrapper">
-        <table class="reports-data-table">
-          <thead>
-            <tr>
-              <th>Period</th>
-              <th>Type</th>
-              <th>Reason</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for lr in recent_leaves %}
-            <tr>
-              <td>
-                <strong>{{ lr.start_date.strftime('%d %b') }}</strong> - {{ lr.end_date.strftime('%d %b %Y') }}
-              </td>
-              <td>{{ lr.leave_type|title }}</td>
-              <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ lr.reason }}</td>
-              <td>
-                {% if lr.status.value == 'approved' %}
-                <span class="report-badge badge-active">Approved</span>
-                {% elif lr.status.value == 'pending' %}
-                <span class="report-badge" style="background:#FFFBEB;color:#92400E;border:1px solid #FDE68A;">Pending</span>
-                {% else %}
-                <span class="report-badge badge-inactive">Rejected</span>
-                {% endif %}
-              </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="4" style="text-align:center;padding:2rem;color:var(--text-sec);">No leave requests filed yet.</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="card-body">
+        {% if current_user.is_admin %}
+        <form method="POST" action="{{ url_for('employees.update_employee_profile_sections', emp_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="section" value="identity"/>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Aadhaar Card Number</label>
+              <div style="position:relative;">
+                <input type="text" id="aadhaar_input" name="aadhaar_number" class="form-control"
+                       value="{{ profile.aadhaar_number }}" placeholder="12-digit Aadhaar Number" maxlength="14"/>
+              </div>
+              <small class="form-hint">Masked for non-admins: <strong>{{ profile.aadhaar_masked }}</strong></small>
+            </div>
+            <div>
+              <label class="form-label">PAN Number</label>
+              <input type="text" name="pan_number" class="form-control"
+                     value="{{ profile.pan_number }}" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase;"/>
+              <small class="form-hint">Masked for non-admins: <strong>{{ profile.pan_masked }}</strong></small>
+            </div>
+            <div>
+              <label class="form-label">Passport Number</label>
+              <input type="text" name="passport_number" class="form-control" value="{{ profile.passport_number or '' }}" placeholder="Passport ID"/>
+            </div>
+            <div>
+              <label class="form-label">Passport Expiry Date</label>
+              <input type="date" name="passport_expiry" class="form-control" value="{{ profile.passport_expiry.strftime('%Y-%m-%d') if profile.passport_expiry else '' }}"/>
+            </div>
+            <div>
+              <label class="form-label">Driving Licence Number</label>
+              <input type="text" name="driving_licence" class="form-control" value="{{ profile.driving_licence or '' }}" placeholder="DL Number"/>
+            </div>
+            <div>
+              <label class="form-label">Universal Account Number (UAN)</label>
+              <input type="text" name="uan_number" class="form-control" value="{{ profile.uan_number or '' }}" placeholder="12-digit UAN"/>
+            </div>
+            <div>
+              <label class="form-label">Provident Fund (PF) Account Number</label>
+              <input type="text" name="pf_account_number" class="form-control" value="{{ profile.pf_account_number or '' }}" placeholder="PF Member ID"/>
+            </div>
+            <div>
+              <label class="form-label">ESIC Number</label>
+              <input type="text" name="esic_number" class="form-control" value="{{ profile.esic_number or '' }}" placeholder="17-digit ESIC IP Number"/>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="shield"></i>
+              <span>Save Government &amp; Identity Details</span>
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <!-- Read-Only Masked Identity Card for Standard Employees -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;">
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Aadhaar Number</span>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--navy);margin-top:4px;">{{ profile.aadhaar_masked }}</div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">PAN Number</span>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--navy);margin-top:4px;">{{ profile.pan_masked }}</div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">UAN</span>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--navy);margin-top:4px;">{{ profile.uan_number or '—' }}</div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">PF Account Number</span>
+            <div style="font-size:1.1rem;font-weight:800;color:var(--navy);margin-top:4px;">{{ profile.pf_account_number or '—' }}</div>
+          </div>
+        </div>
+        <div style="margin-top:1.5rem;padding:0.75rem 1rem;background:#FEF3C7;border-radius:8px;border:1px solid #FDE68A;display:flex;align-items:center;gap:0.75rem;color:#92400E;font-size:0.82rem;">
+          <i data-lucide="lock" style="width:18px;height:18px;flex-shrink:0;"></i>
+          <span>Official government credentials and statutory numbers are governed by HR administration and masked for your security.</span>
+        </div>
+        {% endif %}
       </div>
     </div>
+  </div>
 
+  <!-- TAB 3: Family & Emergency Contacts -->
+  <div class="profile-tab-content" id="tab-content-family" style="display:none;">
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="users" style="color:var(--blue);"></i>
+          <span>Family Information &amp; Emergency Contacts</span>
+        </h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('employees.update_employee_profile_sections', emp_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="section" value="family"/>
+
+          <h4 style="font-size:0.92rem;font-weight:700;color:var(--navy);margin:0 0 1rem;border-bottom:1px solid #E2E8F0;padding-bottom:0.5rem;">
+            Immediate Family Members
+          </h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Father's Full Name</label>
+              <input type="text" name="father_name" class="form-control" value="{{ profile.father_name or '' }}" placeholder="Father's Name"/>
+            </div>
+            <div>
+              <label class="form-label">Mother's Full Name</label>
+              <input type="text" name="mother_name" class="form-control" value="{{ profile.mother_name or '' }}" placeholder="Mother's Name"/>
+            </div>
+            <div>
+              <label class="form-label">Spouse Name (If Married)</label>
+              <input type="text" name="spouse_name" class="form-control" value="{{ profile.spouse_name or '' }}" placeholder="Spouse's Name"/>
+            </div>
+            <div>
+              <label class="form-label">Dependents Information</label>
+              <input type="text" name="dependents_info" class="form-control" value="{{ profile.dependents_info or '' }}" placeholder="e.g. 2 Children, Parents"/>
+            </div>
+          </div>
+
+          <h4 style="font-size:0.92rem;font-weight:700;color:var(--navy);margin:1.5rem 0 1rem;border-bottom:1px solid #E2E8F0;padding-bottom:0.5rem;">
+            Emergency Contact Information
+          </h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Emergency Contact Name <span class="req">*</span></label>
+              <input type="text" name="emergency_contact_name" class="form-control" value="{{ profile.emergency_contact_name or '' }}" placeholder="Full Name" required/>
+            </div>
+            <div>
+              <label class="form-label">Relationship <span class="req">*</span></label>
+              <input type="text" name="emergency_contact_relation" class="form-control" value="{{ profile.emergency_contact_relation or '' }}" placeholder="e.g. Spouse, Brother, Father" required/>
+            </div>
+            <div>
+              <label class="form-label">Emergency Phone Number <span class="req">*</span></label>
+              <input type="text" name="emergency_contact_phone" class="form-control" value="{{ profile.emergency_contact_phone or '' }}" placeholder="+91 98765 00000" required/>
+            </div>
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <label class="form-label">Emergency Contact Address</label>
+            <textarea name="emergency_contact_address" class="form-control" rows="2" placeholder="Full address of emergency contact">{{ profile.emergency_contact_address or '' }}</textarea>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="save"></i>
+              <span>Save Family &amp; Emergency Contacts</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: Education & Experience -->
+  <div class="profile-tab-content" id="tab-content-education" style="display:none;">
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="graduation-cap" style="color:var(--blue);"></i>
+          <span>Educational Background &amp; Prior Work Experience</span>
+        </h3>
+      </div>
+      <div class="card-body">
+        <form method="POST" action="{{ url_for('employees.update_employee_profile_sections', emp_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="section" value="education"/>
+
+          <h4 style="font-size:0.92rem;font-weight:700;color:var(--navy);margin:0 0 1rem;border-bottom:1px solid #E2E8F0;padding-bottom:0.5rem;">
+            Highest Academic Qualification
+          </h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Highest Degree / Qualification</label>
+              <input type="text" name="highest_qualification" class="form-control" value="{{ profile.highest_qualification or '' }}" placeholder="e.g. B.Tech Computer Science, MBA, M.Sc"/>
+            </div>
+            <div>
+              <label class="form-label">Institution / University</label>
+              <input type="text" name="institution_university" class="form-control" value="{{ profile.institution_university or '' }}" placeholder="University Name"/>
+            </div>
+            <div>
+              <label class="form-label">Graduation Year</label>
+              <input type="number" name="graduation_year" class="form-control" value="{{ profile.graduation_year or '' }}" placeholder="e.g. 2022" min="1960" max="2035"/>
+            </div>
+          </div>
+
+          <h4 style="font-size:0.92rem;font-weight:700;color:var(--navy);margin:1.5rem 0 1rem;border-bottom:1px solid #E2E8F0;padding-bottom:0.5rem;">
+            Prior Work History
+          </h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Previous Organization</label>
+              <input type="text" name="previous_company" class="form-control" value="{{ profile.previous_company or '' }}" placeholder="e.g. Infosys, TCS, Startup Inc."/>
+            </div>
+            <div>
+              <label class="form-label">Previous Designation / Role</label>
+              <input type="text" name="previous_designation" class="form-control" value="{{ profile.previous_designation or '' }}" placeholder="e.g. Software Engineer"/>
+            </div>
+            <div>
+              <label class="form-label">Total Work Experience (Years)</label>
+              <input type="number" step="0.5" name="total_experience_years" class="form-control" value="{{ profile.total_experience_years or 0 }}" placeholder="e.g. 3.5"/>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="save"></i>
+              <span>Save Education &amp; Experience</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: Employment & Hierarchy -->
+  <div class="profile-tab-content" id="tab-content-employment" style="display:none;">
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="briefcase" style="color:var(--blue);"></i>
+          <span>Employment Status, Shifts &amp; Reporting Hierarchy</span>
+        </h3>
+        {% if current_user.is_admin %}
+          <span class="badge badge-primary">Admin Editable</span>
+        {% else %}
+          <span class="badge badge-secondary">Corporate Policy Locked</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if current_user.is_admin %}
+        <form method="POST" action="{{ url_for('employees.update_employee_profile_sections', emp_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="section" value="employment"/>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Employment Type</label>
+              <select name="employment_type" class="form-control">
+                <option value="Full-Time" {% if profile.employment_type == 'Full-Time' %}selected{% endif %}>Full-Time Permanent</option>
+                <option value="Part-Time" {% if profile.employment_type == 'Part-Time' %}selected{% endif %}>Part-Time</option>
+                <option value="Contract" {% if profile.employment_type == 'Contract' %}selected{% endif %}>Contractual</option>
+                <option value="Intern" {% if profile.employment_type == 'Intern' %}selected{% endif %}>Internship</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Work Location</label>
+              <input type="text" name="work_location" class="form-control" value="{{ profile.work_location or 'Bengaluru' }}" placeholder="City / Branch / Remote"/>
+            </div>
+            <div>
+              <label class="form-label">Reporting Manager</label>
+              <select name="manager_id" class="form-control">
+                <option value="">No Direct Manager (Top Level / Self-reporting)</option>
+                {% for mgr in managers %}
+                <option value="{{ mgr.id }}" {% if employee.manager_id == mgr.id %}selected{% endif %}>
+                  {{ mgr.full_name }} ({{ mgr.employee_id }} - {{ mgr.designation or 'Manager' }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Probation End Date</label>
+              <input type="date" name="probation_end_date" class="form-control" value="{{ profile.probation_end_date.strftime('%Y-%m-%d') if profile.probation_end_date else '' }}"/>
+            </div>
+            <div>
+              <label class="form-label">Confirmation Date</label>
+              <input type="date" name="confirmation_date" class="form-control" value="{{ profile.confirmation_date.strftime('%Y-%m-%d') if profile.confirmation_date else '' }}"/>
+            </div>
+            <div>
+              <label class="form-label">Assigned Work Shift</label>
+              <input type="text" class="form-control" value="{{ employee.work_schedule.name if employee.work_schedule else 'Standard 9-5' }}" readonly style="background:#F8FAFC;"/>
+            </div>
+            <div>
+              <label class="form-label">Joining Date &amp; Calendar Year</label>
+              <input type="text" class="form-control" value="{% if employee.date_joined %}{{ employee.date_joined.strftime('%d %B %Y') }} ({{ employee.joining_calendar_year.name if employee.joining_calendar_year else 'Unmapped' }}){% else %}Not Specified{% endif %}" readonly style="background:#F8FAFC;"/>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="check-circle"></i>
+              <span>Update Employment Hierarchy</span>
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <!-- Read Only View for Employees -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1.25rem;">
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Employment Type</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-top:4px;">{{ profile.employment_type or 'Full-Time' }}</div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Work Location</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-top:4px;">{{ profile.work_location or 'Bengaluru' }}</div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Reporting Manager</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--blue);margin-top:4px;">
+              {{ employee.manager.full_name if employee.manager else 'Executive Leadership' }}
+            </div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Work Shift</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-top:4px;">
+              {{ employee.work_schedule.name if employee.work_schedule else 'Standard 9-5' }}
+            </div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Joining Calendar Year</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--blue);margin-top:4px;">
+              {{ employee.joining_calendar_year.name if employee.joining_calendar_year else 'Unassigned' }}
+              <span style="font-size:0.8rem;color:var(--text-sec);font-weight:500;">({{ employee.date_joined.strftime('%d %b %Y') if employee.date_joined else '—' }})</span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 6: Bank & Compensation -->
+  <div class="profile-tab-content" id="tab-content-banking" style="display:none;">
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="banknote" style="color:var(--blue);"></i>
+          <span>Bank Account Details &amp; Compensation Structure</span>
+        </h3>
+        <span class="badge badge-info">Confidential Payroll Record</span>
+      </div>
+      <div class="card-body">
+        {% if current_user.is_admin %}
+        <form method="POST" action="{{ url_for('employees.update_employee_profile_sections', emp_id=employee.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="section" value="banking"/>
+
+          <h4 style="font-size:0.92rem;font-weight:700;color:var(--navy);margin:0 0 1rem;border-bottom:1px solid #E2E8F0;padding-bottom:0.5rem;">
+            Bank Account Details
+          </h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1.25rem;margin-bottom:1.5rem;">
+            <div>
+              <label class="form-label">Bank Name</label>
+              <input type="text" name="bank_name" class="form-control" value="{{ salary.bank_name if salary and salary.bank_name else '' }}" placeholder="e.g. HDFC Bank, ICICI Bank"/>
+            </div>
+            <div>
+              <label class="form-label">Account Holder Name</label>
+              <input type="text" name="account_holder_name" class="form-control" value="{{ profile.account_holder_name or employee.full_name }}" placeholder="Account Holder Name"/>
+            </div>
+            <div>
+              <label class="form-label">Account Number</label>
+              <input type="text" name="account_number" class="form-control" value="{{ salary.account_number if salary and salary.account_number else '' }}" placeholder="Bank Account Number"/>
+            </div>
+            <div>
+              <label class="form-label">IFSC Code</label>
+              <input type="text" name="ifsc_code" class="form-control" value="{{ salary.ifsc_code if salary and salary.ifsc_code else '' }}" placeholder="e.g. HDFC0001234" style="text-transform:uppercase;"/>
+            </div>
+            <div>
+              <label class="form-label">Branch Name</label>
+              <input type="text" name="bank_branch" class="form-control" value="{{ profile.bank_branch or '' }}" placeholder="Branch Location"/>
+            </div>
+          </div>
+
+          {% if salary %}
+          <h4 style="font-size:0.92rem;font-weight:700;color:var(--navy);margin:1.5rem 0 1rem;border-bottom:1px solid #E2E8F0;padding-bottom:0.5rem;">
+            Monthly Compensation Breakdown
+          </h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-bottom:1.5rem;">
+            <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
+              <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Annual CTC</span>
+              <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">₹{{ "{:,.2f}".format(salary.ctc or (salary.gross_salary * 12)) }}</div>
+            </div>
+            <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
+              <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Monthly Gross</span>
+              <div style="font-size:1.15rem;font-weight:800;color:var(--navy);">₹{{ "{:,.2f}".format(salary.gross_salary) }}</div>
+            </div>
+            <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
+              <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Monthly Net Take-Home</span>
+              <div style="font-size:1.15rem;font-weight:800;color:var(--blue);">₹{{ "{:,.2f}".format(salary.net_salary) }}</div>
+            </div>
+            <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid #E2E8F0;">
+              <span style="font-size:0.72rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Statutory Deductions</span>
+              <div style="font-size:1.15rem;font-weight:800;color:#DC2626;">-₹{{ "{:,.2f}".format(salary.total_deductions) }}</div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="save"></i>
+              <span>Save Banking Configuration</span>
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <!-- Employee Masked Banking View -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1.25rem;">
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Bank Name</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-top:4px;">{{ salary.bank_name if salary and salary.bank_name else '—' }}</div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Account Number</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-top:4px;">
+              {% if salary and salary.account_number %}
+                ••••••••{{ salary.account_number[-4:] if salary.account_number|length >= 4 else salary.account_number }}
+              {% else %}
+                —
+              {% endif %}
+            </div>
+          </div>
+          <div style="background:#F8FAFC;padding:1rem;border-radius:8px;border:1px solid #E2E8F0;">
+            <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">IFSC Code</span>
+            <div style="font-size:1rem;font-weight:700;color:var(--navy);margin-top:4px;">{{ salary.ifsc_code if salary and salary.ifsc_code else '—' }}</div>
+          </div>
+        </div>
+        <div style="margin-top:1.5rem;text-align:right;">
+          <a href="{{ url_for('payroll.payslips_list') }}" class="btn btn-outline-navy">
+            <i data-lucide="file-text"></i>
+            <span>View My Payslips</span>
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 7: Document Management -->
+  <div class="profile-tab-content" id="tab-content-documents" style="display:none;">
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+        <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+          <i data-lucide="folder-check" style="color:var(--blue);"></i>
+          <span>Official Employee Documents &amp; Certificates</span>
+        </h3>
+        <button type="button" class="btn btn-primary btn-sm" onclick="openDocUploadModal()">
+          <i data-lucide="upload"></i>
+          <span>Upload New Document</span>
+        </button>
+      </div>
+      <div class="card-body">
+        {% if documents %}
+        <div class="table-responsive">
+          <table class="reports-data-table">
+            <thead>
+              <tr>
+                <th>Document Name</th>
+                <th>Category</th>
+                <th>File Size</th>
+                <th>Status</th>
+                <th>Uploaded Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for doc in documents %}
+              <tr>
+                <td>
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <i data-lucide="file-text" style="width:18px;height:18px;color:var(--blue);flex-shrink:0;"></i>
+                    <strong style="color:var(--navy);">{{ doc.document_name }}</strong>
+                  </div>
+                </td>
+                <td><span class="report-badge">{{ doc.document_type }}</span></td>
+                <td>{{ (doc.file_size / 1024)|round(1) }} KB</td>
+                <td>
+                  <span class="report-badge badge-active">{{ doc.status }}</span>
+                </td>
+                <td>{{ doc.created_at.strftime('%d %b %Y') if doc.created_at else '—' }}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <a href="{{ url_for('employees.download_document', doc_id=doc.id) }}" class="btn btn-sm btn-outline-navy" title="Download Document">
+                      <i data-lucide="download"></i>
+                    </a>
+                    {% if current_user.is_admin or (current_user.employee and current_user.employee.id == doc.employee_id) %}
+                    <form method="POST" action="{{ url_for('employees.delete_document', doc_id=doc.id) }}" onsubmit="return confirm('Delete document {{ doc.document_name }}?');" style="display:inline;">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                      <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                        <i data-lucide="trash-2"></i>
+                      </button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div style="text-align:center;padding:3rem 1rem;color:var(--text-sec);">
+          <i data-lucide="folder-open" style="width:40px;height:40px;color:var(--text-muted);margin-bottom:0.75rem;"></i>
+          <h4 style="margin:0;font-weight:700;color:var(--navy);">No Documents Uploaded</h4>
+          <p style="margin:0.35rem 0 1.25rem;font-size:0.85rem;">Upload Aadhaar, PAN card, educational degrees, or appointment letters for official record.</p>
+          <button type="button" class="btn btn-primary btn-sm" onclick="openDocUploadModal()">
+            <i data-lucide="upload"></i>
+            <span>Upload First Document</span>
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
 </div>
+
+<!-- Document Upload Modal -->
+<div id="docUploadModal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;max-width:500px;width:100%;box-shadow:0 20px 25px -5px rgba(0,0,0,0.2);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:#F8FAFC;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="file-up" style="color:var(--blue);"></i>
+        <span>Upload Employee Document</span>
+      </h3>
+      <button type="button" onclick="closeDocUploadModal()" style="background:none;border:none;cursor:pointer;color:var(--text-muted);">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <form method="POST" action="{{ url_for('employees.upload_document') }}" enctype="multipart/form-data" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <input type="hidden" name="employee_id" value="{{ employee.id }}"/>
+
+      <div style="margin-bottom:1rem;">
+        <label class="form-label">Document Title <span class="req">*</span></label>
+        <input type="text" name="document_name" class="form-control" placeholder="e.g. Aadhaar Card Front & Back" required/>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label class="form-label">Document Category <span class="req">*</span></label>
+        <select name="document_type" class="form-control" required>
+          <option value="Aadhaar Card">Aadhaar Card</option>
+          <option value="PAN Card">PAN Card</option>
+          <option value="Passport">Passport</option>
+          <option value="Educational Certificate">Educational Certificate</option>
+          <option value="Experience Letter">Experience Letter</option>
+          <option value="Appointment Letter">Appointment Letter</option>
+          <option value="Bank Proof">Bank Proof / Passbook</option>
+          <option value="Other">Other Official Document</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label class="form-label">Select File (PDF, JPG, PNG, DOCX - Max 5MB) <span class="req">*</span></label>
+        <input type="file" name="document_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.docx" required/>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="closeDocUploadModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="upload-cloud"></i>
+          <span>Confirm Upload</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-sec);
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  color: var(--blue);
+  background: #F1F5F9;
+}
+.tab-btn.active {
+  color: var(--blue);
+  background: #FFFFFF;
+  border-bottom: 3px solid var(--blue);
+  font-weight: 700;
+}
+.profile-tab-content {
+  animation: fadeIn 0.25s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+function switchProfileTab(tabName) {
+  document.querySelectorAll('.profile-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+  const activeContent = document.getElementById('tab-content-' + tabName);
+  const activeBtn = document.getElementById('tab-btn-' + tabName);
+  if (activeContent) activeContent.style.display = 'block';
+  if (activeBtn) activeBtn.classList.add('active');
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('tab', tabName);
+  window.history.replaceState({}, '', url.toString());
+}
+
+function openDocUploadModal() {
+  const m = document.getElementById('docUploadModal');
+  if (m) m.style.display = 'flex';
+}
+
+function closeDocUploadModal() {
+  const m = document.getElementById('docUploadModal');
+  if (m) m.style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const params = new URLSearchParams(window.location.search);
+  const initialTab = params.get('tab') || 'personal';
+  switchProfileTab(initialTab);
+});
+</script>
 {% endblock %}

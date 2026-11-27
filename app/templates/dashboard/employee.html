@@ -1,6 +1,14 @@
 {% extends "base.html" %}
-{% block title %}My Workplace Dashboard{% endblock %}
+{% block title %}My Workplace | EBT System{% endblock %}
 {% block topbar_title %}Employee Workspace{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <i data-lucide="home" style="width:13px;height:13px;"></i>
+  <span class="breadcrumb-sep">/</span>
+  <span class="breadcrumb-current">My Workspace</span>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">

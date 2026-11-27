@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}{% if company %}Edit Company — {{ company.name }}{% else %}Register Enterprise Company{% endif %} | Super Admin{% endblock %}
+{% block topbar_title %}{% if company %}Edit Company: {{ company.code }}{% else %}Register Enterprise Company{% endif %}{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+
+  <!-- Header Card -->
+  <div class="reports-header-card">
+    <div class="reports-header-left">
+      <div class="reports-header-icon-box">
+        <i data-lucide="building-2"></i>
+      </div>
+      <div>
+        <h1 class="reports-header-title">{% if company %}Edit Company: {{ company.name }}{% else %}Register Enterprise Company{% endif %}</h1>
+        <p class="reports-header-sub">Configure tenant profile, statutory numbers, subscription licensing, and administrator details</p>
+      </div>
+    </div>
+    <div class="reports-header-actions">
+      <a href="{{ url_for('superadmin.companies_list') }}" class="btn btn-outline-navy">
+        <i data-lucide="arrow-left"></i>
+        <span>Back to Companies</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Form Body -->
+  <div class="card" style="background:#FFFFFF;border-radius:14px;border:1px solid var(--border);padding:2rem;box-shadow:var(--shadow-sm);margin-bottom:2rem;">
+    <form method="POST" action="" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <!-- Section 1: Basic Company Profile -->
+      <div style="border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;">
+          <i data-lucide="info" style="width:20px;height:20px;color:var(--navy);"></i>
+          <h2 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin:0;">1. Company Profile &amp; Identity</h2>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;margin-bottom:1rem;">
+          <div>
+            <label class="form-label">Company Name *</label>
+            <input type="text" name="name" class="form-control" required placeholder="e.g. Acme Technologies Private Limited" value="{{ company.name if company else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">Unique Company Code *</label>
+            <input type="text" name="code" class="form-control" required placeholder="ACMETECH" style="text-transform:uppercase;" value="{{ company.code if company else '' }}"/>
+            <small style="color:var(--text-muted);font-size:0.75rem;">Used as tenant namespace identifier</small>
+          </div>
+          <div>
+            <label class="form-label">Industry / Sector</label>
+            <input type="text" name="industry" class="form-control" placeholder="e.g. Information Technology &amp; Services" value="{{ company.industry if company and company.industry else '' }}"/>
+          </div>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;">
+          <div>
+            <label class="form-label">Official Website</label>
+            <input type="url" name="website" class="form-control" placeholder="https://www.example.com" value="{{ company.website if company and company.website else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">Company Logo (PNG, JPG, SVG, WebP)</label>
+            <input type="file" name="logo" class="form-control" accept=".png,.jpg,.jpeg,.svg,.webp"/>
+            {% if company and company.logo %}
+            <div style="margin-top:0.4rem;font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;">
+              <span>Current Logo:</span>
+              <img src="/static/uploads/avatars/{{ company.logo }}" style="width:24px;height:24px;border-radius:4px;object-fit:cover;border:1px solid #E2E8F0;"/>
+              <span>{{ company.logo }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Statutory & Government Registrations -->
+      <div style="border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;">
+          <i data-lucide="shield-alert" style="width:20px;height:20px;color:var(--navy);"></i>
+          <h2 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin:0;">2. Statutory &amp; Registration Details</h2>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
+          <div>
+            <label class="form-label">Registration / CIN / Incorporation No.</label>
+            <input type="text" name="registration_number" class="form-control" placeholder="U72200KA2024PTC123456" value="{{ company.registration_number if company and company.registration_number else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">GSTIN (Goods &amp; Services Tax)</label>
+            <input type="text" name="gstin" class="form-control" placeholder="29ABCDE1234F1Z5" style="text-transform:uppercase;" value="{{ company.gstin if company and company.gstin else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">Company PAN</label>
+            <input type="text" name="pan" class="form-control" placeholder="ABCDE1234F" style="text-transform:uppercase;" value="{{ company.pan if company and company.pan else '' }}"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Contact Details & Address -->
+      <div style="border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;">
+          <i data-lucide="map-pin" style="width:20px;height:20px;color:var(--navy);"></i>
+          <h2 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin:0;">3. Contact &amp; Headquarters Address</h2>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;margin-bottom:1rem;">
+          <div>
+            <label class="form-label">Official Corporate Email *</label>
+            <input type="email" name="email" class="form-control" required placeholder="contact@acme.com" value="{{ company.email if company else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">Primary Contact Phone</label>
+            <input type="tel" name="phone" class="form-control" placeholder="+91 80 1234 5678" value="{{ company.phone if company and company.phone else '' }}"/>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:1rem;">
+          <label class="form-label">Street Address / Landmark</label>
+          <input type="text" name="address" class="form-control" placeholder="Level 4, Prestige Tech Park, Marathahalli-Sarjapur Ring Road" value="{{ company.address if company and company.address else '' }}"/>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;">
+          <div>
+            <label class="form-label">Country</label>
+            <input type="text" name="country" class="form-control" value="{{ company.country if company and company.country else 'India' }}"/>
+          </div>
+          <div>
+            <label class="form-label">State / Province</label>
+            <input type="text" name="state" class="form-control" placeholder="Karnataka" value="{{ company.state if company and company.state else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">City</label>
+            <input type="text" name="city" class="form-control" placeholder="Bengaluru" value="{{ company.city if company and company.city else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">PIN / Postal Code</label>
+            <input type="text" name="pincode" class="form-control" placeholder="560103" value="{{ company.pincode if company and company.pincode else '' }}"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Subscription Plan & Licensing -->
+      <div style="border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;">
+          <i data-lucide="credit-card" style="width:20px;height:20px;color:var(--navy);"></i>
+          <h2 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin:0;">4. Subscription Plan &amp; Tenant Capacity</h2>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:1rem;margin-bottom:1rem;">
+          <div>
+            <label class="form-label">SaaS Subscription Plan</label>
+            <select name="package_id" class="form-control" onchange="autoFillLimits(this)">
+              <option value="">No Plan Selected</option>
+              {% for p in packages %}
+              <option value="{{ p.id }}" data-emp="{{ p.max_employees }}" data-users="{{ p.max_users }}" {% if company and company.package_id == p.id %}selected{% endif %}>
+                {{ p.name }} (₹{{ "{:,.0f}".format(p.price_per_month) }}/mo &bull; Max {{ p.max_employees }} Emp)
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Custom Employee Limit</label>
+            <input type="number" min="1" name="employee_limit" id="empLimitInput" class="form-control" placeholder="Default tier limit" value="{{ company.employee_limit if company and company.employee_limit else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">Custom User / Admin Limit</label>
+            <input type="number" min="1" name="user_limit" id="userLimitInput" class="form-control" placeholder="Default tier limit" value="{{ company.user_limit if company and company.user_limit else '' }}"/>
+          </div>
+        </div>
+
+        <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div>
+            <label class="form-label">Subscription Start Date</label>
+            <input type="date" name="subscription_start" class="form-control" value="{{ company.created_at.strftime('%Y-%m-%d') if company else '' }}"/>
+          </div>
+          <div>
+            <label class="form-label">Subscription Expiry Date</label>
+            <input type="date" name="subscription_end" class="form-control"/>
+          </div>
+        </div>
+      </div>
+
+      {% if not company %}
+      <!-- Section 5: Initial Administrator Credentials (New Company Only) -->
+      <div style="border-bottom:1px solid var(--border);padding-bottom:1.5rem;margin-bottom:1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;">
+          <i data-lucide="user-check" style="width:20px;height:20px;color:var(--navy);"></i>
+          <h2 style="font-size:1.15rem;font-weight:800;color:var(--navy);margin:0;">5. Initial Corporate Administrator Account</h2>
+        </div>
+
+        <p style="font-size:0.85rem;color:var(--text-sec);margin-bottom:1rem;">
+          Optionally provision the primary corporate Admin for this organization. A secure initial login account will be generated.
+        </p>
+
+        <div class="form-row" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;">
+          <div>
+            <label class="form-label">Administrator Full Name</label>
+            <input type="text" name="admin_name" class="form-control" placeholder="Jane Doe"/>
+          </div>
+          <div>
+            <label class="form-label">Administrator Email</label>
+            <input type="email" name="admin_email" class="form-control" placeholder="admin@acme.com"/>
+          </div>
+          <div>
+            <label class="form-label">Mobile Number</label>
+            <input type="tel" name="admin_mobile" class="form-control" placeholder="+91 98765 43210"/>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Action Buttons -->
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.75rem;padding-top:1rem;">
+        <a href="{{ url_for('superadmin.companies_list') }}" class="btn btn-outline-navy">Cancel</a>
+        {% if not company %}
+        <button type="submit" name="action" value="save_and_add" class="btn btn-outline-navy" style="font-weight:700;">
+          Save &amp; Add Another
+        </button>
+        {% endif %}
+        <button type="submit" name="action" value="save" class="btn btn-primary" style="font-weight:700;padding:0.6rem 1.75rem;">
+          {% if company %}Save Changes{% else %}Register Company{% endif %}
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function autoFillLimits(selectElem) {
+  const selectedOpt = selectElem.options[selectElem.selectedIndex];
+  if (selectedOpt && selectedOpt.value) {
+    const emp = selectedOpt.getAttribute('data-emp');
+    const users = selectedOpt.getAttribute('data-users');
+    const empInput = document.getElementById('empLimitInput');
+    const userInput = document.getElementById('userLimitInput');
+    if (!empInput.value && emp) empInput.value = emp;
+    if (!userInput.value && users) userInput.value = users;
+  }
+}
+</script>
+{% endblock %}

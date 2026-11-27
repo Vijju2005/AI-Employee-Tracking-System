@@ -13,15 +13,112 @@
       </div>
       <div>
         <h1 class="reports-header-title">Subscriptions Management</h1>
-        <p class="reports-header-sub">Track active licenses, billing frequencies, renewal dates, and invoice statuses</p>
+        <p class="reports-header-sub">Track active licenses, billing frequencies, renewal dates, and status lifecycle</p>
       </div>
     </div>
     <div class="reports-header-actions">
-      <button class="btn btn-primary" onclick="document.getElementById('newSubModal').style.display='flex'">
+      <button class="btn btn-primary" onclick="openNewSubModal()">
         <i data-lucide="plus"></i>
-        <span>Create Subscription</span>
+        <span>Assign Subscription</span>
       </button>
     </div>
+  </div>
+
+  <!-- Metric Badges Toolbar -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:0.75rem;margin-bottom:1.25rem;">
+    <a href="{{ url_for('superadmin.subscriptions_list') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if not status_filter %}var(--navy){% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;">All Records</div>
+          <div style="font-size:1.3rem;font-weight:800;color:var(--navy);">{{ total_subs }}</div>
+        </div>
+        <i data-lucide="layers" style="color:var(--navy);width:22px;height:22px;"></i>
+      </div>
+    </a>
+
+    <a href="{{ url_for('superadmin.subscriptions_list', status='active') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if status_filter == 'active' %}#10B981{% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:#047857;font-weight:700;text-transform:uppercase;">Active</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#047857;">{{ active_count }}</div>
+        </div>
+        <i data-lucide="check-circle" style="color:#10B981;width:22px;height:22px;"></i>
+      </div>
+    </a>
+
+    <a href="{{ url_for('superadmin.subscriptions_list', status='pending') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if status_filter == 'pending' %}#F59E0B{% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:#B45309;font-weight:700;text-transform:uppercase;">Pending</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#B45309;">{{ pending_count }}</div>
+        </div>
+        <i data-lucide="clock" style="color:#F59E0B;width:22px;height:22px;"></i>
+      </div>
+    </a>
+
+    <a href="{{ url_for('superadmin.subscriptions_list', status='expired') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if status_filter == 'expired' %}#EF4444{% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:#B91C1C;font-weight:700;text-transform:uppercase;">Expired</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#B91C1C;">{{ expired_count }}</div>
+        </div>
+        <i data-lucide="alert-triangle" style="color:#EF4444;width:22px;height:22px;"></i>
+      </div>
+    </a>
+
+    <a href="{{ url_for('superadmin.subscriptions_list', status='cancelled') }}" style="text-decoration:none;">
+      <div class="card" style="padding:1rem;border-radius:10px;border:1px solid {% if status_filter == 'cancelled' %}#64748B{% else %}var(--border){% endif %};background:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:0.75rem;color:#475569;font-weight:700;text-transform:uppercase;">Cancelled</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#475569;">{{ cancelled_count }}</div>
+        </div>
+        <i data-lucide="x-circle" style="color:#64748B;width:22px;height:22px;"></i>
+      </div>
+    </a>
+  </div>
+
+  <!-- Filters & Search Bar -->
+  <div class="card" style="padding:1rem 1.25rem;border-radius:12px;border:1px solid var(--border);background:#FFFFFF;margin-bottom:1.25rem;">
+    <form method="GET" action="{{ url_for('superadmin.subscriptions_list') }}" style="display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;">
+      <div style="flex:1;min-width:200px;position:relative;">
+        <input type="text" name="q" value="{{ search_q }}" placeholder="Search company name, code, email..." class="form-control" style="padding-left:2.2rem;"/>
+        <i data-lucide="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--text-muted);"></i>
+      </div>
+
+      <div style="min-width:140px;">
+        <select name="status" class="form-control" onchange="this.form.submit()">
+          <option value="">All Statuses</option>
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+          <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+          <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+          <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+        </select>
+      </div>
+
+      <div style="min-width:160px;">
+        <select name="package_id" class="form-control" onchange="this.form.submit()">
+          <option value="">All Packages</option>
+          {% for p in packages %}
+          <option value="{{ p.id }}" {% if pkg_filter == p.id %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:170px;">
+        <select name="sort_by" class="form-control" onchange="this.form.submit()">
+          <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Sort: Newest First</option>
+          <option value="expires_asc" {% if sort_by == 'expires_asc' %}selected{% endif %}>Sort: Expiry (Soonest)</option>
+          <option value="expires_desc" {% if sort_by == 'expires_desc' %}selected{% endif %}>Sort: Expiry (Furthest)</option>
+          <option value="amount_desc" {% if sort_by == 'amount_desc' %}selected{% endif %}>Sort: Highest Amount</option>
+          <option value="company_name" {% if sort_by == 'company_name' %}selected{% endif %}>Sort: Company Name</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="padding:0.5rem 1rem;">Filter</button>
+      {% if search_q or status_filter or pkg_filter or sort_by != 'newest' %}
+      <a href="{{ url_for('superadmin.subscriptions_list') }}" class="btn btn-outline-navy" style="padding:0.5rem 0.85rem;">Clear</a>
+      {% endif %}
+    </form>
   </div>
 
   <!-- Subscriptions Table -->
@@ -29,65 +126,138 @@
     <div class="reports-table-header">
       <div class="reports-table-heading">
         <i data-lucide="list"></i>
-        <span>Active &amp; Historical Subscriptions ({{ pagination.total }})</span>
+        <span>Tenant Subscriptions &amp; History ({{ pagination.total }})</span>
       </div>
     </div>
     <div class="reports-table-wrapper">
       <table class="reports-data-table">
         <thead>
           <tr>
+            <th>ID</th>
             <th>Company</th>
-            <th>Package</th>
-            <th>Billing Cycle</th>
+            <th>Package Tier</th>
+            <th>Cycle</th>
             <th>Amount</th>
             <th>Start Date</th>
             <th>Expiration</th>
             <th>Status</th>
-            <th>Actions</th>
+            <th style="text-align:right;">Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for s in subscriptions %}
           <tr>
+            <td style="color:var(--text-muted);font-weight:600;">#{{ s.id }}</td>
             <td>
-              <strong style="color:var(--navy);">{{ s.company.name if s.company else '—' }}</strong>
-              <div style="font-size:0.75rem;color:var(--text-muted);">{{ s.company.code if s.company else '' }}</div>
+              <div style="font-weight:700;color:var(--navy);">{{ s.company.name if s.company else '—' }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);display:flex;gap:6px;align-items:center;">
+                <span>{{ s.company.code if s.company else '' }}</span>
+                {% if s.company %}
+                &bull;
+                <a href="{{ url_for('superadmin.company_subscriptions_history', company_id=s.company.id) }}" style="color:var(--blue);text-decoration:none;font-weight:600;">
+                  History
+                </a>
+                {% endif %}
+              </div>
             </td>
-            <td>{{ s.package.name if s.package else '—' }}</td>
-            <td><span class="report-code-badge">{{ s.billing_cycle|upper }}</span></td>
-            <td class="report-amount">₹ {{ "{:,.2f}".format(s.amount) }}</td>
-            <td>{{ s.starts_at.strftime('%Y-%m-%d') if s.starts_at else '—' }}</td>
-            <td>{{ s.expires_at.strftime('%Y-%m-%d') if s.expires_at else 'No Expiry' }}</td>
             <td>
-              <span class="badge {% if s.status == 'active' %}badge-success{% else %}badge-warning{% endif %}">
-                {{ s.status|title }}
+              <span style="font-weight:600;color:var(--navy);">{{ s.package.name if s.package else '—' }}</span>
+              <div style="font-size:0.72rem;color:var(--text-muted);">{{ s.package.code if s.package else '' }}</div>
+            </td>
+            <td>
+              <span class="report-code-badge" style="background:#F1F5F9;color:var(--navy);font-weight:700;">
+                {{ s.billing_cycle|upper }}
               </span>
             </td>
+            <td class="report-amount" style="font-weight:700;color:var(--navy);">
+              ₹ {{ "{:,.2f}".format(s.amount) }}
+            </td>
+            <td>{{ s.starts_at.strftime('%Y-%m-%d') if s.starts_at else '—' }}</td>
             <td>
-              <form method="POST" action="{{ url_for('superadmin.subscription_renew', sub_id=s.id) }}" style="display:inline;">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <button type="submit" class="btn btn-sm btn-outline-navy">
+              {% if s.expires_at %}
+                <span style="font-weight:600;{% if s.status == 'active' and s.expires_at < now %}color:#DC2626;{% endif %}">
+                  {{ s.expires_at.strftime('%Y-%m-%d') }}
+                </span>
+              {% else %}
+                <span style="color:var(--text-muted);">Lifetime</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if s.status == 'active' %}
+              <span class="badge badge-success">Active</span>
+              {% elif s.status == 'pending' %}
+              <span class="badge" style="background:#FEF3C7;color:#D97706;border:1px solid #FDE68A;">Pending</span>
+              {% elif s.status == 'expired' %}
+              <span class="badge" style="background:#FEE2E2;color:#DC2626;border:1px solid #FECACA;">Expired</span>
+              {% elif s.status == 'cancelled' %}
+              <span class="badge" style="background:#E2E8F0;color:#475569;">Cancelled</span>
+              {% else %}
+              <span class="badge badge-secondary">{{ s.status|title }}</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex;gap:0.35rem;align-items:center;">
+                <!-- Extend / Renew Modal Trigger -->
+                <button class="btn btn-sm btn-outline-navy" onclick="openRenewModal({{ s.id }}, '{{ s.company.name|escape }}', '{{ s.package.name|escape }}', '{{ s.billing_cycle }}', '{{ s.expires_at.strftime('%Y-%m-%d') if s.expires_at else '' }}')" title="Extend or Renew Subscription">
                   <i data-lucide="rotate-cw"></i>
-                  <span>Extend / Renew</span>
+                  <span>Renew</span>
                 </button>
-              </form>
+
+                <!-- Change Plan / Upgrade / Downgrade Trigger -->
+                <button class="btn btn-sm btn-outline-navy" onclick="openChangePlanModal({{ s.id }}, '{{ s.company.name|escape }}', {{ s.package_id }}, '{{ s.billing_cycle }}')" title="Upgrade or Downgrade Package">
+                  <i data-lucide="arrow-up-right"></i>
+                  <span>Plan</span>
+                </button>
+
+                <!-- Edit Status / Dates Trigger -->
+                <button class="btn btn-sm btn-outline-navy" onclick="openEditStatusModal({{ s.id }}, '{{ s.status }}', '{{ s.starts_at.strftime('%Y-%m-%d') if s.starts_at else '' }}', '{{ s.expires_at.strftime('%Y-%m-%d') if s.expires_at else '' }}')" title="Edit Dates or Status">
+                  <i data-lucide="edit"></i>
+                </button>
+
+                {% if s.status != 'cancelled' %}
+                <!-- Cancel Subscription Button -->
+                <form method="POST" action="{{ url_for('superadmin.subscription_cancel', sub_id=s.id) }}" style="display:inline;" onsubmit="return confirm('Cancel subscription #{{ s.id }} for {{ s.company.name }}? This marks it cancelled while preserving history.');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-sm" style="background:#FFF1F2;color:#E11D48;border:1px solid #FFE4E6;" title="Cancel Subscription">
+                    <i data-lucide="slash"></i>
+                  </button>
+                </form>
+                {% endif %}
+              </div>
             </td>
           </tr>
           {% else %}
           <tr>
-            <td colspan="8" style="text-align:center;padding:3rem;color:var(--text-muted);">
-              No subscriptions found. Click "Create Subscription" to assign a plan to a company.
+            <td colspan="9" style="text-align:center;padding:3rem;color:var(--text-muted);">
+              No subscriptions match your query. Click "Assign Subscription" to provision a new license.
             </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-top:1px solid var(--border);">
+      <div style="font-size:0.85rem;color:var(--text-muted);">
+        Showing page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong>
+      </div>
+      <div style="display:flex;gap:0.4rem;">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('superadmin.subscriptions_list', page=pagination.prev_num, q=search_q, status=status_filter, package_id=pkg_filter, sort_by=sort_by) }}" class="btn btn-sm btn-outline-navy">&laquo; Prev</a>
+        {% endif %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for('superadmin.subscriptions_list', page=pagination.next_num, q=search_q, status=status_filter, package_id=pkg_filter, sort_by=sort_by) }}" class="btn btn-sm btn-outline-navy">Next &raquo;</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
   </div>
 
 </div>
 
-<!-- Create Subscription Modal -->
+<!-- 1. Assign Subscription Modal -->
 <div id="newSubModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
   <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:480px;box-shadow:var(--shadow-xl);overflow:hidden;">
     <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
@@ -97,45 +267,215 @@
     <form method="POST" action="{{ url_for('superadmin.subscription_add') }}" style="padding:1.5rem;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:1rem;">
         <label class="form-label">Target Company *</label>
         <select name="company_id" class="form-control" required>
-          <option value="">Choose Company</option>
+          <option value="">Select Company</option>
           {% for c in companies %}
           <option value="{{ c.id }}">{{ c.name }} ({{ c.code }})</option>
           {% endfor %}
         </select>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:1rem;">
         <label class="form-label">SaaS Package *</label>
-        <select name="package_id" class="form-control" required>
-          <option value="">Choose Plan Tier</option>
+        <select name="package_id" id="new_sub_pkg" class="form-control" required>
+          <option value="">Select Plan Tier</option>
           {% for p in packages %}
-          <option value="{{ p.id }}">{{ p.name }} (₹{{ p.price_per_month }}/mo | ₹{{ p.price_per_year }}/yr)</option>
+          <option value="{{ p.id }}">{{ p.name }} (₹{{ "{:,.0f}".format(p.price_per_month) }}/mo &bull; ₹{{ "{:,.0f}".format(p.price_per_year) }}/yr)</option>
           {% endfor %}
         </select>
       </div>
 
       <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
         <div>
-          <label class="form-label">Billing Cadence</label>
+          <label class="form-label">Billing Cycle</label>
           <select name="billing_cycle" class="form-control">
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly (Annual)</option>
+            <option value="monthly">Monthly (30 Days)</option>
+            <option value="yearly">Yearly (365 Days)</option>
           </select>
         </div>
         <div>
-          <label class="form-label">Custom Price (Optional)</label>
-          <input type="number" step="0.01" name="amount" class="form-control" placeholder="Default tier rate"/>
+          <label class="form-label">Initial Status</label>
+          <select name="status" class="form-control">
+            <option value="active">Active</option>
+            <option value="pending">Pending</option>
+          </select>
         </div>
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;margin-top:1.25rem;">
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Override Price (₹, Optional)</label>
+        <input type="number" step="0.01" min="0" name="amount" class="form-control" placeholder="Default tier rate applies"/>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
         <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('newSubModal').style.display='none'">Cancel</button>
         <button type="submit" class="btn btn-primary">Activate Subscription</button>
       </div>
     </form>
   </div>
 </div>
+
+<!-- 2. Renew / Extend Modal -->
+<div id="renewModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:460px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Renew / Extend Subscription</h3>
+      <button onclick="document.getElementById('renewModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form id="renewForm" method="POST" action="" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div style="background:#F8FAFC;padding:0.75rem 1rem;border-radius:8px;border:1px solid var(--border);margin-bottom:1rem;font-size:0.85rem;">
+        <div>Company: <strong id="renewCompName" style="color:var(--navy);">—</strong></div>
+        <div>Current Package: <strong id="renewPkgName">—</strong> (<span id="renewCycle"></span>)</div>
+        <div>Current Expiry: <strong id="renewCurrentExpiry" style="color:var(--blue);">—</strong></div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Extension Duration</label>
+        <select name="extension_type" id="extTypeSelect" class="form-control" onchange="toggleCustomExpiry(this.value)">
+          <option value="auto">Standard Cycle (+30d monthly / +365d yearly)</option>
+          <option value="30">+30 Days Extension</option>
+          <option value="90">+90 Days (Quarterly Extension)</option>
+          <option value="365">+365 Days (Annual Extension)</option>
+          <option value="custom">Set Specific Custom Expiry Date</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="customExpiryGroup" style="display:none;margin-bottom:1.25rem;">
+        <label class="form-label">New Exact Expiry Date</label>
+        <input type="date" name="custom_expiry" class="form-control"/>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('renewModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Confirm Renewal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 3. Change Plan (Upgrade / Downgrade) Modal -->
+<div id="changePlanModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:460px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Upgrade or Downgrade Plan</h3>
+      <button onclick="document.getElementById('changePlanModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form id="changePlanForm" method="POST" action="" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div style="margin-bottom:1rem;font-size:0.85rem;">
+        Target Company: <strong id="changePlanCompName" style="color:var(--navy);">—</strong>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Select New Package Tier *</label>
+        <select name="new_package_id" id="changePlanPkgSelect" class="form-control" required>
+          {% for p in packages %}
+          <option value="{{ p.id }}">{{ p.name }} (₹{{ "{:,.0f}".format(p.price_per_month) }}/mo &bull; ₹{{ "{:,.0f}".format(p.price_per_year) }}/yr)</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom:1.25rem;">
+        <label class="form-label">Billing Cycle</label>
+        <select name="billing_cycle" id="changePlanCycleSelect" class="form-control">
+          <option value="monthly">Monthly</option>
+          <option value="yearly">Yearly (Annual)</option>
+        </select>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('changePlanModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Apply Plan Change</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 4. Edit Dates / Status Modal -->
+<div id="editStatusModal" style="display:none;position:fixed;inset:0;background:rgba(11,25,44,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:14px;width:100%;max-width:440px;box-shadow:var(--shadow-xl);overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem;background:var(--navy);color:#FFFFFF;display:flex;align-items:center;justify-content:space-between;">
+      <h3 style="margin:0;color:#FFFFFF;font-size:1.1rem;font-weight:700;">Edit Subscription Record</h3>
+      <button onclick="document.getElementById('editStatusModal').style.display='none'" style="background:none;border:none;color:#FFFFFF;font-size:1.2rem;cursor:pointer;">&times;</button>
+    </div>
+    <form id="editStatusForm" method="POST" action="" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div class="form-group" style="margin-bottom:1rem;">
+        <label class="form-label">Lifecycle Status</label>
+        <select name="status" id="editStatusVal" class="form-control">
+          <option value="active">Active</option>
+          <option value="pending">Pending</option>
+          <option value="expired">Expired</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.25rem;">
+        <div>
+          <label class="form-label">Starts At</label>
+          <input type="date" name="starts_at" id="editStartsAt" class="form-control"/>
+        </div>
+        <div>
+          <label class="form-label">Expires At</label>
+          <input type="date" name="expires_at" id="editExpiresAt" class="form-control"/>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem;">
+        <button type="button" class="btn btn-outline-navy" onclick="document.getElementById('editStatusModal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openNewSubModal() {
+  document.getElementById('newSubModal').style.display = 'flex';
+}
+
+function openRenewModal(subId, compName, pkgName, cycle, currentExpiry) {
+  document.getElementById('renewCompName').textContent = compName;
+  document.getElementById('renewPkgName').textContent = pkgName;
+  document.getElementById('renewCycle').textContent = cycle;
+  document.getElementById('renewCurrentExpiry').textContent = currentExpiry || 'No Expiry';
+  document.getElementById('renewForm').action = "/superadmin/subscriptions/" + subId + "/renew";
+  document.getElementById('extTypeSelect').value = 'auto';
+  document.getElementById('customExpiryGroup').style.display = 'none';
+  document.getElementById('renewModal').style.display = 'flex';
+}
+
+function toggleCustomExpiry(val) {
+  const customGroup = document.getElementById('customExpiryGroup');
+  if (val === 'custom') {
+    customGroup.style.display = 'block';
+  } else {
+    customGroup.style.display = 'none';
+  }
+}
+
+function openChangePlanModal(subId, compName, currentPkgId, currentCycle) {
+  document.getElementById('changePlanCompName').textContent = compName;
+  document.getElementById('changePlanPkgSelect').value = currentPkgId;
+  document.getElementById('changePlanCycleSelect').value = currentCycle || 'monthly';
+  document.getElementById('changePlanForm').action = "/superadmin/subscriptions/" + subId + "/change-plan";
+  document.getElementById('changePlanModal').style.display = 'flex';
+}
+
+function openEditStatusModal(subId, status, startsAt, expiresAt) {
+  document.getElementById('editStatusVal').value = status;
+  document.getElementById('editStartsAt').value = startsAt || '';
+  document.getElementById('editExpiresAt').value = expiresAt || '';
+  document.getElementById('editStatusForm').action = "/superadmin/subscriptions/" + subId + "/update-status";
+  document.getElementById('editStatusModal').style.display = 'flex';
+}
+</script>
 {% endblock %}

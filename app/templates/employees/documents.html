@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}My Documents | Employee Self-Service{% endblock %}
+{% block topbar_title %}Employee Self-Service Documents{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+  <div class="page-header-text">
+    <h1>
+      <i data-lucide="folder-check" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Employee Documents Center</span>
+    </h1>
+    <p>Securely store, upload, and download employment contracts, identification proofs, and certification files.</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <a href="{{ url_for('employees.profile') }}" class="btn btn-outline-navy">
+      <i data-lucide="user"></i>
+      <span>My Profile</span>
+    </a>
+    <a href="{{ url_for('employees.policies_list') }}" class="btn btn-outline-navy">
+      <i data-lucide="book-open"></i>
+      <span>Company Policies</span>
+    </a>
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('uploadDocModal').style.display='flex'">
+      <i data-lucide="upload-cloud"></i>
+      <span>Upload Document</span>
+    </button>
+  </div>
+</div>
+
+<!-- Filter Toolbar -->
+<form method="GET" class="reports-filter-panel" style="margin-bottom:1.5rem;">
+  <div class="reports-filter-grid" style="grid-template-columns: {% if current_user.is_admin %}2fr 1.5fr auto{% else %}2fr auto{% endif %}; align-items: flex-end; gap: 1rem;">
+    
+    {% if current_user.is_admin %}
+    <div class="reports-field-group">
+      <label class="reports-field-label">Filter Employee</label>
+      <div class="reports-input-wrap">
+        <i data-lucide="users"></i>
+        <select name="emp_id" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;">
+          <option value="">All Employees</option>
+          {% for emp in employees %}
+          <option value="{{ emp.id }}" {% if request.args.get('emp_id')|string == emp.id|string %}selected{% endif %}>
+            {{ emp.full_name }} ({{ emp.employee_id }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="reports-field-group">
+      <label class="reports-field-label">Document Category</label>
+      <div class="reports-input-wrap">
+        <i data-lucide="tag"></i>
+        <select name="type" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;">
+          <option value="">All Categories</option>
+          <option value="Offer Letter" {% if doc_type == 'Offer Letter' %}selected{% endif %}>Offer Letter</option>
+          <option value="Experience Letter" {% if doc_type == 'Experience Letter' %}selected{% endif %}>Experience Letter</option>
+          <option value="ID Proof" {% if doc_type == 'ID Proof' %}selected{% endif %}>ID Proof (Aadhaar/PAN/Passport)</option>
+          <option value="Address Proof" {% if doc_type == 'Address Proof' %}selected{% endif %}>Address Proof</option>
+          <option value="Certification" {% if doc_type == 'Certification' %}selected{% endif %}>Professional Certification</option>
+          <option value="Other" {% if doc_type == 'Other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="reports-field-group" style="justify-content: flex-end;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <button type="submit" class="btn btn-primary" style="height:40px;padding:0 1.25rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+          <i data-lucide="filter" style="width:15px;height:15px;"></i>
+          <span>Filter</span>
+        </button>
+        <a href="{{ url_for('employees.documents_list') }}" class="btn btn-outline-navy" style="height:40px;padding:0 1rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+          <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i>
+          <span>Reset</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Documents Table Card -->
+<div class="card">
+  <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+    <h3>
+      <i data-lucide="files"></i>
+      <span>
+        {% if target_employee and not current_user.is_admin %}
+          Personal Documents ({{ target_employee.full_name }})
+        {% else %}
+          Corporate Document Records
+        {% endif %}
+      </span>
+    </h3>
+    <span class="badge badge-info">{{ documents|length }} Document{{ 's' if documents|length != 1 else '' }}</span>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div style="overflow-x:auto;">
+      <table class="data-table" style="width:100%;border-collapse:collapse;margin:0;">
+        <thead>
+          <tr style="background:#F8FAFC;border-bottom:1px solid #E2E8F0;text-align:left;">
+            <th style="padding:0.85rem 1.25rem;font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Document Name</th>
+            <th style="padding:0.85rem 1rem;font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Employee</th>
+            <th style="padding:0.85rem 1rem;font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Category</th>
+            <th style="padding:0.85rem 1rem;font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Size</th>
+            <th style="padding:0.85rem 1rem;font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Uploaded At</th>
+            <th style="padding:0.85rem 1rem;font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;">Status</th>
+            <th style="padding:0.85rem 1.25rem;font-size:0.75rem;font-weight:700;color:var(--text-sec);text-transform:uppercase;text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in documents %}
+          <tr style="border-bottom:1px solid #F1F5F9;transition:background 0.15s ease;">
+            <td style="padding:0.85rem 1.25rem;">
+              <div style="display:flex;align-items:center;gap:0.6rem;">
+                <div style="width:34px;height:34px;border-radius:8px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;color:var(--blue);flex-shrink:0;">
+                  <i data-lucide="file-text" style="width:18px;height:18px;"></i>
+                </div>
+                <div>
+                  <div style="font-weight:700;color:var(--navy);font-size:0.88rem;">{{ doc.document_name }}</div>
+                  {% if doc.notes %}
+                  <div style="font-size:0.72rem;color:var(--text-sec);">{{ doc.notes }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td style="padding:0.85rem 1rem;">
+              <div style="font-weight:600;color:var(--navy);font-size:0.84rem;">{{ doc.employee.full_name }}</div>
+              <div style="font-size:0.72rem;color:var(--text-sec);">{{ doc.employee.employee_id }}</div>
+            </td>
+            <td style="padding:0.85rem 1rem;">
+              <span class="badge badge-secondary" style="font-size:0.76rem;">{{ doc.document_type }}</span>
+            </td>
+            <td style="padding:0.85rem 1rem;font-size:0.82rem;color:var(--text-sec);">
+              {{ (doc.file_size / 1024)|round(1) }} KB
+            </td>
+            <td style="padding:0.85rem 1rem;font-size:0.82rem;color:var(--text-sec);">
+              {{ doc.created_at.strftime('%d %b %Y, %H:%M') }}
+            </td>
+            <td style="padding:0.85rem 1rem;">
+              <span class="badge badge-success" style="font-size:0.76rem;">{{ doc.status }}</span>
+            </td>
+            <td style="padding:0.85rem 1.25rem;text-align:right;">
+              <div style="display:inline-flex;align-items:center;gap:0.4rem;">
+                <a href="{{ url_for('employees.download_document', doc_id=doc.id) }}" class="btn btn-sm btn-outline-navy" title="Download Document">
+                  <i data-lucide="download" style="width:13px;height:13px;"></i>
+                  <span>Download</span>
+                </a>
+                <form method="POST" action="{{ url_for('employees.delete_document', doc_id=doc.id) }}" style="display:inline;margin:0;" onsubmit="return confirm('Are you sure you want to delete this document?');">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-sm" style="color:var(--danger);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);padding:0.25rem 0.5rem;" title="Delete">
+                    <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align:center;padding:3rem 1.5rem;color:var(--text-sec);">
+              <i data-lucide="inbox" style="width:36px;height:36px;color:var(--text-muted);margin-bottom:0.5rem;display:block;margin-left:auto;margin-right:auto;"></i>
+              <div style="font-weight:700;color:var(--navy);margin-bottom:0.25rem;">No documents found</div>
+              <div style="font-size:0.82rem;">Use the Upload Document button to securely attach personal or organizational records.</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div id="uploadDocModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:12px;width:100%;max-width:520px;box-shadow:var(--shadow-xl);overflow:hidden;animation:slideIn 0.2s ease;">
+    <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;background:#F8FAFC;">
+      <h3 style="margin:0;font-size:1.05rem;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="upload-cloud" style="color:var(--blue);width:18px;height:18px;"></i>
+        <span>Upload Employee Document</span>
+      </h3>
+      <button type="button" onclick="document.getElementById('uploadDocModal').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('employees.upload_document') }}" enctype="multipart/form-data" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      {% if current_user.is_admin %}
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">TARGET EMPLOYEE</label>
+        <select name="employee_id" required class="form-control" style="font-size:0.85rem;">
+          <option value="">Select Employee...</option>
+          {% for emp in employees %}
+          <option value="{{ emp.id }}">{{ emp.full_name }} ({{ emp.employee_id }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">DOCUMENT TITLE / NAME</label>
+        <input type="text" name="document_name" required placeholder="e.g. Signed Offer Letter 2026, Degree Certificate" class="form-control" style="font-size:0.85rem;"/>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">DOCUMENT CATEGORY</label>
+        <select name="document_type" class="form-control" style="font-size:0.85rem;">
+          <option value="Offer Letter">Offer Letter</option>
+          <option value="Experience Letter">Experience Letter</option>
+          <option value="ID Proof">ID Proof (Aadhaar/PAN/Passport)</option>
+          <option value="Address Proof">Address Proof</option>
+          <option value="Certification">Professional Certification</option>
+          <option value="Other" selected>Other</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">SELECT FILE (PDF, JPG, PNG, DOCX - Max 5MB)</label>
+        <input type="file" name="document_file" required accept=".pdf, .jpg, .jpeg, .png, .docx" class="form-control" style="font-size:0.82rem;padding:0.4rem;"/>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">NOTES / DESCRIPTION (Optional)</label>
+        <textarea name="notes" placeholder="Optional notes regarding this record..." class="form-control" rows="2" style="font-size:0.82rem;"></textarea>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.75rem;">
+        <button type="button" onclick="document.getElementById('uploadDocModal').style.display='none'" class="btn btn-outline-navy">
+          <span>Cancel</span>
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="upload"></i>
+          <span>Upload Document</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

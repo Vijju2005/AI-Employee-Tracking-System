@@ -3,45 +3,153 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}Sign In{% endblock %} | EBT System</title>
+  <title>{% block title %}Sign In{% endblock %} | EBT System — Employee Break Tracking &amp; Availability Prediction System</title>
+  <meta name="description" content="EBT System — Employee Break Tracking &amp; Availability Prediction System. Smart Workforce Management."/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}"/>
   <script src="https://unpkg.com/lucide@latest"></script>
   {% block extra_css %}{% endblock %}
 </head>
-<body>
-<div class="login-wrapper">
-  <div class="login-split">
-    <!-- Left Hero & Image Panel -->
-    <div class="login-panel-left">
-      <div class="login-panel-logo">
-        <div class="login-panel-logo-icon">
-          <i data-lucide="layers"></i>
-        </div>
-        <div>
-          <span class="login-panel-logo-name">Employee Break Tracking &amp;<br>Availability Prediction System</span>
-          <span class="login-panel-logo-sub">Enterprise Workforce Intelligence Platform</span>
-        </div>
-      </div>
-      <div class="login-panel-illustration">
-        <img src="{{ url_for('static', filename='images/office-meeting.png') }}"
-             alt="Office team meeting"
-             class="login-illustration-img"/>
-      </div>
-      <div class="login-tagline">
-        Smarter schedules &bull; Predictive breaks &bull; Peak team performance
-      </div>
-    </div>
-    <!-- Right Form Card -->
-    <div class="login-panel-right">
-      <div class="login-box">
-        {% block auth_content %}{% endblock %}
-      </div>
-    </div>
+<body class="auth-page-body">
+
+<div class="auth-viewport">
+
+  <!-- Background decorative wave curves (bottom left) -->
+  <div class="auth-bg-wave-container" aria-hidden="true">
+    <svg class="auth-bg-wave-svg" viewBox="0 0 1440 380" fill="none" preserveAspectRatio="none">
+      <path d="M-100,260 C200,160 450,340 800,210 C1050,120 1300,260 1550,220 L1550,450 L-100,450 Z" fill="url(#waveGrad1)" opacity="0.6"/>
+      <path d="M-50,300 C300,180 550,370 950,230 C1200,140 1380,280 1550,250 L1550,450 L-50,450 Z" fill="url(#waveGrad2)" opacity="0.85"/>
+      <path d="M-20,340 C350,230 650,380 1050,270 C1280,200 1420,300 1550,280 L1550,450 L-20,450 Z" fill="#0A1628"/>
+      <defs>
+        <linearGradient id="waveGrad1" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#00C4D8"/>
+          <stop offset="60%" stop-color="#1E50D4"/>
+          <stop offset="100%" stop-color="#0A1628"/>
+        </linearGradient>
+        <linearGradient id="waveGrad2" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#1E50D4"/>
+          <stop offset="50%" stop-color="#153BA6"/>
+          <stop offset="100%" stop-color="#0A1628"/>
+        </linearGradient>
+      </defs>
+    </svg>
   </div>
+
+  <!-- Decorative Dot Grid Pattern Top-Left -->
+  <div class="auth-dot-grid" aria-hidden="true"></div>
+
+  <!-- Main 2-Column Split Stage -->
+  <div class="auth-stage-grid">
+
+    <!-- LEFT SECTION (Hero Branding) ~60% width -->
+    <section class="auth-hero-section">
+      <!-- Top Left Brand Wordmark -->
+      <header class="auth-brand-header">
+        <div class="auth-brand-logo-pill">
+          <!-- 3-User Cyan Silhouette Icon matching screenshot -->
+          <div class="auth-brand-glyph">
+            <svg viewBox="0 0 48 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Center prominent person -->
+              <circle cx="24" cy="9" r="6" fill="#00C4D8"/>
+              <path d="M14 28 C14 20, 34 20, 34 28 Z" fill="#00C4D8"/>
+              <!-- Left person -->
+              <circle cx="10" cy="11" r="4.5" fill="#38BDF8"/>
+              <path d="M2 28 C2 22, 18 22, 18 28 Z" fill="#38BDF8"/>
+              <!-- Right person -->
+              <circle cx="38" cy="11" r="4.5" fill="#38BDF8"/>
+              <path d="M30 28 C30 22, 46 22, 46 28 Z" fill="#38BDF8"/>
+            </svg>
+          </div>
+          <div class="auth-brand-text">
+            <span class="auth-brand-title">EBT System</span>
+            <span class="auth-brand-subtitle">Employee Break Tracking &amp; Prediction</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Center Hero Content -->
+      <div class="auth-hero-content">
+        <h2 class="auth-hero-pretitle">Welcome to</h2>
+        <h1 class="auth-hero-maintitle">EBT <span>System</span></h1>
+        <p class="auth-hero-tagline">Streamline. Manage. Empower.</p>
+        <p class="auth-hero-description">
+          Employee Break Tracking &amp; Availability Prediction System.<br>
+          A smarter, more productive workplace.
+        </p>
+
+        <!-- 4 Transparent Feature Highlights Box matching screenshot -->
+        <div class="auth-features-bar">
+          <div class="auth-feature-col">
+            <div class="auth-feature-icon-wrap">
+              <i data-lucide="users"></i>
+            </div>
+            <span class="auth-feature-name">Employee<br>Management</span>
+          </div>
+          <div class="auth-feature-divider"></div>
+
+          <div class="auth-feature-col">
+            <div class="auth-feature-icon-wrap">
+              <i data-lucide="calendar"></i>
+            </div>
+            <span class="auth-feature-name">Attendance<br>Tracking</span>
+          </div>
+          <div class="auth-feature-divider"></div>
+
+          <div class="auth-feature-col">
+            <div class="auth-feature-icon-wrap">
+              <i data-lucide="trending-up"></i>
+            </div>
+            <span class="auth-feature-name">Payroll &amp;<br>Reports</span>
+          </div>
+          <div class="auth-feature-divider"></div>
+
+          <div class="auth-feature-col">
+            <div class="auth-feature-icon-wrap">
+              <i data-lucide="shield-check"></i>
+            </div>
+            <span class="auth-feature-name">Secure &amp;<br>Reliable</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT SECTION (Login Card Container) ~40% width -->
+    <section class="auth-card-section">
+      <!-- Top Right Header Tagline matching screenshot -->
+      <div class="auth-top-tagline">
+        <span class="auth-top-line"></span>
+        <span class="auth-top-text">Smart Workforce. Optimal Availability.</span>
+      </div>
+
+      <!-- Centered White Login Card -->
+      <div class="auth-card-wrapper">
+        <div class="auth-card-box">
+          {% block auth_content %}{% endblock %}
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Bottom Page-Wide Footer matching screenshot -->
+  <footer class="auth-page-footer">
+    <div class="auth-footer-copy">
+      &copy; 2026 EBT System. All rights reserved.
+    </div>
+    <div class="auth-footer-links">
+      <span class="auth-footer-line"></span>
+      <a href="#">Privacy Policy</a>
+      <span class="auth-footer-sep">|</span>
+      <a href="#">Terms of Service</a>
+      <span class="auth-footer-sep">|</span>
+      <a href="#">Help</a>
+    </div>
+  </footer>
+
 </div>
+
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% block extra_js %}{% endblock %}
 </body>

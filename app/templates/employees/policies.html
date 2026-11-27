@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Company Policies &amp; HR Guidelines{% endblock %}
+{% block topbar_title %}Company Policies &amp; Guidelines{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+  <div class="page-header-text">
+    <h1>
+      <i data-lucide="book-open" style="color:var(--blue);width:26px;height:26px;"></i>
+      <span>Company Policies &amp; HR Guidelines</span>
+    </h1>
+    <p>Official corporate code of conduct, workplace safety standards, leave regulations, and IT compliance guidelines.</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <a href="{{ url_for('employees.profile') }}" class="btn btn-outline-navy">
+      <i data-lucide="user"></i>
+      <span>My Profile</span>
+    </a>
+    <a href="{{ url_for('employees.documents_list') }}" class="btn btn-outline-navy">
+      <i data-lucide="file-text"></i>
+      <span>My Documents</span>
+    </a>
+    {% if current_user.is_admin %}
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('addPolicyModal').style.display='flex'">
+      <i data-lucide="plus-circle"></i>
+      <span>Publish Policy</span>
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="reports-filter-panel" style="margin-bottom:1.5rem;">
+  <div class="reports-filter-grid" style="grid-template-columns: 2fr 1.5fr auto; align-items: flex-end; gap: 1rem;">
+    <div class="reports-field-group">
+      <label class="reports-field-label">Search Guidelines</label>
+      <div class="reports-input-wrap">
+        <i data-lucide="search"></i>
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by policy title or keywords..." class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;"/>
+      </div>
+    </div>
+
+    <div class="reports-field-group">
+      <label class="reports-field-label">Policy Category</label>
+      <div class="reports-input-wrap">
+        <i data-lucide="layers"></i>
+        <select name="category" class="form-control" style="height:40px;font-size:0.86rem;padding-left:36px;border-radius:8px;">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+          <option value="{{ cat }}" {% if cat_filter == cat %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="reports-field-group" style="justify-content: flex-end;">
+      <div style="display:flex;align-items:center;gap:0.5rem;">
+        <button type="submit" class="btn btn-primary" style="height:40px;padding:0 1.25rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+          <i data-lucide="filter" style="width:15px;height:15px;"></i>
+          <span>Filter</span>
+        </button>
+        <a href="{{ url_for('employees.policies_list') }}" class="btn btn-outline-navy" style="height:40px;padding:0 1rem;border-radius:8px;font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+          <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i>
+          <span>Reset</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Policy Cards Grid -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:1.25rem;margin-bottom:2rem;">
+  {% for policy in policies %}
+  <div class="card" style="display:flex;flex-direction:column;justify-content:space-between;border:1px solid #E2E8F0;box-shadow:var(--shadow-xs);transition:transform 0.2s ease, box-shadow 0.2s ease;">
+    <div class="card-body" style="padding:1.4rem;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;margin-bottom:0.75rem;">
+        <span class="badge badge-secondary" style="font-size:0.74rem;">{{ policy.category }}</span>
+        <span style="font-size:0.75rem;font-weight:700;color:var(--text-sec);background:#F1F5F9;padding:0.15rem 0.45rem;border-radius:4px;">
+          v{{ policy.version }}
+        </span>
+      </div>
+
+      <h3 style="margin:0 0 0.5rem;font-size:1.05rem;font-weight:800;color:var(--navy);">
+        {{ policy.title }}
+      </h3>
+
+      <p style="font-size:0.83rem;color:var(--text-sec);line-height:1.45;margin-bottom:1rem;">
+        {{ policy.description or 'Official corporate operational standard and employee compliance guidelines.' }}
+      </p>
+
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--text-muted);border-top:1px solid #F1F5F9;padding-top:0.75rem;">
+        <i data-lucide="calendar" style="width:14px;height:14px;"></i>
+        <span>Effective: {{ policy.effective_date.strftime('%d %B %Y') if policy.effective_date else policy.created_at.strftime('%d %B %Y') }}</span>
+      </div>
+    </div>
+
+    <div class="card-footer" style="background:#F8FAFC;border-top:1px solid #E2E8F0;padding:0.75rem 1.4rem;display:flex;align-items:center;justify-content:space-between;">
+      {% if policy.file_path %}
+      <a href="{{ url_for('employees.download_policy', policy_id=policy.id) }}" class="btn btn-sm btn-outline-navy" style="display:inline-flex;align-items:center;gap:0.4rem;">
+        <i data-lucide="file-down" style="width:14px;height:14px;"></i>
+        <span>Download Policy PDF</span>
+      </a>
+      {% else %}
+      <span style="font-size:0.75rem;color:var(--text-muted);display:inline-flex;align-items:center;gap:0.35rem;">
+        <i data-lucide="info" style="width:13px;height:13px;"></i>
+        <span>Official Text Standard</span>
+      </span>
+      {% endif %}
+
+      {% if current_user.is_admin %}
+      <form method="POST" action="{{ url_for('employees.delete_policy', policy_id=policy.id) }}" style="display:inline;margin:0;" onsubmit="return confirm('Delete this company policy?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <button type="submit" class="btn btn-sm" style="color:var(--danger);background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);padding:0.25rem 0.5rem;" title="Delete Policy">
+          <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="card" style="grid-column:1 / -1;padding:3rem 1.5rem;text-align:center;">
+    <i data-lucide="book-marked" style="width:40px;height:40px;color:var(--text-muted);margin-bottom:0.75rem;display:block;margin-left:auto;margin-right:auto;"></i>
+    <h3 style="font-size:1.1rem;font-weight:700;color:var(--navy);margin-bottom:0.25rem;">No Policies Found</h3>
+    <p style="font-size:0.85rem;color:var(--text-sec);margin:0;">No policies match your search filters.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Add Policy Modal (Admin only) -->
+{% if current_user.is_admin %}
+<div id="addPolicyModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,0.6);z-index:9999;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:#FFFFFF;border-radius:12px;width:100%;max-width:540px;box-shadow:var(--shadow-xl);overflow:hidden;animation:slideIn 0.2s ease;">
+    <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;background:#F8FAFC;">
+      <h3 style="margin:0;font-size:1.05rem;font-weight:800;color:var(--navy);display:flex;align-items:center;gap:0.5rem;">
+        <i data-lucide="plus-circle" style="color:var(--blue);width:18px;height:18px;"></i>
+        <span>Publish Company Policy</span>
+      </h3>
+      <button type="button" onclick="document.getElementById('addPolicyModal').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;">&times;</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('employees.add_policy') }}" enctype="multipart/form-data" style="padding:1.5rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">POLICY TITLE</label>
+        <input type="text" name="title" required placeholder="e.g. Leave &amp; Attendance Policy 2026, Information Security Code" class="form-control" style="font-size:0.85rem;"/>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">CATEGORY</label>
+          <select name="category" class="form-control" style="font-size:0.85rem;">
+            {% for cat in categories %}
+            <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">VERSION</label>
+          <input type="text" name="version" value="1.0" class="form-control" style="font-size:0.85rem;"/>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">EFFECTIVE DATE</label>
+        <input type="date" name="effective_date" class="form-control" style="font-size:0.85rem;"/>
+      </div>
+
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">POLICY DOCUMENT ATTACHMENT (PDF, DOCX)</label>
+        <input type="file" name="policy_file" accept=".pdf, .docx, .txt" class="form-control" style="font-size:0.82rem;padding:0.4rem;"/>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block;font-size:0.75rem;font-weight:700;color:var(--navy);margin-bottom:0.35rem;">SUMMARY / SCOPE</label>
+        <textarea name="description" placeholder="Executive summary and applicability of this policy..." class="form-control" rows="3" style="font-size:0.82rem;"></textarea>
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.75rem;">
+        <button type="button" onclick="document.getElementById('addPolicyModal').style.display='none'" class="btn btn-outline-navy">
+          <span>Cancel</span>
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i data-lucide="check"></i>
+          <span>Publish Policy</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Super Admin Executive Dashboard | EBT System{% endblock %}
-{% block topbar_title %}Super Admin SaaS Control Center{% endblock %}
+{% block title %}SaaS Control Hub | EBT System{% endblock %}
+{% block topbar_title %}Super Admin Control Hub{% endblock %}
+
+{% block breadcrumbs %}
+<nav class="breadcrumb">
+  <i data-lucide="crown" style="width:13px;height:13px;color:var(--cyan);"></i>
+  <span class="breadcrumb-sep">/</span>
+  <a href="{{ url_for('superadmin.dashboard') }}">Super Admin</a>
+  <span class="breadcrumb-sep">/</span>
+  <span class="breadcrumb-current">SaaS Dashboard</span>
+</nav>
+{% endblock %}
 
 {% block content %}
 <div class="reports-container">

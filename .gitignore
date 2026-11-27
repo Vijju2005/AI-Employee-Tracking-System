@@ -62,6 +62,18 @@ logs/
 ml_data/models/*.pkl
 ml_data/models/*.joblib
 
+# Backups
+*.bak
+*.bak_*
+
+# Uploaded persistent storage (keep .gitkeep only)
+app/static/uploads/avatars/*
+!app/static/uploads/avatars/.gitkeep
+app/static/uploads/documents/*
+!app/static/uploads/documents/.gitkeep
+app/static/uploads/policies/*
+!app/static/uploads/policies/.gitkeep
+
 # Report output (generated files)
 app/static/reports/
 
@@ -75,3 +87,15 @@ htmlcov/
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Deliverables, presentations, and local audit documents
+Final_Deliverables/
+EBT_System_Final_Documentation/
+FINAL_PROJECT_CLOSURE_REPORT.md
+backups/
+scratch/
+take_screenshots.py
+check_db_records.py
+test_live_features.py
+test_phase1.py
+test_tasks_today.py

@@ -199,17 +199,30 @@ class Employee(db.Model):
     status = Column(Enum(AccountStatus), default=AccountStatus.ACTIVE, nullable=False)
     date_joined = Column(DateTime, default=utcnow)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=True, unique=True)
+    manager_id = Column(Integer, ForeignKey("employees.id"), nullable=True)
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     department = relationship("Department", back_populates="employees")
     work_schedule = relationship("WorkSchedule", back_populates="employees")
     user = relationship("User", back_populates="employee")
+    manager = relationship("Employee", remote_side=[id], backref=db.backref("subordinates", lazy="dynamic"))
     attendance_records = relationship("Attendance", back_populates="employee", lazy="dynamic", cascade="all, delete-orphan")
     leave_requests = relationship("LeaveRequest", back_populates="employee", lazy="dynamic", cascade="all, delete-orphan")
+    documents = relationship("EmployeeDocument", back_populates="employee", lazy="dynamic", cascade="all, delete-orphan")
+    profile = relationship("EmployeeProfile", uselist=False, back_populates="employee", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Employee {self.employee_id} {self.full_name}>"
+
+    @property
+    def joining_calendar_year(self):
+        """
+        Dynamically returns the matching CalendarYear instance based on the employee's date_joined.
+        """
+        if not self.date_joined:
+            return None
+        return CalendarYear.get_calendar_year_for_date(self.date_joined)
 
     def to_dict(self):
         return {
@@ -491,6 +504,51 @@ class Holiday(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+# ── Calendar Year Management ───────────────────────────────────────────────────
+
+class CalendarYear(db.Model):
+    """
+    Fiscal or statutory calendar year defining official organizational dates.
+    Enables automatic mapping with employee joining dates.
+    """
+    __tablename__ = "calendar_years"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, unique=True, index=True) # e.g. 'Calendar Year 2026'
+    start_date = Column(db.Date, nullable=False)
+    end_date = Column(db.Date, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<CalendarYear {self.name} ({self.start_date} to {self.end_date})>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "is_active": self.is_active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
+    @classmethod
+    def get_calendar_year_for_date(cls, target_date):
+        """
+        Find the matching calendar year for a given date.
+        Accepts datetime or date.
+        """
+        if not target_date:
+            return None
+        if hasattr(target_date, "date"):
+            d = target_date.date()
+        else:
+            d = target_date
+        return cls.query.filter(cls.start_date <= d, cls.end_date >= d).first()
 
 
 # ── Payroll Models ─────────────────────────────────────────────────────────────
@@ -853,10 +911,14 @@ class Package(db.Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False, unique=True)
     code = Column(String(50), nullable=False, unique=True, index=True)
+    description = Column(String(255), nullable=True)
+    billing_cycle = Column(String(20), default="monthly", nullable=False)  # monthly, yearly, both
     price_per_month = Column(Float, nullable=False, default=0.0)
     price_per_year = Column(Float, nullable=False, default=0.0)
     max_employees = Column(Integer, nullable=False, default=25)
+    max_users = Column(Integer, nullable=False, default=5)
     max_storage_mb = Column(Integer, nullable=False, default=500)
+    trial_period_days = Column(Integer, default=14, nullable=False)
     features_json = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=utcnow, nullable=False)
@@ -865,6 +927,10 @@ class Package(db.Model):
 
     def __repr__(self):
         return f"<Package {self.name} (${self.price_per_month}/mo)>"
+
+
+# Alias for requirement compatibility
+SubscriptionPlan = Package
 
 
 class Company(db.Model):
@@ -876,21 +942,62 @@ class Company(db.Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(150), nullable=False, unique=True)
     code = Column(String(50), nullable=False, unique=True, index=True)
+    logo = Column(String(255), nullable=True)
+    registration_number = Column(String(100), nullable=True)
+    gstin = Column(String(50), nullable=True)
+    pan = Column(String(50), nullable=True)
+    industry = Column(String(100), nullable=True)
     email = Column(String(255), nullable=False)
     phone = Column(String(30), nullable=True)
     address = Column(String(255), nullable=True)
+    country = Column(String(100), default="India", nullable=True)
+    state = Column(String(100), nullable=True)
+    city = Column(String(100), nullable=True)
+    pincode = Column(String(20), nullable=True)
     website = Column(String(200), nullable=True)
     package_id = Column(Integer, ForeignKey("packages.id"), nullable=True)
-    status = Column(String(30), default="active", nullable=False)  # active, suspended, pending
+    employee_limit = Column(Integer, nullable=True)
+    user_limit = Column(Integer, nullable=True)
+    status = Column(String(30), default="active", nullable=False)  # active, suspended, pending, archived
     created_at = Column(DateTime, default=utcnow, nullable=False)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
 
     package = relationship("Package", foreign_keys=[package_id])
     users = relationship("User", back_populates="company", foreign_keys="User.company_id", lazy="dynamic")
     subscriptions = relationship("Subscription", back_populates="company", lazy="dynamic")
+    locations = relationship("CompanyLocation", back_populates="company", cascade="all, delete-orphan", lazy="dynamic")
 
     def __repr__(self):
         return f"<Company {self.name} ({self.code})>"
+
+
+class CompanyLocation(db.Model):
+    """
+    Multiple office branches, facilities and geographic locations per company tenant.
+    """
+    __tablename__ = "company_locations"
+
+    id = Column(Integer, primary_key=True)
+    company_id = Column(Integer, ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
+    location_name = Column(String(100), nullable=False)
+    address = Column(String(255), nullable=True)
+    city = Column(String(100), nullable=True)
+    state = Column(String(100), nullable=True)
+    country = Column(String(100), default="India", nullable=True)
+    pincode = Column(String(20), nullable=True)
+    phone = Column(String(30), nullable=True)
+    email = Column(String(150), nullable=True)
+    is_headquarters = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+
+    company = relationship("Company", back_populates="locations")
+
+    def __repr__(self):
+        return f"<CompanyLocation {self.location_name} (Company #{self.company_id})>"
+
+
+# Alias for backward/spec compatibility
+CompanyAddress = CompanyLocation
 
 
 class Subscription(db.Model):
@@ -1006,6 +1113,226 @@ class JobCandidate(db.Model):
 
     def __repr__(self):
         return f"<JobCandidate {self.full_name} ({self.status})>"
+
+
+class EmployeeDocument(db.Model):
+    __tablename__ = "employee_documents"
+
+    id = Column(Integer, primary_key=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, index=True)
+    document_name = Column(String(200), nullable=False)
+    document_type = Column(String(80), nullable=False, default="Other")  # Offer Letter, Experience Letter, ID Proof, Address Proof, Certification, Other
+    file_path = Column(String(500), nullable=False)
+    file_size = Column(Integer, default=0)  # bytes
+    mime_type = Column(String(100), default="application/octet-stream")
+    status = Column(String(40), default="Approved", nullable=False)  # Pending, Approved, Rejected
+    notes = Column(Text, nullable=True)
+    uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    employee = relationship("Employee", back_populates="documents")
+    uploader = relationship("User", foreign_keys=[uploaded_by_id])
+
+    def __repr__(self):
+        return f"<EmployeeDocument {self.document_name} ({self.document_type})>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "employee_id": self.employee_id,
+            "document_name": self.document_name,
+            "document_type": self.document_type,
+            "file_size": self.file_size,
+            "mime_type": self.mime_type,
+            "status": self.status,
+            "uploaded_at": self.created_at.strftime("%Y-%m-%d %H:%M") if self.created_at else None,
+        }
+
+
+class CompanyPolicy(db.Model):
+    __tablename__ = "company_policies"
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(200), nullable=False)
+    category = Column(String(100), nullable=False, default="General")  # General, Leave & Attendance, IT & Security, Code of Conduct, POSH, HR Guidelines
+    description = Column(Text, nullable=True)
+    file_path = Column(String(500), nullable=True)
+    version = Column(String(30), default="1.0", nullable=False)
+    effective_date = Column(db.Date, nullable=True)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    creator = relationship("User", foreign_keys=[created_by_id])
+
+    def __repr__(self):
+        return f"<CompanyPolicy {self.title} (v{self.version})>"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "category": self.category,
+            "description": self.description,
+            "has_file": bool(self.file_path),
+            "version": self.version,
+            "effective_date": self.effective_date.isoformat() if self.effective_date else None,
+            "created_at": self.created_at.strftime("%Y-%m-%d") if self.created_at else None,
+        }
+
+
+class EmployeeProfile(db.Model):
+    """
+    Comprehensive Employee Profile Extension
+    Stores personal, government/identity, family/emergency contacts,
+    education/experience, and extended employment attributes.
+    Sensitive identity fields are encrypted at rest with Fernet AES-256.
+    """
+    __tablename__ = "employee_profiles"
+
+    id = Column(Integer, primary_key=True)
+    employee_id = Column(Integer, ForeignKey("employees.id"), nullable=False, unique=True, index=True)
+
+    # 1. Personal Information
+    date_of_birth = Column(db.Date, nullable=True)
+    gender = Column(String(20), nullable=True)  # Male, Female, Other
+    marital_status = Column(String(30), nullable=True)  # Single, Married, Divorced, Widowed
+    personal_email = Column(String(255), nullable=True)
+    personal_phone = Column(String(30), nullable=True)
+    blood_group = Column(String(10), nullable=True)  # O+, A+, B+, AB-, etc.
+    nationality = Column(String(80), default="Indian", nullable=True)
+    current_address = Column(Text, nullable=True)
+    permanent_address = Column(Text, nullable=True)
+
+    # 2. Identity & Government Details (Encrypted at rest)
+    aadhaar_number_encrypted = Column(String(255), nullable=True)
+    pan_number_encrypted = Column(String(255), nullable=True)
+    passport_number = Column(String(100), nullable=True)
+    passport_expiry = Column(db.Date, nullable=True)
+    driving_licence = Column(String(100), nullable=True)
+    uan_number = Column(String(50), nullable=True)
+    pf_account_number = Column(String(50), nullable=True)
+    esic_number = Column(String(50), nullable=True)
+
+    # 3. Family & Emergency Contacts
+    father_name = Column(String(150), nullable=True)
+    mother_name = Column(String(150), nullable=True)
+    spouse_name = Column(String(150), nullable=True)
+    dependents_info = Column(Text, nullable=True)
+    emergency_contact_name = Column(String(150), nullable=True)
+    emergency_contact_relation = Column(String(80), nullable=True)
+    emergency_contact_phone = Column(String(30), nullable=True)
+    emergency_contact_address = Column(Text, nullable=True)
+
+    # 4. Education & Experience
+    highest_qualification = Column(String(150), nullable=True)
+    institution_university = Column(String(200), nullable=True)
+    graduation_year = Column(Integer, nullable=True)
+    previous_company = Column(String(200), nullable=True)
+    previous_designation = Column(String(150), nullable=True)
+    total_experience_years = Column(Float, default=0.0, nullable=True)
+
+    # 5. Extended Employment Attributes
+    employment_type = Column(String(50), default="Full-Time", nullable=True)  # Full-Time, Part-Time, Contract, Intern
+    work_location = Column(String(100), default="Bengaluru", nullable=True)
+    probation_end_date = Column(db.Date, nullable=True)
+    confirmation_date = Column(db.Date, nullable=True)
+
+    # 6. Banking Detail Overrides (Encrypted at rest)
+    account_holder_name = Column(String(150), nullable=True)
+    bank_branch = Column(String(150), nullable=True)
+    bank_account_encrypted = Column(String(255), nullable=True)
+
+    created_at = Column(DateTime, default=utcnow, nullable=False)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow, nullable=False)
+
+    employee = relationship("Employee", back_populates="profile")
+
+    def __repr__(self):
+        return f"<EmployeeProfile emp_id={self.employee_id}>"
+
+    # Properties for encrypted fields
+    @property
+    def aadhaar_number(self):
+        from app.utils.crypto import decrypt_field
+        return decrypt_field(self.aadhaar_number_encrypted) if self.aadhaar_number_encrypted else ""
+
+    @aadhaar_number.setter
+    def aadhaar_number(self, val):
+        from app.utils.crypto import encrypt_field
+        self.aadhaar_number_encrypted = encrypt_field(val) if val else None
+
+    @property
+    def pan_number(self):
+        from app.utils.crypto import decrypt_field
+        return decrypt_field(self.pan_number_encrypted) if self.pan_number_encrypted else ""
+
+    @pan_number.setter
+    def pan_number(self, val):
+        from app.utils.crypto import encrypt_field
+        self.pan_number_encrypted = encrypt_field(val) if val else None
+
+    @property
+    def bank_account_number(self):
+        from app.utils.crypto import decrypt_field
+        return decrypt_field(self.bank_account_encrypted) if self.bank_account_encrypted else ""
+
+    @bank_account_number.setter
+    def bank_account_number(self, val):
+        from app.utils.crypto import encrypt_field
+        self.bank_account_encrypted = encrypt_field(val) if val else None
+
+    # Masked representations for safe display
+    @property
+    def aadhaar_masked(self):
+        from app.utils.crypto import mask_aadhaar
+        return mask_aadhaar(self.aadhaar_number)
+
+    @property
+    def pan_masked(self):
+        from app.utils.crypto import mask_pan
+        return mask_pan(self.pan_number)
+
+    @property
+    def bank_account_masked(self):
+        from app.utils.crypto import mask_bank_account
+        return mask_bank_account(self.bank_account_number)
+
+    def to_dict(self, mask_sensitive=True):
+        """Export dictionary representation; masks sensitive government identifiers by default."""
+        return {
+            "id": self.id,
+            "employee_id": self.employee_id,
+            "date_of_birth": self.date_of_birth.isoformat() if self.date_of_birth else None,
+            "gender": self.gender,
+            "marital_status": self.marital_status,
+            "personal_email": self.personal_email,
+            "personal_phone": self.personal_phone,
+            "blood_group": self.blood_group,
+            "nationality": self.nationality,
+            "current_address": self.current_address,
+            "permanent_address": self.permanent_address,
+            "aadhaar_number": self.aadhaar_masked if mask_sensitive else self.aadhaar_number,
+            "pan_number": self.pan_masked if mask_sensitive else self.pan_number,
+            "passport_number": self.passport_number,
+            "uan_number": self.uan_number,
+            "pf_account_number": self.pf_account_number,
+            "esic_number": self.esic_number,
+            "highest_qualification": self.highest_qualification,
+            "institution_university": self.institution_university,
+            "graduation_year": self.graduation_year,
+            "previous_company": self.previous_company,
+            "previous_designation": self.previous_designation,
+            "total_experience_years": self.total_experience_years,
+            "employment_type": self.employment_type,
+            "work_location": self.work_location,
+            "emergency_contact_name": self.emergency_contact_name,
+            "emergency_contact_phone": self.emergency_contact_phone,
+            "emergency_contact_relation": self.emergency_contact_relation,
+        }
+
+
 
 
 
