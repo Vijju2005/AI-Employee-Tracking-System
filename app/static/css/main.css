@@ -2584,13 +2584,72 @@ table.reports-data-table.pay-comp-table tbody td {
 @media (max-width: 768px) {
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
-  .main-content { margin-left: 0; }
+  .main-content {
+    margin-left: 0;
+    min-width: 0;
+    max-width: 100vw;
+  }
   .hamburger { display: flex; align-items: center; justify-content: center; }
   .form-row   { grid-template-columns: 1fr; }
   .form-row-3 { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
-  .page-content { padding: 1.25rem 1rem; }
+  .page-content {
+    padding: 1.25rem 1rem;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
   .emp-dashboard-grid { grid-template-columns: 1fr; }
+
+  /* Topbar Mobile Sizing & Profile Container Fit */
+  .topbar {
+    padding: 0 1rem;
+    gap: 0.75rem;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .topbar-right {
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  #profileBtn > div:nth-child(2) {
+    display: none !important;
+  }
+  #profileBtn {
+    padding: 0.2rem !important;
+  }
+  .topbar-title {
+    font-size: 0.92rem;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Table and Card Mobile Overflow Prevention */
+  .table-wrapper,
+  .reports-table-wrapper,
+  .card-body > .table-wrapper,
+  .card > .table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+  }
+  .card {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .card-body {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .stat-card {
+    min-width: 0;
+    box-sizing: border-box;
+  }
 }
 
 @media (max-width: 720px) {
